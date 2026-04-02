@@ -1,0 +1,35 @@
+version: "3.9"
+
+# Local development overrides: hot-reload via volume mounts
+services:
+  api-gateway:
+    volumes:
+      - ./services/api-gateway:/app
+    command: flask --app app.main run --host=0.0.0.0 --port=8000 --debug
+
+  auth-service:
+    volumes:
+      - ./services/auth-service:/app
+    command: flask --app app.main run --host=0.0.0.0 --port=8001 --debug
+
+  data-ingestion-service:
+    volumes:
+      - ./services/data-ingestion-service:/app
+      - uploaded_files:/uploads
+    command: flask --app app.main run --host=0.0.0.0 --port=8002 --debug
+
+  data-ingestion-worker:
+    volumes:
+      - ./services/data-ingestion-service:/app
+      - uploaded_files:/uploads
+    command: celery -A app.tasks.celery_app worker --loglevel=debug -Q ingestion,connectors --concurrency=1
+
+  ml-training-service:
+    volumes:
+      - ./services/ml-training-service:/app
+    command: flask --app app.main run --host=0.0.0.0 --port=8003 --debug
+
+  metrics-service:
+    volumes:
+      - ./services/metrics-service:/app
+    command: flask --app app.main run --host=0.0.0.0 --port=8004 --debug

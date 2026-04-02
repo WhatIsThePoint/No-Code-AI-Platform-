@@ -1,0 +1,204 @@
+version: "3.9"
+
+x-common-env: &common-env
+  env_file:
+    - .env
+
+x-python-service: &python-service
+  restart: unless-stopped
+  networks:
+    - backend
+  env_file:
+    - .env
+
+networks:
+  backend:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  mongo_data:
+  redis_data:
+  timescale_data:
+  uploaded_files:
+
+services:
+  # ── Databases ──────────────────────────────────────────────────────────────
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    networks:
+      - backend
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-nocode}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nocode_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-nocode_auth}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nocode} -d ${POSTGRES_DB:-nocode_auth}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5432:5432"
+
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    networks:
+      - backend
+    volumes:
+      - mongo_data:/data/db
+      - ./infra/mongo/init.js:/docker-entrypoint-initdb.d/init.js:ro
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-nocode}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-nocode_secret}
+      MONGO_INITDB_DATABASE: ${MONGO_DB:-nocode_ingestion}
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')", "--quiet"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "27017:27017"
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks:
+      - backend
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "6379:6379"
+
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    restart: unless-stopped
+    networks:
+      - backend
+    volumes:
+      - timescale_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-nocode}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nocode_secret}
+      POSTGRES_DB: nocode_metrics
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nocode}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5433:5432"
+
+  # ── Application Services ───────────────────────────────────────────────────
+
+  api-gateway:
+    <<: *python-service
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      AUTH_SERVICE_URL: http://auth-service:8001
+      DATA_SERVICE_URL: http://data-ingestion-service:8002
+      ML_SERVICE_URL: http://ml-training-service:8003
+      METRICS_SERVICE_URL: http://metrics-service:8004
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+      data-ingestion-service:
+        condition: service_started
+
+  auth-service:
+    <<: *python-service
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-nocode}:${POSTGRES_PASSWORD:-nocode_secret}@postgres:5432/${POSTGRES_DB:-nocode_auth}
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  data-ingestion-service:
+    <<: *python-service
+    build:
+      context: ./services/data-ingestion-service
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8002"
+    volumes:
+      - uploaded_files:/uploads
+    environment:
+      MONGO_URL: mongodb://${MONGO_INITDB_ROOT_USERNAME:-nocode}:${MONGO_INITDB_ROOT_PASSWORD:-nocode_secret}@mongo:27017/${MONGO_DB:-nocode_ingestion}?authSource=admin
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      UPLOAD_FOLDER: /uploads
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  data-ingestion-worker:
+    <<: *python-service
+    build:
+      context: ./services/data-ingestion-service
+      dockerfile: Dockerfile
+    command: celery -A app.tasks.celery_app worker --loglevel=info -Q ingestion,connectors --concurrency=2
+    volumes:
+      - uploaded_files:/uploads
+    environment:
+      MONGO_URL: mongodb://${MONGO_INITDB_ROOT_USERNAME:-nocode}:${MONGO_INITDB_ROOT_PASSWORD:-nocode_secret}@mongo:27017/${MONGO_DB:-nocode_ingestion}?authSource=admin
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      UPLOAD_FOLDER: /uploads
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  ml-training-service:
+    <<: *python-service
+    build:
+      context: ./services/ml-training-service
+      dockerfile: Dockerfile
+    ports:
+      - "8003:8003"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  metrics-service:
+    <<: *python-service
+    build:
+      context: ./services/metrics-service
+      dockerfile: Dockerfile
+    ports:
+      - "8004:8004"
+    environment:
+      TIMESCALE_URL: postgresql://${POSTGRES_USER:-nocode}:${POSTGRES_PASSWORD:-nocode_secret}@timescaledb:5432/nocode_metrics
+    depends_on:
+      timescaledb:
+        condition: service_healthy

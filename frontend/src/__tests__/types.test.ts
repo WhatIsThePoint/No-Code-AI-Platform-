@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import type { TaskResult, TaskStatus } from "../types/task";
-import type { Pipeline, Algorithm, TaskType } from "../types/pipeline";
+import type { TaskResult } from "../types/task";
+import type { Algorithm, TaskType } from "../types/pipeline";
 import type { ModelVersion } from "../types/model";
 
 describe("TaskResult type", () => {

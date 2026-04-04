@@ -1,4 +1,5 @@
 import os
+import tempfile
 
 
 class Config:
@@ -30,3 +31,4 @@ class Config:
 class TestingConfig(Config):
     TESTING = True
     MONGO_DB = "test_training"
+    MODEL_FOLDER = tempfile.mkdtemp()

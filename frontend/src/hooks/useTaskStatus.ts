@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { datasetsApi } from "../api/datasets";
+import { tasksApi } from "../api/tasks";
 import type { TaskResult, TaskStatus } from "../types/task";
 
 const POLL_INTERVAL_MS = 2000;
@@ -17,7 +17,7 @@ export function useTaskStatus(taskId: string | null | undefined) {
 
     const poll = async () => {
       try {
-        const { data } = await datasetsApi.getTaskStatus(taskId);
+        const { data } = await tasksApi.getStatus(taskId);
         if (!cancelled) {
           setResult(data);
           if (!TERMINAL_STATES.includes(data.status)) {

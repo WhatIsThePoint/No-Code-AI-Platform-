@@ -1,5 +1,9 @@
 version: "3.9"
 
+volumes:
+  uploaded_files:
+  model_artifacts:
+
 # Local development overrides: hot-reload via volume mounts
 services:
   api-gateway:
@@ -22,12 +26,20 @@ services:
     volumes:
       - ./services/data-ingestion-service:/app
       - uploaded_files:/uploads
-    command: celery -A app.tasks.celery_app worker --loglevel=debug -Q ingestion,connectors --concurrency=1
+    command: celery -A app.tasks.celery_app worker --loglevel=debug -Q ingestion,connectors --concurrency=1 --include=app.tasks.profiling,app.tasks.preprocessing,app.tasks.sql_import
 
   ml-training-service:
     volumes:
       - ./services/ml-training-service:/app
+      - model_artifacts:/models
     command: flask --app app.main run --host=0.0.0.0 --port=8003 --debug
+
+  ml-training-worker:
+    volumes:
+      - ./services/ml-training-service:/app
+      - uploaded_files:/uploads
+      - model_artifacts:/models
+    command: celery -A app.tasks.celery_app worker --loglevel=debug -Q training --concurrency=1 --include=app.tasks.train
 
   metrics-service:
     volumes:

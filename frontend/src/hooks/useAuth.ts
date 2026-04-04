@@ -4,7 +4,7 @@ import { authApi } from "../api/auth";
 import { useAuthStore } from "../store/authSlice";
 
 export function useAuth() {
-  const { user, accessToken, isAuthenticated, setAuth, clearAuth } =
+  const { user, accessToken, isAuthenticated, setAuth, setToken, clearAuth } =
     useAuthStore();
   const navigate = useNavigate();
 
@@ -14,12 +14,13 @@ export function useAuth() {
       if (data.requires_2fa) {
         return { requires2FA: true, session_token: data.session_token };
       }
-      // Fetch full user profile
+      // Store token first so the getMe() request can authenticate
+      setToken(data.access_token!);
       const { data: userData } = await authApi.getMe();
       setAuth(userData, data.access_token!);
       return { requires2FA: false };
     },
-    [setAuth]
+    [setAuth, setToken]
   );
 
   const logout = useCallback(async () => {

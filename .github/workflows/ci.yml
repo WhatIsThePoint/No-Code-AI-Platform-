@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [api-gateway, auth-service, data-ingestion-service]
+        service: [api-gateway, auth-service, data-ingestion-service, ml-training-service]
     steps:
       - uses: actions/checkout@v4
 
@@ -63,7 +63,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [api-gateway, auth-service, data-ingestion-service]
+        service: [api-gateway, auth-service, data-ingestion-service, ml-training-service]
 
     services:
       postgres:

@@ -32,7 +32,7 @@ def create_app(config=None):
     limiter = Limiter(
         app=app,
         key_func=_rate_limit_key,
-        default_limits=["200 per minute"],
+        default_limits=["600 per minute"],
         storage_uri=redis_url,
     )
 

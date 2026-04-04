@@ -53,6 +53,9 @@ def create_app(config=None):
     # Store redis on app for use in routes
     app.extensions["redis"] = _redis
 
+    # Import models so Flask-Migrate can detect them
+    from .models import company, user  # noqa: F401
+
     # Register blueprints
     from .routes.auth import auth_bp
     from .routes.company import company_bp

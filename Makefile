@@ -1,4 +1,4 @@
-.PHONY: up down build test lint migrate shell-auth shell-ingestion logs
+.PHONY: up down build test lint migrate shell-auth shell-ingestion shell-ml logs
 
 up:
 	docker compose up -d
@@ -20,10 +20,11 @@ test:
 	docker compose run --rm auth-service pytest tests/ -v --cov=app
 	docker compose run --rm api-gateway pytest tests/ -v --cov=app
 	docker compose run --rm data-ingestion-service pytest tests/ -v --cov=app
+	docker compose run --rm ml-training-service pytest tests/ -v --cov=app
 
 # Lint all backend services
 lint:
-	@for svc in api-gateway auth-service data-ingestion-service; do \
+	@for svc in api-gateway auth-service data-ingestion-service ml-training-service; do \
 		echo "=== Linting $$svc ==="; \
 		cd services/$$svc && black --check app/ tests/ && isort --check-only app/ tests/ && flake8 app/ tests/ --max-line-length 100; \
 		cd ../..; \
@@ -31,17 +32,22 @@ lint:
 
 # Run Alembic migrations inside the auth-service container
 migrate:
-	docker compose run --rm auth-service flask db upgrade
+	docker compose run --rm -e FLASK_APP=app.main auth-service flask db init || true
+	docker compose run --rm -e FLASK_APP=app.main auth-service flask db migrate -m "initial"
+	docker compose run --rm -e FLASK_APP=app.main auth-service flask db upgrade
 
 # Generate a new Alembic migration (usage: make migration MSG="add table foo")
 migration:
-	docker compose run --rm auth-service flask db migrate -m "$(MSG)"
+	docker compose run --rm -e FLASK_APP=app.main auth-service flask db migrate -m "$(MSG)"
 
 shell-auth:
 	docker compose exec auth-service /bin/bash
 
 shell-ingestion:
 	docker compose exec data-ingestion-service /bin/bash
+
+shell-ml:
+	docker compose exec ml-training-service /bin/bash
 
 # Install pre-commit hooks locally
 hooks:

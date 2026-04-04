@@ -22,8 +22,12 @@ def preprocess(dataset_id):
     if abs(total - 1.0) > 0.01:
         return jsonify({"error": "invalid_split_ratios", "detail": "Ratios must sum to 1.0"}), 400
 
+    company_id = data.get("company_id") or request.args.get("company_id")
+    clauses = [{"user_id": user_id}]
+    if company_id:
+        clauses.append({"company_id": company_id})
     doc = mongo.get_collection("datasets").find_one(
-        {"dataset_id": dataset_id, "$or": [{"user_id": user_id}]},
+        {"dataset_id": dataset_id, "$or": clauses},
         {"status": 1},
     )
     if not doc:

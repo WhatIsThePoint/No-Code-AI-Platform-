@@ -11,7 +11,7 @@ from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import LabelEncoder, MinMaxScaler, OneHotEncoder, RobustScaler, StandardScaler
+from sklearn.preprocessing import LabelEncoder, MinMaxScaler, OneHotEncoder, OrdinalEncoder, RobustScaler, StandardScaler
 
 from .storage_service import load_dataframe
 
@@ -46,7 +46,8 @@ def preprocess_dataset(
     if encoding == "onehot":
         encoder = OneHotEncoder(handle_unknown="ignore", sparse_output=False)
     else:
-        encoder = OneHotEncoder(handle_unknown="ignore", sparse_output=False)  # fallback
+        # "label" and "ordinal" both use OrdinalEncoder (LabelEncoder is 1D-only, incompatible with ColumnTransformer)
+        encoder = OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1)
 
     # Scaling
     scaling = config.get("scaling_strategy", "standard")

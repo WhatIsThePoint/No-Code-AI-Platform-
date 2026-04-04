@@ -32,15 +32,18 @@ def proxy_users(subpath):
     return _forward(upstream, f"/users/{subpath}", require_auth=True)
 
 
+@auth_bp.route("/companies", methods=["GET", "POST"])
 @auth_bp.route("/companies/<path:subpath>", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
-def proxy_companies(subpath):
+def proxy_companies(subpath=""):
     upstream = current_app.config["AUTH_SERVICE_URL"]
-    return _forward(upstream, f"/companies/{subpath}", require_auth=True)
+    path = f"/companies/{subpath}" if subpath else "/companies"
+    return _forward(upstream, path, require_auth=True)
 
 
 @auth_bp.route("/invitations/<path:subpath>", methods=["GET", "POST"])
 def proxy_invitations(subpath):
-    path = f"/invitations/{subpath}"
-    is_public = path.startswith("/invitations/accept/")
+    # auth-service mounts company_bp at /companies, so invitations live at /companies/invitations/
+    path = f"/companies/invitations/{subpath}"
+    is_public = subpath.startswith("accept/")
     upstream = current_app.config["AUTH_SERVICE_URL"]
     return _forward(upstream, path, require_auth=not is_public)

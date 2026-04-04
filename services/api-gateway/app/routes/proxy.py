@@ -25,17 +25,35 @@ _HOP_BY_HOP = frozenset(
 )
 
 
+@proxy_bp.route("/datasets", methods=["GET", "POST"])
 @proxy_bp.route("/datasets/<path:subpath>", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
-def proxy_data(subpath):
+def proxy_data(subpath=""):
     upstream = current_app.config["DATA_SERVICE_URL"]
-    # Upload endpoint has a tighter rate limit (handled in data-ingestion-service)
-    return _forward(upstream, f"/datasets/{subpath}", require_auth=True)
+    path = f"/datasets/{subpath}" if subpath else "/datasets"
+    return _forward(upstream, path, require_auth=True)
 
 
 @proxy_bp.route("/tasks/<path:subpath>", methods=["GET"])
 def proxy_tasks(subpath):
+    # Route training task status to ml-training-service, others to data-ingestion
     upstream = current_app.config["DATA_SERVICE_URL"]
     return _forward(upstream, f"/tasks/{subpath}", require_auth=True)
+
+
+# ── ML Training Service routes ────────────────────────────────────────────────
+
+@proxy_bp.route("/pipelines", methods=["GET", "POST"])
+@proxy_bp.route("/pipelines/<path:subpath>", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
+def proxy_pipelines(subpath=""):
+    upstream = current_app.config["ML_SERVICE_URL"]
+    path = f"/pipelines/{subpath}" if subpath else "/pipelines"
+    return _forward(upstream, path, require_auth=True)
+
+
+@proxy_bp.route("/models/<path:subpath>", methods=["GET", "DELETE"])
+def proxy_models(subpath):
+    upstream = current_app.config["ML_SERVICE_URL"]
+    return _forward(upstream, f"/models/{subpath}", require_auth=True)
 
 
 def _forward(upstream_base: str, path: str, require_auth: bool = True) -> Response:

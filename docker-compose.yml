@@ -21,6 +21,7 @@ volumes:
   redis_data:
   timescale_data:
   uploaded_files:
+  model_artifacts:
 
 services:
   # ── Databases ──────────────────────────────────────────────────────────────
@@ -43,7 +44,7 @@ services:
       timeout: 5s
       retries: 5
     ports:
-      - "5432:5432"
+      - "5434:5432"
 
   mongo:
     image: mongo:7
@@ -186,9 +187,60 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8003:8003"
+    volumes:
+      - uploaded_files:/uploads
+      - model_artifacts:/models
+    environment:
+      MONGO_URL: mongodb://${MONGO_INITDB_ROOT_USERNAME:-nocode}:${MONGO_INITDB_ROOT_PASSWORD:-nocode_secret}@mongo:27017/${MONGO_DB:-nocode_ingestion}?authSource=admin
+      MONGO_DB: ${MONGO_DB:-nocode_ingestion}
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      UPLOAD_FOLDER: /uploads
+      MODEL_FOLDER: /models
+      MAIL_SERVER: mailhog
+      MAIL_PORT: "1025"
+      FRONTEND_URL: http://localhost:5173
     depends_on:
+      mongo:
+        condition: service_healthy
       redis:
         condition: service_healthy
+
+  ml-training-worker:
+    <<: *python-service
+    build:
+      context: ./services/ml-training-service
+      dockerfile: Dockerfile
+    command: celery -A app.tasks.celery_app worker --loglevel=info -Q training --concurrency=2
+    volumes:
+      - uploaded_files:/uploads
+      - model_artifacts:/models
+    environment:
+      MONGO_URL: mongodb://${MONGO_INITDB_ROOT_USERNAME:-nocode}:${MONGO_INITDB_ROOT_PASSWORD:-nocode_secret}@mongo:27017/${MONGO_DB:-nocode_ingestion}?authSource=admin
+      MONGO_DB: ${MONGO_DB:-nocode_ingestion}
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      UPLOAD_FOLDER: /uploads
+      MODEL_FOLDER: /models
+      MAIL_SERVER: mailhog
+      MAIL_PORT: "1025"
+      FRONTEND_URL: http://localhost:5173
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    restart: unless-stopped
+    networks:
+      - backend
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # Web UI
 
   metrics-service:
     <<: *python-service

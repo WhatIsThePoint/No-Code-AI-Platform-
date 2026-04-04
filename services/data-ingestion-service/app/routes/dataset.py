@@ -1,7 +1,6 @@
 import json
 
 import redis as redis_client
-from bson import ObjectId
 from flask import Blueprint, current_app, jsonify, request
 
 from ..extensions import mongo
@@ -12,6 +11,17 @@ dataset_bp = Blueprint("dataset", __name__)
 
 def _get_user_id():
     return request.headers.get("X-User-Id")
+
+
+def _ownership_query(dataset_id: str, user_id: str) -> dict:
+    """Return a MongoDB query that matches a dataset the caller is allowed to access.
+    Accepts ownership (user_id) or company membership (company_id query param).
+    """
+    company_id = request.args.get("company_id")
+    clauses = [{"user_id": user_id}]
+    if company_id:
+        clauses.append({"company_id": company_id})
+    return {"dataset_id": dataset_id, "$or": clauses}
 
 
 def _serialize_doc(doc: dict) -> dict:
@@ -34,9 +44,10 @@ def list_datasets():
     limit = int(request.args.get("limit", 20))
     status_filter = request.args.get("status")
 
-    query: dict = {"$or": [{"user_id": user_id}]}
+    clauses = [{"user_id": user_id}]
     if company_id:
-        query["$or"].append({"company_id": company_id})
+        clauses.append({"company_id": company_id})
+    query: dict = {"$or": clauses}
     if status_filter:
         query["status"] = status_filter
 
@@ -56,7 +67,7 @@ def list_datasets():
 def get_dataset(dataset_id):
     user_id = _get_user_id()
     doc = mongo.get_collection("datasets").find_one(
-        {"dataset_id": dataset_id, "$or": [{"user_id": user_id}]},
+        _ownership_query(dataset_id, user_id),
         {"_id": 0, "sql_connector.password_encrypted": 0},
     )
     if not doc:
@@ -70,7 +81,7 @@ def preview_dataset(dataset_id):
     rows = min(int(request.args.get("rows", 50)), 500)
 
     doc = mongo.get_collection("datasets").find_one(
-        {"dataset_id": dataset_id, "$or": [{"user_id": user_id}]},
+        _ownership_query(dataset_id, user_id),
         {"file_path": 1, "status": 1},
     )
     if not doc:
@@ -100,7 +111,7 @@ def preview_dataset(dataset_id):
 def get_profile(dataset_id):
     user_id = _get_user_id()
     doc = mongo.get_collection("datasets").find_one(
-        {"dataset_id": dataset_id, "$or": [{"user_id": user_id}]},
+        _ownership_query(dataset_id, user_id),
         {"profiling_summary": 1, "status": 1},
     )
     if not doc:

@@ -1,6 +1,5 @@
 import api from "./axios";
 import type { Dataset, PreprocessingConfig } from "../types/dataset";
-import type { TaskResult } from "../types/task";
 
 export const datasetsApi = {
   list: (params?: { company_id?: string; page?: number; limit?: number }) =>
@@ -45,7 +44,4 @@ export const datasetsApi = {
     api.post<{ task_id: string; status: string }>(`/datasets/${id}/preprocess`, config),
 
   delete: (id: string) => api.delete(`/datasets/${id}`),
-
-  getTaskStatus: (task_id: string) =>
-    api.get<TaskResult>(`/tasks/${task_id}/status`),
 };

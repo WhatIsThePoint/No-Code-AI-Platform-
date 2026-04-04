@@ -1,3 +1,17 @@
 Flask==3.0.3
 python-dotenv==1.0.1
 gunicorn==22.0.0
+pymongo==4.7.3
+Flask-PyMongo==2.3.0
+celery[redis]==5.4.0
+redis==5.0.6
+pandas==2.2.2
+numpy==1.26.4
+pyarrow==16.1.0
+scikit-learn==1.5.0
+xgboost==2.1.0
+lightgbm==4.4.0
+catboost==1.2.5
+prophet==1.1.5
+joblib==1.4.2
+flask-mail==0.10.0

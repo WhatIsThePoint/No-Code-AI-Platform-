@@ -17,7 +17,7 @@ def _allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-@upload_bp.post("/upload")
+@upload_bp.post("/datasets/upload")
 def upload_file():
     user_id = request.headers.get("X-User-Id")
     if not user_id:

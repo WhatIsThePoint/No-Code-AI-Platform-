@@ -7,6 +7,8 @@ const DRAWER_WIDTH = 220;
 const navItems = [
   { label: "Dashboard", path: "/dashboard" },
   { label: "Datasets", path: "/data" },
+  { label: "Pipelines", path: "/pipelines" },
+  { label: "Model Registry", path: "/models" },
   { label: "Company", path: "/company" },
   { label: "Profile", path: "/profile" },
 ];

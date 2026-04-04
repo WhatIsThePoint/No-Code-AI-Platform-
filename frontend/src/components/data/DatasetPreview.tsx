@@ -1,5 +1,6 @@
 import { Box, CircularProgress, Alert, Typography, Paper } from "@mui/material";
-import { DataGrid, GridColDef } from "@mui/x-data-grid";
+import { DataGrid } from "@mui/x-data-grid";
+import type { GridColDef } from "@mui/x-data-grid";
 import { useEffect, useState } from "react";
 import { datasetsApi } from "../../api/datasets";
 

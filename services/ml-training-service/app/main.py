@@ -1,8 +1,37 @@
+import os
+
 from flask import Flask, jsonify
 
+from .config import Config, TestingConfig
+from .extensions import mongo, mail
 
-def create_app():
+
+def create_app(config=None):
     app = Flask(__name__)
+
+    if config:
+        app.config.from_object(config)
+    elif os.environ.get("FLASK_ENV") == "testing":
+        app.config.from_object(TestingConfig)
+    else:
+        app.config.from_object(Config)
+
+    app.config["MONGO_URI"] = app.config["MONGO_URL"]
+
+    mongo.init_app(app)
+    mail.init_app(app)
+
+    os.makedirs(app.config["MODEL_FOLDER"], exist_ok=True)
+
+    from .routes.pipelines import pipelines_bp
+    from .routes.models import models_bp
+    from .routes.train import train_bp
+    from .routes.notes import notes_bp
+
+    app.register_blueprint(pipelines_bp)
+    app.register_blueprint(models_bp)
+    app.register_blueprint(train_bp)
+    app.register_blueprint(notes_bp)
 
     @app.get("/health")
     def health():

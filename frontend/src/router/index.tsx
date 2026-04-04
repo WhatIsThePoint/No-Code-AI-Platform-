@@ -24,6 +24,18 @@ const LazyPipelineEditorPage = lazy(() =>
 const LazyModelRegistryPage = lazy(() =>
   import("../pages/ModelRegistryPage").then((m) => ({ default: m.ModelRegistryPage }))
 );
+const LazyResultsPage = lazy(() =>
+  import("../pages/ResultsPage").then((m) => ({ default: m.ResultsPage }))
+);
+const LazyModelComparisonPage = lazy(() =>
+  import("../pages/ModelComparisonPage").then((m) => ({ default: m.ModelComparisonPage }))
+);
+const LazyBillingPage = lazy(() =>
+  import("../pages/BillingPage").then((m) => ({ default: m.BillingPage }))
+);
+const LazyAdminPage = lazy(() =>
+  import("../pages/AdminPage").then((m) => ({ default: m.AdminPage }))
+);
 
 // eslint-disable-next-line react-refresh/only-export-components
 function SuspenseWrapper({ children }: { children: React.ReactNode }) {
@@ -102,11 +114,51 @@ export const router = createBrowserRouter([
     ),
   },
   {
+    path: "/pipelines/:pipelineId/compare",
+    element: (
+      <ProtectedRoute>
+        <Layout>
+          <SuspenseWrapper><LazyModelComparisonPage /></SuspenseWrapper>
+        </Layout>
+      </ProtectedRoute>
+    ),
+  },
+  {
     path: "/models",
     element: (
       <ProtectedRoute>
         <Layout>
           <SuspenseWrapper><LazyModelRegistryPage /></SuspenseWrapper>
+        </Layout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/models/:versionId/results",
+    element: (
+      <ProtectedRoute>
+        <Layout>
+          <SuspenseWrapper><LazyResultsPage /></SuspenseWrapper>
+        </Layout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/billing",
+    element: (
+      <ProtectedRoute>
+        <Layout>
+          <SuspenseWrapper><LazyBillingPage /></SuspenseWrapper>
+        </Layout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/admin",
+    element: (
+      <ProtectedRoute>
+        <Layout>
+          <SuspenseWrapper><LazyAdminPage /></SuspenseWrapper>
         </Layout>
       </ProtectedRoute>
     ),

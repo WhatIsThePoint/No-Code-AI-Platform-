@@ -56,10 +56,50 @@ def proxy_pipelines(subpath=""):
     return _forward(upstream, path, require_auth=True)
 
 
-@proxy_bp.route("/models/<path:subpath>", methods=["GET", "DELETE"])
+@proxy_bp.route("/models/<path:subpath>", methods=["GET", "DELETE", "POST"])
 def proxy_models(subpath):
     upstream = current_app.config["ML_SERVICE_URL"]
     return _forward(upstream, f"/models/{subpath}", require_auth=True)
+
+
+# ── Auth-service: admin + billing routes ──────────────────────────────────────
+
+
+@proxy_bp.route("/admin", methods=["GET"])
+@proxy_bp.route("/admin/<path:subpath>", methods=["GET", "POST", "PATCH", "DELETE"])
+def proxy_admin(subpath=""):
+    upstream = current_app.config["AUTH_SERVICE_URL"]
+    path = f"/admin/{subpath}" if subpath else "/admin"
+    return _forward(upstream, path, require_auth=True)
+
+
+@proxy_bp.route("/billing/plans", methods=["GET"])
+def proxy_billing_plans():
+    """Plans endpoint is public."""
+    upstream = current_app.config["AUTH_SERVICE_URL"]
+    return _forward(upstream, "/billing/plans", require_auth=False)
+
+
+@proxy_bp.route("/billing/webhook", methods=["POST"])
+def proxy_billing_webhook():
+    """Webhook has no JWT — Stripe signs the payload instead."""
+    upstream = current_app.config["AUTH_SERVICE_URL"]
+    return _forward(upstream, "/billing/webhook", require_auth=False)
+
+
+@proxy_bp.route("/billing/<path:subpath>", methods=["GET", "POST"])
+def proxy_billing(subpath):
+    upstream = current_app.config["AUTH_SERVICE_URL"]
+    return _forward(upstream, f"/billing/{subpath}", require_auth=True)
+
+
+# ── Public: active announcements ──────────────────────────────────────────────
+
+
+@proxy_bp.route("/announcements", methods=["GET"])
+def proxy_announcements_public():
+    upstream = current_app.config["AUTH_SERVICE_URL"]
+    return _forward(upstream, "/billing/announcements", require_auth=False)
 
 
 def _forward(upstream_base: str, path: str, require_auth: bool = True) -> Response:

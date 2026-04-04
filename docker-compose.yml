@@ -133,6 +133,14 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-nocode}:${POSTGRES_PASSWORD:-nocode_secret}@postgres:5432/${POSTGRES_DB:-nocode_auth}
       REDIS_URL: redis://redis:6379/0
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_PRICE_SOLO_MONTHLY: ${STRIPE_PRICE_SOLO_MONTHLY:-}
+      STRIPE_PRICE_SOLO_YEARLY: ${STRIPE_PRICE_SOLO_YEARLY:-}
+      STRIPE_PRICE_COMPANY_MONTHLY: ${STRIPE_PRICE_COMPANY_MONTHLY:-}
+      STRIPE_PRICE_COMPANY_YEARLY: ${STRIPE_PRICE_COMPANY_YEARLY:-}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
     depends_on:
       postgres:
         condition: service_healthy

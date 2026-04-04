@@ -30,10 +30,8 @@ lint:
 		cd ../..; \
 	done
 
-# Run Alembic migrations inside the auth-service container
+# Run Alembic upgrade (applies all pending migrations)
 migrate:
-	docker compose run --rm -e FLASK_APP=app.main auth-service flask db init || true
-	docker compose run --rm -e FLASK_APP=app.main auth-service flask db migrate -m "initial"
 	docker compose run --rm -e FLASK_APP=app.main auth-service flask db upgrade
 
 # Generate a new Alembic migration (usage: make migration MSG="add table foo")

@@ -23,15 +23,19 @@ def create_app(config=None):
 
     os.makedirs(app.config["MODEL_FOLDER"], exist_ok=True)
 
+    from .routes.compare import compare_bp
     from .routes.models import models_bp
     from .routes.notes import notes_bp
     from .routes.pipelines import pipelines_bp
+    from .routes.predict import predict_bp
     from .routes.train import train_bp
 
     app.register_blueprint(pipelines_bp)
     app.register_blueprint(models_bp)
     app.register_blueprint(train_bp)
     app.register_blueprint(notes_bp)
+    app.register_blueprint(predict_bp)
+    app.register_blueprint(compare_bp)
 
     @app.get("/health")
     def health():

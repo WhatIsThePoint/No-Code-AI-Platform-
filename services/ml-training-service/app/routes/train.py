@@ -9,6 +9,7 @@ import os
 from flask import Blueprint, current_app, jsonify, request
 
 from ..extensions import mongo
+from ..limits import check_training_run_limit
 from ..services.training_service import SUPPORTED_ALGORITHMS
 from ..tasks.train import run_training
 
@@ -31,8 +32,14 @@ def _datasets():
 def start_training(pipeline_id: str):
     user_id = request.headers.get("X-User-Id")
     user_email = request.headers.get("X-User-Email", "")
+    tier = request.headers.get("X-User-Tier", "free")
     if not user_id:
         return jsonify({"error": "unauthorized"}), 401
+
+    # Enforce training run limit for this tier
+    err = check_training_run_limit(mongo.db, user_id, tier)
+    if err:
+        return err
 
     pipeline = _pipelines().find_one({"pipeline_id": pipeline_id})
     if not pipeline:

@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from flask import Blueprint, current_app, jsonify, request
 
 from ..extensions import mongo
+from ..limits import check_dataset_upload_limit, check_file_size_limit
 from ..services.storage_service import save_uploaded_file
 from ..tasks.profiling import profile_dataset
 
@@ -23,6 +24,13 @@ def upload_file():
     if not user_id:
         return jsonify({"error": "missing_user_id"}), 401
 
+    tier = request.headers.get("X-User-Tier", "free")
+
+    # Check dataset count limit for this tier
+    err = check_dataset_upload_limit(mongo, user_id, tier)
+    if err:
+        return err
+
     if "file" not in request.files:
         return jsonify({"error": "no_file_provided"}), 400
 
@@ -34,6 +42,12 @@ def upload_file():
     file.seek(0, os.SEEK_END)
     size = file.tell()
     file.seek(0)
+
+    # Tier-based file size limit
+    err = check_file_size_limit(size, tier)
+    if err:
+        return err
+
     max_size = current_app.config["MAX_UPLOAD_BYTES"]
     if size > max_size:
         return (

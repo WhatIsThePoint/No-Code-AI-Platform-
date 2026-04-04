@@ -10,7 +10,12 @@ const navItems = [
   { label: "Pipelines", path: "/pipelines" },
   { label: "Model Registry", path: "/models" },
   { label: "Company", path: "/company" },
+  { label: "Billing", path: "/billing" },
   { label: "Profile", path: "/profile" },
+];
+
+const adminItems = [
+  { label: "Admin Panel", path: "/admin" },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -50,6 +55,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
               </ListItemButton>
             ))}
           </List>
+          {user?.role === "super_admin" && (
+            <>
+              <Divider />
+              <List>
+                {adminItems.map((item) => (
+                  <ListItemButton key={item.path} onClick={() => navigate(item.path)}>
+                    <ListItemText primary={item.label} primaryTypographyProps={{ color: "error", fontWeight: 600 }} />
+                  </ListItemButton>
+                ))}
+              </List>
+            </>
+          )}
           <Divider />
         </Box>
       </Drawer>

@@ -105,13 +105,22 @@ def test_get_model_unknown_raises():
 
 def test_supported_algorithms_list():
     expected = {
+        # Classification
         "xgboost",
         "random_forest",
         "gbm",
         "glm",
-        "kmeans",
-        "prophet",
         "lightgbm",
         "catboost",
+        # Regression
+        "xgboost_reg",
+        "random_forest_reg",
+        "gbm_reg",
+        "ridge",
+        "lightgbm_reg",
+        "catboost_reg",
+        # Clustering & Forecasting
+        "kmeans",
+        "prophet",
     }
     assert expected == set(SUPPORTED_ALGORITHMS)

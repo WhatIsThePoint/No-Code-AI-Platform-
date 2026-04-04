@@ -10,19 +10,24 @@ def make_csv_file(content: str = "a,b,c\n1,2,3\n4,5,6\n"):
 
 def test_upload_missing_auth(client):
     data = {"file": make_csv_file()}
-    resp = client.post("/upload", data=data, content_type="multipart/form-data")
+    resp = client.post(
+        "/datasets/upload", data=data, content_type="multipart/form-data"
+    )
     assert resp.status_code == 401
 
 
 def test_upload_no_file(client):
-    resp = client.post("/upload", headers=USER_HEADERS)
+    resp = client.post("/datasets/upload", headers=USER_HEADERS)
     assert resp.status_code == 400
 
 
 def test_upload_wrong_extension(client):
     data = {"file": (io.BytesIO(b"data"), "bad.pdf", "application/pdf")}
     resp = client.post(
-        "/upload", data=data, content_type="multipart/form-data", headers=USER_HEADERS
+        "/datasets/upload",
+        data=data,
+        content_type="multipart/form-data",
+        headers=USER_HEADERS,
     )
     assert resp.status_code == 400
     assert resp.get_json()["error"] == "unsupported_file_type"
@@ -36,7 +41,7 @@ def test_upload_csv_success(mock_mongo, mock_task, client):
 
     data = {"file": make_csv_file()}
     resp = client.post(
-        "/upload",
+        "/datasets/upload",
         data=data,
         content_type="multipart/form-data",
         headers=USER_HEADERS,

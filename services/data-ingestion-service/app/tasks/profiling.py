@@ -2,14 +2,15 @@
 Celery task: profile an uploaded dataset.
 Uses pandas + ydata-profiling minimal mode.
 """
+
 from __future__ import annotations
 
 import os
 from datetime import datetime, timezone
 
-from .celery_app import celery
-from ..services.storage_service import load_dataframe
 from ..services.profiling_service import compute_profile_summary
+from ..services.storage_service import load_dataframe
+from .celery_app import celery
 
 
 @celery.task(name="app.tasks.profiling.profile_dataset", bind=True)
@@ -27,7 +28,13 @@ def profile_dataset(self, dataset_id: str):
     # Mark task as running
     task_results.update_one(
         {"task_id": self.request.id},
-        {"$set": {"status": "running", "started_at": datetime.now(timezone.utc), "progress_pct": 0}},
+        {
+            "$set": {
+                "status": "running",
+                "started_at": datetime.now(timezone.utc),
+                "progress_pct": 0,
+            }
+        },
         upsert=True,
     )
 

@@ -2,6 +2,7 @@
 Storage service: abstracts file I/O.
 Currently uses a local Docker volume; can be swapped for S3 by changing these methods.
 """
+
 import os
 
 import pandas as pd
@@ -20,7 +21,9 @@ def load_dataframe(file_path: str) -> pd.DataFrame:
         raise ValueError(f"Unsupported file type: {ext}")
 
 
-def save_uploaded_file(file_obj, dataset_id: str, filename: str, upload_folder: str) -> str:
+def save_uploaded_file(
+    file_obj, dataset_id: str, filename: str, upload_folder: str
+) -> str:
     """Save an uploaded file to the upload folder. Returns the absolute path."""
     dest_dir = os.path.join(upload_folder, dataset_id)
     os.makedirs(dest_dir, exist_ok=True)
@@ -32,6 +35,7 @@ def save_uploaded_file(file_obj, dataset_id: str, filename: str, upload_folder: 
 def encrypt_value(plaintext: str) -> str:
     """Fernet-encrypt a string. Returns base64-encoded ciphertext."""
     from cryptography.fernet import Fernet
+
     key = _get_fernet_key()
     f = Fernet(key)
     return f.encrypt(plaintext.encode()).decode()
@@ -40,6 +44,7 @@ def encrypt_value(plaintext: str) -> str:
 def decrypt_value(ciphertext: str) -> str:
     """Fernet-decrypt a string."""
     from cryptography.fernet import Fernet
+
     key = _get_fernet_key()
     f = Fernet(key)
     return f.decrypt(ciphertext.encode()).decode()

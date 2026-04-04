@@ -1,21 +1,21 @@
 """
 Unit tests for ML model classes — no external services needed.
 """
+
 import numpy as np
 import pandas as pd
 import pytest
-
 from app.models.classification import (
-    XGBoostClassifierModel,
-    RandomForestModel,
     GBMClassifierModel,
     GLMClassifierModel,
+    RandomForestModel,
+    XGBoostClassifierModel,
 )
 from app.models.clustering import KMeansModel
-from app.services.training_service import get_model, SUPPORTED_ALGORITHMS
-
+from app.services.training_service import SUPPORTED_ALGORITHMS, get_model
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def binary_data():
@@ -28,20 +28,26 @@ def binary_data():
 @pytest.fixture
 def cluster_data():
     rng = np.random.default_rng(42)
-    return pd.DataFrame({
-        "x": rng.normal(0, 1, 60).tolist() + rng.normal(5, 1, 60).tolist(),
-        "y": rng.normal(0, 1, 60).tolist() + rng.normal(5, 1, 60).tolist(),
-    })
+    return pd.DataFrame(
+        {
+            "x": rng.normal(0, 1, 60).tolist() + rng.normal(5, 1, 60).tolist(),
+            "y": rng.normal(0, 1, 60).tolist() + rng.normal(5, 1, 60).tolist(),
+        }
+    )
 
 
 # ── Classification model tests ────────────────────────────────────────────────
 
-@pytest.mark.parametrize("ModelCls", [
-    XGBoostClassifierModel,
-    RandomForestModel,
-    GBMClassifierModel,
-    GLMClassifierModel,
-])
+
+@pytest.mark.parametrize(
+    "ModelCls",
+    [
+        XGBoostClassifierModel,
+        RandomForestModel,
+        GBMClassifierModel,
+        GLMClassifierModel,
+    ],
+)
 def test_classification_train_evaluate(ModelCls, binary_data):
     X, y = binary_data
     model = ModelCls({"n_estimators": 10, "max_depth": 3})
@@ -65,6 +71,7 @@ def test_xgboost_feature_importance(binary_data):
 
 # ── Clustering tests ──────────────────────────────────────────────────────────
 
+
 def test_kmeans_train_evaluate(cluster_data):
     model = KMeansModel({"n_clusters": 2})
     model.train(cluster_data)
@@ -85,6 +92,7 @@ def test_kmeans_elbow(cluster_data):
 
 # ── Training service tests ─────────────────────────────────────────────────────
 
+
 def test_get_model_known_algorithm():
     model = get_model("xgboost", {"n_estimators": 10})
     assert isinstance(model, XGBoostClassifierModel)
@@ -96,5 +104,14 @@ def test_get_model_unknown_raises():
 
 
 def test_supported_algorithms_list():
-    expected = {"xgboost", "random_forest", "gbm", "glm", "kmeans", "prophet", "lightgbm", "catboost"}
+    expected = {
+        "xgboost",
+        "random_forest",
+        "gbm",
+        "glm",
+        "kmeans",
+        "prophet",
+        "lightgbm",
+        "catboost",
+    }
     assert expected == set(SUPPORTED_ALGORITHMS)

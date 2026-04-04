@@ -1,7 +1,6 @@
 import io
 from unittest.mock import MagicMock, patch
 
-import pytest
 from tests.conftest import USER_HEADERS
 
 
@@ -22,7 +21,9 @@ def test_upload_no_file(client):
 
 def test_upload_wrong_extension(client):
     data = {"file": (io.BytesIO(b"data"), "bad.pdf", "application/pdf")}
-    resp = client.post("/upload", data=data, content_type="multipart/form-data", headers=USER_HEADERS)
+    resp = client.post(
+        "/upload", data=data, content_type="multipart/form-data", headers=USER_HEADERS
+    )
     assert resp.status_code == 400
     assert resp.get_json()["error"] == "unsupported_file_type"
 

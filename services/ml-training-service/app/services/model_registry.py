@@ -1,6 +1,7 @@
 """
 Model registry: saves/loads versioned model artifacts with metadata in MongoDB.
 """
+
 from __future__ import annotations
 
 import os

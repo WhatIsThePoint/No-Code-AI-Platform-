@@ -1,10 +1,11 @@
 import pandas as pd
-
 from app.services.profiling_service import compute_profile_summary
 
 
 def test_profile_summary_numeric():
-    df = pd.DataFrame({"age": [25, 30, None, 40], "income": [50000, 60000, 70000, 80000]})
+    df = pd.DataFrame(
+        {"age": [25, 30, None, 40], "income": [50000, 60000, 70000, 80000]}
+    )
     summary = compute_profile_summary(df)
 
     assert len(summary["columns"]) == 2

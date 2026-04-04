@@ -1,31 +1,31 @@
 """
 Orchestrates model selection, data loading, training, and evaluation.
 """
+
 from __future__ import annotations
 
 import os
-from typing import Any
 
 import pandas as pd
 
 from ..models.base import BaseMLModel
+from ..models.boosting import CatBoostModel, LightGBMModel
 from ..models.classification import (
-    XGBoostClassifierModel,
-    RandomForestModel,
     GBMClassifierModel,
     GLMClassifierModel,
-)
-from ..models.regression import (
-    XGBoostRegressorModel,
-    RandomForestRegressorModel,
-    GBMRegressorModel,
-    RidgeRegressorModel,
-    LightGBMRegressorModel,
-    CatBoostRegressorModel,
+    RandomForestModel,
+    XGBoostClassifierModel,
 )
 from ..models.clustering import KMeansModel
 from ..models.forecasting import ProphetModel
-from ..models.boosting import LightGBMModel, CatBoostModel
+from ..models.regression import (
+    CatBoostRegressorModel,
+    GBMRegressorModel,
+    LightGBMRegressorModel,
+    RandomForestRegressorModel,
+    RidgeRegressorModel,
+    XGBoostRegressorModel,
+)
 
 _REGISTRY: dict[str, type[BaseMLModel]] = {
     # Classification
@@ -53,7 +53,9 @@ SUPPORTED_ALGORITHMS = list(_REGISTRY.keys())
 def get_model(algorithm: str, hyperparams: dict) -> BaseMLModel:
     cls = _REGISTRY.get(algorithm)
     if not cls:
-        raise ValueError(f"Unknown algorithm: {algorithm}. Supported: {SUPPORTED_ALGORITHMS}")
+        raise ValueError(
+            f"Unknown algorithm: {algorithm}. Supported: {SUPPORTED_ALGORITHMS}"
+        )
     return cls(hyperparams)
 
 
@@ -86,7 +88,9 @@ def prepare_xy(
     if task_type == "forecasting":
         # Expect 'ds' and target column
         if target_column not in df.columns:
-            raise ValueError(f"Target column '{target_column}' not found for forecasting")
+            raise ValueError(
+                f"Target column '{target_column}' not found for forecasting"
+            )
         prophet_df = df[[col for col in df.columns]].copy()
         prophet_df = prophet_df.rename(columns={target_column: "y"})
         return prophet_df, prophet_df["y"]

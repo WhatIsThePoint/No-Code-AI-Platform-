@@ -1,6 +1,7 @@
 """
 Unsupervised clustering: K-Means with silhouette score and elbow data.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -27,7 +28,9 @@ class KMeansModel(BaseMLModel):
     def predict(self, X: pd.DataFrame) -> np.ndarray:
         return self._estimator.predict(X)
 
-    def evaluate(self, X_test: pd.DataFrame, y_test: pd.Series | None = None) -> dict[str, Any]:
+    def evaluate(
+        self, X_test: pd.DataFrame, y_test: pd.Series | None = None
+    ) -> dict[str, Any]:
         labels = self._estimator.labels_
         X_arr = X_test.values if hasattr(X_test, "values") else X_test
 
@@ -38,7 +41,9 @@ class KMeansModel(BaseMLModel):
 
         if len(np.unique(labels)) > 1:
             metrics["silhouette_score"] = round(
-                float(silhouette_score(X_arr, labels, sample_size=min(5000, len(X_arr)))),
+                float(
+                    silhouette_score(X_arr, labels, sample_size=min(5000, len(X_arr)))
+                ),
                 4,
             )
 

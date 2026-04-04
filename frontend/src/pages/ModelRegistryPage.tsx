@@ -39,7 +39,7 @@ export function ModelRegistryPage() {
     modelsApi.listVersions(activePipeline).then(({ data }) => {
       setVersions((prev) => ({ ...prev, [activePipeline]: data.items }));
     });
-  }, [activePipeline]);
+  }, [activePipeline]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDelete = async (versionId: string, pipelineId: string) => {
     if (!confirm("Delete this model version?")) return;

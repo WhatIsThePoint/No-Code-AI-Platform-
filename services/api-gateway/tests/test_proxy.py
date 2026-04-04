@@ -14,7 +14,9 @@ def test_protected_route_no_token(client):
 
 
 def test_protected_route_invalid_token(client):
-    resp = client.get("/users/me", headers={"Authorization": "Bearer invalid.token.here"})
+    resp = client.get(
+        "/users/me", headers={"Authorization": "Bearer invalid.token.here"}
+    )
     assert resp.status_code == 401
 
 
@@ -37,7 +39,7 @@ def test_public_register_proxied(client):
 def test_upstream_unavailable(client):
     # No mock registered → connection error
     # The proxy should return 503
-    import responses
-
-    resp = client.get("/health")  # gateway handles health itself, should not hit upstream
+    resp = client.get(
+        "/health"
+    )  # gateway handles health itself, should not hit upstream
     assert resp.status_code == 200

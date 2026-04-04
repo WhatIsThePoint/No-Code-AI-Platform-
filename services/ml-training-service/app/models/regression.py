@@ -1,6 +1,7 @@
 """
 Regression models: XGBoost, RandomForest, GBM, Ridge, LightGBM, CatBoost regressors.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -55,9 +56,13 @@ class XGBoostRegressorModel(BaseMLModel):
     def predict(self, X: pd.DataFrame) -> np.ndarray:
         return self._estimator.predict(X)
 
-    def evaluate(self, X_test: pd.DataFrame, y_test: pd.Series | None = None) -> dict[str, Any]:
+    def evaluate(
+        self, X_test: pd.DataFrame, y_test: pd.Series | None = None
+    ) -> dict[str, Any]:
         y_pred = self.predict(X_test)
-        return _regression_metrics(y_test, y_pred, list(X_test.columns), self._estimator.feature_importances_)
+        return _regression_metrics(
+            y_test, y_pred, list(X_test.columns), self._estimator.feature_importances_
+        )
 
 
 class RandomForestRegressorModel(BaseMLModel):
@@ -76,9 +81,13 @@ class RandomForestRegressorModel(BaseMLModel):
     def predict(self, X: pd.DataFrame) -> np.ndarray:
         return self._estimator.predict(X)
 
-    def evaluate(self, X_test: pd.DataFrame, y_test: pd.Series | None = None) -> dict[str, Any]:
+    def evaluate(
+        self, X_test: pd.DataFrame, y_test: pd.Series | None = None
+    ) -> dict[str, Any]:
         y_pred = self.predict(X_test)
-        return _regression_metrics(y_test, y_pred, list(X_test.columns), self._estimator.feature_importances_)
+        return _regression_metrics(
+            y_test, y_pred, list(X_test.columns), self._estimator.feature_importances_
+        )
 
 
 class GBMRegressorModel(BaseMLModel):
@@ -96,9 +105,13 @@ class GBMRegressorModel(BaseMLModel):
     def predict(self, X: pd.DataFrame) -> np.ndarray:
         return self._estimator.predict(X)
 
-    def evaluate(self, X_test: pd.DataFrame, y_test: pd.Series | None = None) -> dict[str, Any]:
+    def evaluate(
+        self, X_test: pd.DataFrame, y_test: pd.Series | None = None
+    ) -> dict[str, Any]:
         y_pred = self.predict(X_test)
-        return _regression_metrics(y_test, y_pred, list(X_test.columns), self._estimator.feature_importances_)
+        return _regression_metrics(
+            y_test, y_pred, list(X_test.columns), self._estimator.feature_importances_
+        )
 
 
 class RidgeRegressorModel(BaseMLModel):
@@ -110,7 +123,9 @@ class RidgeRegressorModel(BaseMLModel):
     def predict(self, X: pd.DataFrame) -> np.ndarray:
         return self._estimator.predict(X)
 
-    def evaluate(self, X_test: pd.DataFrame, y_test: pd.Series | None = None) -> dict[str, Any]:
+    def evaluate(
+        self, X_test: pd.DataFrame, y_test: pd.Series | None = None
+    ) -> dict[str, Any]:
         y_pred = self.predict(X_test)
         return _regression_metrics(y_test, y_pred, list(X_test.columns), None)
 
@@ -118,6 +133,7 @@ class RidgeRegressorModel(BaseMLModel):
 class LightGBMRegressorModel(BaseMLModel):
     def train(self, X_train: pd.DataFrame, y_train: pd.Series | None = None) -> None:
         import lightgbm as lgb
+
         hp = self.hyperparams
         self._estimator = lgb.LGBMRegressor(
             n_estimators=int(hp.get("n_estimators", 100)),
@@ -133,14 +149,19 @@ class LightGBMRegressorModel(BaseMLModel):
     def predict(self, X: pd.DataFrame) -> np.ndarray:
         return self._estimator.predict(X)
 
-    def evaluate(self, X_test: pd.DataFrame, y_test: pd.Series | None = None) -> dict[str, Any]:
+    def evaluate(
+        self, X_test: pd.DataFrame, y_test: pd.Series | None = None
+    ) -> dict[str, Any]:
         y_pred = self.predict(X_test)
-        return _regression_metrics(y_test, y_pred, list(X_test.columns), self._estimator.feature_importances_)
+        return _regression_metrics(
+            y_test, y_pred, list(X_test.columns), self._estimator.feature_importances_
+        )
 
 
 class CatBoostRegressorModel(BaseMLModel):
     def train(self, X_train: pd.DataFrame, y_train: pd.Series | None = None) -> None:
         from catboost import CatBoostRegressor
+
         hp = self.hyperparams
         self._estimator = CatBoostRegressor(
             iterations=int(hp.get("iterations", 100)),
@@ -154,7 +175,9 @@ class CatBoostRegressorModel(BaseMLModel):
     def predict(self, X: pd.DataFrame) -> np.ndarray:
         return self._estimator.predict(X)
 
-    def evaluate(self, X_test: pd.DataFrame, y_test: pd.Series | None = None) -> dict[str, Any]:
+    def evaluate(
+        self, X_test: pd.DataFrame, y_test: pd.Series | None = None
+    ) -> dict[str, Any]:
         y_pred = self.predict(X_test)
         importances = self._estimator.get_feature_importance()
         return _regression_metrics(y_test, y_pred, list(X_test.columns), importances)

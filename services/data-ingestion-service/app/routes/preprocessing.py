@@ -20,7 +20,12 @@ def preprocess(dataset_id):
     ratios = data.get("split_ratios", {"train": 0.7, "val": 0.15, "test": 0.15})
     total = sum(ratios.values())
     if abs(total - 1.0) > 0.01:
-        return jsonify({"error": "invalid_split_ratios", "detail": "Ratios must sum to 1.0"}), 400
+        return (
+            jsonify(
+                {"error": "invalid_split_ratios", "detail": "Ratios must sum to 1.0"}
+            ),
+            400,
+        )
 
     company_id = data.get("company_id") or request.args.get("company_id")
     clauses = [{"user_id": user_id}]

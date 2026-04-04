@@ -1,5 +1,5 @@
 import { Handle, Position } from "@xyflow/react";
-import { Box, Chip, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import StorageIcon from "@mui/icons-material/Storage";
 import type { NodeProps } from "@xyflow/react";
 

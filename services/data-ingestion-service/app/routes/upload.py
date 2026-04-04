@@ -36,7 +36,10 @@ def upload_file():
     file.seek(0)
     max_size = current_app.config["MAX_UPLOAD_BYTES"]
     if size > max_size:
-        return jsonify({"error": "file_too_large", "max_mb": max_size // (1024 * 1024)}), 413
+        return (
+            jsonify({"error": "file_too_large", "max_mb": max_size // (1024 * 1024)}),
+            413,
+        )
 
     dataset_id = str(uuid.uuid4())
     company_id = request.form.get("company_id")
@@ -81,4 +84,7 @@ def upload_file():
         {"dataset_id": dataset_id}, {"$set": {"task_id": task.id}}
     )
 
-    return jsonify({"dataset_id": dataset_id, "task_id": task.id, "status": "uploaded"}), 202
+    return (
+        jsonify({"dataset_id": dataset_id, "task_id": task.id, "status": "uploaded"}),
+        202,
+    )

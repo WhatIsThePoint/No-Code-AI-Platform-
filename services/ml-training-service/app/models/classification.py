@@ -1,6 +1,7 @@
 """
 Supervised classification models: XGBoost, RandomForest, GBM, Logistic (GLM).
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -34,8 +35,12 @@ def _classification_metrics(
 
     metrics: dict[str, Any] = {
         "accuracy": round(float(accuracy_score(y_true, y_pred)), 4),
-        "precision": round(float(precision_score(y_true, y_pred, average=avg, zero_division=0)), 4),
-        "recall": round(float(recall_score(y_true, y_pred, average=avg, zero_division=0)), 4),
+        "precision": round(
+            float(precision_score(y_true, y_pred, average=avg, zero_division=0)), 4
+        ),
+        "recall": round(
+            float(recall_score(y_true, y_pred, average=avg, zero_division=0)), 4
+        ),
         "f1": round(float(f1_score(y_true, y_pred, average=avg, zero_division=0)), 4),
         "confusion_matrix": confusion_matrix(y_true, y_pred).tolist(),
     }
@@ -43,10 +48,17 @@ def _classification_metrics(
     if y_prob is not None:
         try:
             if n_classes == 2:
-                metrics["roc_auc"] = round(float(roc_auc_score(y_true, y_prob[:, 1])), 4)
+                metrics["roc_auc"] = round(
+                    float(roc_auc_score(y_true, y_prob[:, 1])), 4
+                )
             else:
                 metrics["roc_auc"] = round(
-                    float(roc_auc_score(y_true, y_prob, multi_class="ovr", average="macro")), 4
+                    float(
+                        roc_auc_score(
+                            y_true, y_prob, multi_class="ovr", average="macro"
+                        )
+                    ),
+                    4,
                 )
         except Exception:
             pass
@@ -80,11 +92,15 @@ class XGBoostClassifierModel(BaseMLModel):
     def predict(self, X: pd.DataFrame) -> np.ndarray:
         return self._estimator.predict(X)
 
-    def evaluate(self, X_test: pd.DataFrame, y_test: pd.Series | None = None) -> dict[str, Any]:
+    def evaluate(
+        self, X_test: pd.DataFrame, y_test: pd.Series | None = None
+    ) -> dict[str, Any]:
         y_pred = self.predict(X_test)
         y_prob = self._estimator.predict_proba(X_test)
         return _classification_metrics(
-            y_test, y_pred, y_prob,
+            y_test,
+            y_pred,
+            y_prob,
             list(X_test.columns),
             self._estimator.feature_importances_,
         )
@@ -106,11 +122,15 @@ class RandomForestModel(BaseMLModel):
     def predict(self, X: pd.DataFrame) -> np.ndarray:
         return self._estimator.predict(X)
 
-    def evaluate(self, X_test: pd.DataFrame, y_test: pd.Series | None = None) -> dict[str, Any]:
+    def evaluate(
+        self, X_test: pd.DataFrame, y_test: pd.Series | None = None
+    ) -> dict[str, Any]:
         y_pred = self.predict(X_test)
         y_prob = self._estimator.predict_proba(X_test)
         return _classification_metrics(
-            y_test, y_pred, y_prob,
+            y_test,
+            y_pred,
+            y_prob,
             list(X_test.columns),
             self._estimator.feature_importances_,
         )
@@ -131,11 +151,15 @@ class GBMClassifierModel(BaseMLModel):
     def predict(self, X: pd.DataFrame) -> np.ndarray:
         return self._estimator.predict(X)
 
-    def evaluate(self, X_test: pd.DataFrame, y_test: pd.Series | None = None) -> dict[str, Any]:
+    def evaluate(
+        self, X_test: pd.DataFrame, y_test: pd.Series | None = None
+    ) -> dict[str, Any]:
         y_pred = self.predict(X_test)
         y_prob = self._estimator.predict_proba(X_test)
         return _classification_metrics(
-            y_test, y_pred, y_prob,
+            y_test,
+            y_pred,
+            y_prob,
             list(X_test.columns),
             self._estimator.feature_importances_,
         )
@@ -158,7 +182,11 @@ class GLMClassifierModel(BaseMLModel):
     def predict(self, X: pd.DataFrame) -> np.ndarray:
         return self._estimator.predict(X)
 
-    def evaluate(self, X_test: pd.DataFrame, y_test: pd.Series | None = None) -> dict[str, Any]:
+    def evaluate(
+        self, X_test: pd.DataFrame, y_test: pd.Series | None = None
+    ) -> dict[str, Any]:
         y_pred = self.predict(X_test)
         y_prob = self._estimator.predict_proba(X_test)
-        return _classification_metrics(y_test, y_pred, y_prob, list(X_test.columns), None)
+        return _classification_metrics(
+            y_test, y_pred, y_prob, list(X_test.columns), None
+        )

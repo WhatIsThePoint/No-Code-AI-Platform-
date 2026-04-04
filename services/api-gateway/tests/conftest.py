@@ -10,8 +10,8 @@ os.environ.setdefault("ML_SERVICE_URL", "http://ml-service:8003")
 os.environ.setdefault("METRICS_SERVICE_URL", "http://metrics-service:8004")
 os.environ.setdefault("FLASK_ENV", "testing")
 
-from app.config import TestingConfig
-from app.main import create_app
+from app.config import TestingConfig  # noqa: E402
+from app.main import create_app  # noqa: E402
 
 
 @pytest.fixture(scope="session")

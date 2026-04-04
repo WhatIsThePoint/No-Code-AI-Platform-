@@ -1,6 +1,7 @@
 """
 Training trigger and status endpoints.
 """
+
 from __future__ import annotations
 
 import os
@@ -8,8 +9,8 @@ import os
 from flask import Blueprint, current_app, jsonify, request
 
 from ..extensions import mongo
-from ..tasks.train import run_training
 from ..services.training_service import SUPPORTED_ALGORITHMS
+from ..tasks.train import run_training
 
 train_bp = Blueprint("train", __name__)
 
@@ -61,10 +62,15 @@ def start_training(pipeline_id: str):
                 break
 
     if not algorithm or algorithm not in SUPPORTED_ALGORITHMS:
-        return jsonify({
-            "error": "invalid_algorithm",
-            "supported": SUPPORTED_ALGORITHMS,
-        }), 400
+        return (
+            jsonify(
+                {
+                    "error": "invalid_algorithm",
+                    "supported": SUPPORTED_ALGORITHMS,
+                }
+            ),
+            400,
+        )
 
     if not dataset_id:
         # Extract from dataset node
@@ -112,11 +118,16 @@ def start_training(pipeline_id: str):
 def get_task_status(task_id: str):
     doc = _task_results().find_one({"task_id": task_id}, {"_id": 0})
     if not doc:
-        return jsonify({
-            "task_id": task_id,
-            "status": "pending",
-            "progress_pct": 0,
-        }), 200
+        return (
+            jsonify(
+                {
+                    "task_id": task_id,
+                    "status": "pending",
+                    "progress_pct": 0,
+                }
+            ),
+            200,
+        )
 
     for field in ("started_at", "completed_at"):
         if field in doc and hasattr(doc[field], "isoformat"):

@@ -1,4 +1,4 @@
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, jsonify, request
 from flask_jwt_extended import decode_token, get_jwt_identity, jwt_required
 from marshmallow import ValidationError
 

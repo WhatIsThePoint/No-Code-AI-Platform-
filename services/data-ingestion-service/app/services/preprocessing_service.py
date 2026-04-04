@@ -1,17 +1,24 @@
 """
 Preprocessing pipeline: imputation → encoding → scaling → train/val/test split.
 """
+
 from __future__ import annotations
 
 import os
-from datetime import datetime, timezone
 
 import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import LabelEncoder, MinMaxScaler, OneHotEncoder, OrdinalEncoder, RobustScaler, StandardScaler
+from sklearn.preprocessing import (
+    LabelEncoder,
+    MinMaxScaler,
+    OneHotEncoder,
+    OrdinalEncoder,
+    RobustScaler,
+    StandardScaler,
+)
 
 from .storage_service import load_dataframe
 
@@ -38,7 +45,9 @@ def preprocess_dataset(
 
     # Imputation strategy
     imputation = config.get("imputation_strategy", "mean")
-    num_imputer = SimpleImputer(strategy=imputation if imputation != "mode" else "most_frequent")
+    num_imputer = SimpleImputer(
+        strategy=imputation if imputation != "mode" else "most_frequent"
+    )
     cat_imputer = SimpleImputer(strategy="most_frequent")
 
     # Encoding
@@ -46,12 +55,17 @@ def preprocess_dataset(
     if encoding == "onehot":
         encoder = OneHotEncoder(handle_unknown="ignore", sparse_output=False)
     else:
-        # "label" and "ordinal" both use OrdinalEncoder (LabelEncoder is 1D-only, incompatible with ColumnTransformer)
+        # "label" and "ordinal" both use OrdinalEncoder
+        # (LabelEncoder is 1D-only, incompatible with ColumnTransformer)
         encoder = OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1)
 
     # Scaling
     scaling = config.get("scaling_strategy", "standard")
-    scalers = {"standard": StandardScaler(), "minmax": MinMaxScaler(), "robust": RobustScaler()}
+    scalers = {
+        "standard": StandardScaler(),
+        "minmax": MinMaxScaler(),
+        "robust": RobustScaler(),
+    }
     scaler = scalers.get(scaling)
 
     # Build ColumnTransformer
@@ -100,9 +114,13 @@ def preprocess_dataset(
     train_ratio = ratios.get("train", 0.7)
     val_ratio = ratios.get("val", 0.15)
 
-    train_df, temp_df = train_test_split(df_processed, test_size=1 - train_ratio, random_state=42)
+    train_df, temp_df = train_test_split(
+        df_processed, test_size=1 - train_ratio, random_state=42
+    )
     relative_val = val_ratio / (1 - train_ratio)
-    val_df, test_df = train_test_split(temp_df, test_size=1 - relative_val, random_state=42)
+    val_df, test_df = train_test_split(
+        temp_df, test_size=1 - relative_val, random_state=42
+    )
 
     db["task_results"].update_one({"task_id": task_id}, {"$set": {"progress_pct": 90}})
 

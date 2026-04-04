@@ -5,9 +5,10 @@ The gateway uses flask-jwt-extended to decode tokens.
 After decoding, user identity and claims are injected as
 request headers before forwarding upstream.
 """
+
 from functools import wraps
 
-from flask import g, jsonify, request
+from flask import g, jsonify
 from flask_jwt_extended import get_jwt, get_jwt_identity, verify_jwt_in_request
 
 

@@ -34,7 +34,7 @@ function isRegression(m: ModelMetrics): m is RegressionMetrics {
   return "mae" in m && "rmse" in m && "r2" in m;
 }
 
-export function MetricsChart({ metrics, taskType }: Props) {
+export function MetricsChart({ metrics }: Props) {
   if (isClassification(metrics)) {
     const bars = [
       { name: "Accuracy", value: metrics.accuracy },

@@ -2,6 +2,7 @@
 Compute a lightweight profiling summary for a DataFrame.
 Uses pandas native statistics (fast) with optional ydata-profiling for rich reports.
 """
+
 from __future__ import annotations
 
 from datetime import datetime, timezone

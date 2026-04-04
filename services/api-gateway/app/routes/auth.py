@@ -2,7 +2,8 @@
 Auth routes: /auth/* and /users/me are proxied to the auth-service.
 Public endpoints (register, login, refresh, invitation accept) skip JWT validation.
 """
-from flask import Blueprint, current_app, request
+
+from flask import Blueprint, current_app
 
 from ..routes.proxy import _forward
 
@@ -18,7 +19,9 @@ _PUBLIC_PREFIXES = (
 )
 
 
-@auth_bp.route("/auth/<path:subpath>", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
+@auth_bp.route(
+    "/auth/<path:subpath>", methods=["GET", "POST", "PUT", "PATCH", "DELETE"]
+)
 def proxy_auth(subpath):
     path = f"/auth/{subpath}"
     is_public = any(path.startswith(p) for p in _PUBLIC_PREFIXES)
@@ -26,14 +29,18 @@ def proxy_auth(subpath):
     return _forward(upstream, path, require_auth=not is_public)
 
 
-@auth_bp.route("/users/<path:subpath>", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
+@auth_bp.route(
+    "/users/<path:subpath>", methods=["GET", "POST", "PUT", "PATCH", "DELETE"]
+)
 def proxy_users(subpath):
     upstream = current_app.config["AUTH_SERVICE_URL"]
     return _forward(upstream, f"/users/{subpath}", require_auth=True)
 
 
 @auth_bp.route("/companies", methods=["GET", "POST"])
-@auth_bp.route("/companies/<path:subpath>", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
+@auth_bp.route(
+    "/companies/<path:subpath>", methods=["GET", "POST", "PUT", "PATCH", "DELETE"]
+)
 def proxy_companies(subpath=""):
     upstream = current_app.config["AUTH_SERVICE_URL"]
     path = f"/companies/{subpath}" if subpath else "/companies"

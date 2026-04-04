@@ -3,7 +3,7 @@ import os
 from flask import Flask, jsonify
 
 from .config import Config, TestingConfig
-from .extensions import mongo, mail
+from .extensions import mail, mongo
 
 
 def create_app(config=None):
@@ -23,10 +23,10 @@ def create_app(config=None):
 
     os.makedirs(app.config["MODEL_FOLDER"], exist_ok=True)
 
-    from .routes.pipelines import pipelines_bp
     from .routes.models import models_bp
-    from .routes.train import train_bp
     from .routes.notes import notes_bp
+    from .routes.pipelines import pipelines_bp
+    from .routes.train import train_bp
 
     app.register_blueprint(pipelines_bp)
     app.register_blueprint(models_bp)

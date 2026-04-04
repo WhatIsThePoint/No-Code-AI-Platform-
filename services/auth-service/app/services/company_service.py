@@ -118,6 +118,7 @@ def remove_member(company_id: uuid.UUID, target_user_id: uuid.UUID) -> None:
 
 def _slugify(name: str) -> str:
     import re
+
     slug = name.lower().strip()
     slug = re.sub(r"[^\w\s-]", "", slug)
     slug = re.sub(r"[\s_-]+", "-", slug)

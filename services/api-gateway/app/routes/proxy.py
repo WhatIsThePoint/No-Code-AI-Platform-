@@ -1,6 +1,7 @@
 """
 Generic upstream proxy handler.
 """
+
 import requests
 from flask import Blueprint, Response, current_app, g, jsonify, request
 from flask_jwt_extended import get_jwt, get_jwt_identity, verify_jwt_in_request
@@ -26,7 +27,9 @@ _HOP_BY_HOP = frozenset(
 
 
 @proxy_bp.route("/datasets", methods=["GET", "POST"])
-@proxy_bp.route("/datasets/<path:subpath>", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
+@proxy_bp.route(
+    "/datasets/<path:subpath>", methods=["GET", "POST", "PUT", "PATCH", "DELETE"]
+)
 def proxy_data(subpath=""):
     upstream = current_app.config["DATA_SERVICE_URL"]
     path = f"/datasets/{subpath}" if subpath else "/datasets"
@@ -42,8 +45,11 @@ def proxy_tasks(subpath):
 
 # ── ML Training Service routes ────────────────────────────────────────────────
 
+
 @proxy_bp.route("/pipelines", methods=["GET", "POST"])
-@proxy_bp.route("/pipelines/<path:subpath>", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
+@proxy_bp.route(
+    "/pipelines/<path:subpath>", methods=["GET", "POST", "PUT", "PATCH", "DELETE"]
+)
 def proxy_pipelines(subpath=""):
     upstream = current_app.config["ML_SERVICE_URL"]
     path = f"/pipelines/{subpath}" if subpath else "/pipelines"

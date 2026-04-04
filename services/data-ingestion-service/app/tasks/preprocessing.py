@@ -1,6 +1,7 @@
 """
 Celery task: run preprocessing pipeline on a dataset.
 """
+
 from __future__ import annotations
 
 import os
@@ -12,6 +13,7 @@ from .celery_app import celery
 @celery.task(name="app.tasks.preprocessing.run_preprocessing", bind=True)
 def run_preprocessing(self, dataset_id: str, config: dict):
     from pymongo import MongoClient
+
     from ..services.preprocessing_service import preprocess_dataset
 
     mongo_url = os.environ["MONGO_URL"]
@@ -24,7 +26,13 @@ def run_preprocessing(self, dataset_id: str, config: dict):
 
     task_results.update_one(
         {"task_id": self.request.id},
-        {"$set": {"status": "running", "started_at": datetime.now(timezone.utc), "progress_pct": 0}},
+        {
+            "$set": {
+                "status": "running",
+                "started_at": datetime.now(timezone.utc),
+                "progress_pct": 0,
+            }
+        },
         upsert=True,
     )
 
@@ -38,7 +46,9 @@ def run_preprocessing(self, dataset_id: str, config: dict):
             {"$set": {"status": "preprocessing"}},
         )
 
-        task_results.update_one({"task_id": self.request.id}, {"$set": {"progress_pct": 20}})
+        task_results.update_one(
+            {"task_id": self.request.id}, {"$set": {"progress_pct": 20}}
+        )
 
         upload_folder = os.environ.get("UPLOAD_FOLDER", "/uploads")
         output_dir = os.path.join(upload_folder, dataset_id)
@@ -67,14 +77,26 @@ def run_preprocessing(self, dataset_id: str, config: dict):
 
         task_results.update_one(
             {"task_id": self.request.id},
-            {"$set": {"status": "success", "progress_pct": 100, "completed_at": datetime.now(timezone.utc)}},
+            {
+                "$set": {
+                    "status": "success",
+                    "progress_pct": 100,
+                    "completed_at": datetime.now(timezone.utc),
+                }
+            },
         )
 
     except Exception as exc:
         datasets.update_one({"dataset_id": dataset_id}, {"$set": {"status": "error"}})
         task_results.update_one(
             {"task_id": self.request.id},
-            {"$set": {"status": "failure", "error_message": str(exc)[:500], "completed_at": datetime.now(timezone.utc)}},
+            {
+                "$set": {
+                    "status": "failure",
+                    "error_message": str(exc)[:500],
+                    "completed_at": datetime.now(timezone.utc),
+                }
+            },
         )
         raise
     finally:

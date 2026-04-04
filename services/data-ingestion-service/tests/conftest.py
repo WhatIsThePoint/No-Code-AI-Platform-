@@ -1,11 +1,12 @@
-import io
 import os
 import tempfile
+from unittest.mock import MagicMock, patch
 
 import pytest
-from unittest.mock import patch, MagicMock
 
-os.environ.setdefault("MONGO_URL", "mongodb://test:test@localhost:27017/test_ingestion?authSource=admin")
+os.environ.setdefault(
+    "MONGO_URL", "mongodb://test:test@localhost:27017/test_ingestion?authSource=admin"
+)
 os.environ.setdefault("MONGO_DB", "test_ingestion")
 os.environ.setdefault("REDIS_URL", "redis://localhost:6379/0")
 os.environ.setdefault("CELERY_BROKER_URL", "redis://localhost:6379/0")
@@ -13,8 +14,8 @@ os.environ.setdefault("CELERY_RESULT_BACKEND", "redis://localhost:6379/1")
 os.environ.setdefault("FERNET_KEY", "dGVzdC1mZXJuZXQta2V5LWZpbGwtMzItYnl0ZXMhIQ==")
 os.environ.setdefault("FLASK_ENV", "testing")
 
-from app.config import TestingConfig
-from app.main import create_app
+from app.config import TestingConfig  # noqa: E402
+from app.main import create_app  # noqa: E402
 
 
 @pytest.fixture(scope="session")

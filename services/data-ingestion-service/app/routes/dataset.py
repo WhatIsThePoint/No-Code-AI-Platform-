@@ -60,7 +60,17 @@ def list_datasets():
         .limit(limit)
     )
 
-    return jsonify({"items": [_serialize_doc(d) for d in docs], "total": total, "page": page, "limit": limit}), 200
+    return (
+        jsonify(
+            {
+                "items": [_serialize_doc(d) for d in docs],
+                "total": total,
+                "page": page,
+                "limit": limit,
+            }
+        ),
+        200,
+    )
 
 
 @dataset_bp.get("/datasets/<dataset_id>")
@@ -90,7 +100,9 @@ def preview_dataset(dataset_id):
         return jsonify({"error": "dataset_not_ready", "status": doc["status"]}), 409
 
     # Check Redis cache
-    _redis = redis_client.from_url(current_app.config["REDIS_URL"], decode_responses=True)
+    _redis = redis_client.from_url(
+        current_app.config["REDIS_URL"], decode_responses=True
+    )
     cache_key = f"cache:dataset:{dataset_id}:preview:{rows}"
     cached = _redis.get(cache_key)
     if cached:
@@ -117,7 +129,10 @@ def get_profile(dataset_id):
     if not doc:
         return jsonify({"error": "not_found"}), 404
     if not doc.get("profiling_summary"):
-        return jsonify({"error": "profiling_not_complete", "status": doc.get("status")}), 409
+        return (
+            jsonify({"error": "profiling_not_complete", "status": doc.get("status")}),
+            409,
+        )
     return jsonify(doc["profiling_summary"]), 200
 
 

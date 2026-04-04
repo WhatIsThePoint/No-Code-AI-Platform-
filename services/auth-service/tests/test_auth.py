@@ -1,7 +1,11 @@
 def test_register_success(client):
     resp = client.post(
         "/auth/register",
-        json={"email": "test@example.com", "password": "password123", "full_name": "Test User"},
+        json={
+            "email": "test@example.com",
+            "password": "password123",
+            "full_name": "Test User",
+        },
     )
     assert resp.status_code == 201
     data = resp.get_json()
@@ -18,9 +22,7 @@ def test_register_duplicate_email(client):
 
 
 def test_register_weak_password(client):
-    resp = client.post(
-        "/auth/register", json={"email": "a@b.com", "password": "short"}
-    )
+    resp = client.post("/auth/register", json={"email": "a@b.com", "password": "short"})
     assert resp.status_code == 400
 
 
@@ -39,9 +41,7 @@ def test_login_success(client):
 
 
 def test_login_invalid_credentials(client):
-    resp = client.post(
-        "/auth/login", json={"email": "no@one.com", "password": "wrong"}
-    )
+    resp = client.post("/auth/login", json={"email": "no@one.com", "password": "wrong"})
     assert resp.status_code == 401
     assert resp.get_json()["error"] == "invalid_credentials"
 
@@ -54,7 +54,11 @@ def test_profile_requires_auth(client):
 def test_profile_returns_user(client):
     client.post(
         "/auth/register",
-        json={"email": "profile@example.com", "password": "password123", "full_name": "Alice"},
+        json={
+            "email": "profile@example.com",
+            "password": "password123",
+            "full_name": "Alice",
+        },
     )
     login_resp = client.post(
         "/auth/login",

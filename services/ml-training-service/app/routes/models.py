@@ -1,15 +1,16 @@
 """
 Model version listing, detail, and download endpoints.
 """
+
 from __future__ import annotations
 
 from flask import Blueprint, jsonify, request, send_file
 
 from ..extensions import mongo
 from ..services.model_registry import (
-    list_model_versions,
-    get_model_version,
     delete_model_version,
+    get_model_version,
+    list_model_versions,
 )
 
 models_bp = Blueprint("models", __name__)

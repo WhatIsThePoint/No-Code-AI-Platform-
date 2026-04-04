@@ -1,10 +1,9 @@
 import hashlib
-import os
 import secrets
 from datetime import datetime, timezone
 
 from flask import current_app
-from flask_jwt_extended import create_access_token, decode_token
+from flask_jwt_extended import create_access_token
 
 from ..extensions import bcrypt, db
 from ..models.user import RefreshToken, User
@@ -15,7 +14,9 @@ def register_user(email: str, password: str, full_name: str | None, role: str) -
         raise ValueError("email_taken")
 
     password_hash = bcrypt.generate_password_hash(password).decode("utf-8")
-    user = User(email=email, password_hash=password_hash, full_name=full_name, role=role)
+    user = User(
+        email=email, password_hash=password_hash, full_name=full_name, role=role
+    )
     db.session.add(user)
     db.session.commit()
     return user
@@ -38,7 +39,9 @@ def issue_tokens(user: User) -> tuple[str, str]:
     )
     raw_refresh = secrets.token_hex(64)
     token_hash = _hash_token(raw_refresh)
-    expires_at = datetime.now(timezone.utc) + current_app.config["JWT_REFRESH_TOKEN_EXPIRES"]
+    expires_at = (
+        datetime.now(timezone.utc) + current_app.config["JWT_REFRESH_TOKEN_EXPIRES"]
+    )
 
     rt = RefreshToken(user_id=user.id, token_hash=token_hash, expires_at=expires_at)
     db.session.add(rt)

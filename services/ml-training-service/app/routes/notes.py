@@ -1,6 +1,7 @@
 """
 Pipeline step notes: collaborative annotations per pipeline node.
 """
+
 from __future__ import annotations
 
 import uuid

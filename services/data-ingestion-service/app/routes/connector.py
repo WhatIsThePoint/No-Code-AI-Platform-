@@ -21,7 +21,12 @@ def sql_connect():
     required = ["db_type", "host", "port", "database", "username", "password", "query"]
     for field in required:
         if field not in data:
-            return jsonify({"error": "validation_error", "detail": f"Missing field: {field}"}), 400
+            return (
+                jsonify(
+                    {"error": "validation_error", "detail": f"Missing field: {field}"}
+                ),
+                400,
+            )
 
     # Test connection (timeout = 5s)
     db_type = data["db_type"]

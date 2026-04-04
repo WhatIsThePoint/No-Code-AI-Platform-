@@ -35,7 +35,7 @@ import { defaultHyperparams } from "./HyperparamControls";
 import { pipelinesApi } from "../../api/pipelines";
 import { modelsApi } from "../../api/models";
 import { useTaskStatus } from "../../hooks/useTaskStatus";
-import type { Pipeline, PipelineNode } from "../../types/pipeline";
+import type { Pipeline, PipelineNode, TrainNodeData, DatasetNodeData } from "../../types/pipeline";
 import type { Dataset } from "../../types/dataset";
 import type { ModelVersion } from "../../types/model";
 
@@ -95,18 +95,18 @@ export function PipelineCanvas({ pipeline, datasets, onSaved }: Props) {
         );
       });
     }
-  }, [taskResult?.status]);
+  }, [taskResult?.status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load latest version on mount if pipeline already has one
   useEffect(() => {
     if (pipeline.last_version_id && !latestVersion) {
       modelsApi.getVersion(pipeline.last_version_id).then(({ data }) => setLatestVersion(data)).catch(() => {});
     }
-  }, [pipeline.last_version_id]);
+  }, [pipeline.last_version_id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onConnect = useCallback(
     (connection: Connection) => setEdges((eds) => addEdge({ ...connection, animated: true }, eds)),
-    []
+    [] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   const handleNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
@@ -166,8 +166,8 @@ export function PipelineCanvas({ pipeline, datasets, onSaved }: Props) {
       setSnack({ open: true, msg: "Add both a Dataset and Train node first", severity: "error" });
       return;
     }
-    const td = trainNode.data as any;
-    const dd = datasetNode.data as any;
+    const td = trainNode.data as TrainNodeData;
+    const dd = datasetNode.data as DatasetNodeData;
 
     try {
       await handleSave();
@@ -179,8 +179,8 @@ export function PipelineCanvas({ pipeline, datasets, onSaved }: Props) {
         target_column: td.target_column ?? "",
       });
       setTrainTaskId(data.task_id);
-    } catch (e: any) {
-      setSnack({ open: true, msg: e?.response?.data?.error ?? "Failed to start training", severity: "error" });
+    } catch {
+      setSnack({ open: true, msg: "Failed to start training", severity: "error" });
     }
   };
 

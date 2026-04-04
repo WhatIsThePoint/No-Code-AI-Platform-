@@ -40,6 +40,7 @@ export function NotesPanel({ pipelineId, nodeId }: Props) {
     }
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load(); }, [pipelineId, nodeId]);
 
   const handleAdd = async () => {

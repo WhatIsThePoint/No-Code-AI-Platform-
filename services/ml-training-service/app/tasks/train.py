@@ -3,15 +3,16 @@ Celery task: train a model for a pipeline run.
 Writes progress + live metrics to MongoDB task_results.
 Sends email notification on completion or failure.
 """
+
 from __future__ import annotations
 
 import os
 import time
 from datetime import datetime, timezone
 
-from .celery_app import celery
-from ..services.training_service import get_model, load_split, prepare_xy
 from ..services.model_registry import save_model_version
+from ..services.training_service import get_model, load_split, prepare_xy
+from .celery_app import celery
 
 
 def _progress(task_results, task_id: str, pct: int, extra: dict | None = None):
@@ -42,15 +43,17 @@ def run_training(self, pipeline_id: str, run_config: dict):
 
     task_results.update_one(
         {"task_id": task_id},
-        {"$set": {
-            "status": "running",
-            "started_at": datetime.now(timezone.utc),
-            "progress_pct": 0,
-            "task_type": "training",
-            "dataset_id": run_config.get("dataset_id"),
-            "pipeline_id": pipeline_id,
-            "live_metrics": [],
-        }},
+        {
+            "$set": {
+                "status": "running",
+                "started_at": datetime.now(timezone.utc),
+                "progress_pct": 0,
+                "task_type": "training",
+                "dataset_id": run_config.get("dataset_id"),
+                "pipeline_id": pipeline_id,
+                "live_metrics": [],
+            }
+        },
         upsert=True,
     )
     pipelines.update_one(
@@ -70,7 +73,9 @@ def run_training(self, pipeline_id: str, run_config: dict):
         # ── Load data ──────────────────────────────────────────────────────────
         _progress(task_results, task_id, 10)
         df_train = load_split(dataset_dir, "train")
-        df_test = load_split(dataset_dir, "test") if task_type != "forecasting" else df_train
+        df_test = (
+            load_split(dataset_dir, "test") if task_type != "forecasting" else df_train
+        )
 
         _progress(task_results, task_id, 25)
 
@@ -82,7 +87,9 @@ def run_training(self, pipeline_id: str, run_config: dict):
         model = get_model(algorithm, hyperparams)
         model.train(X_train, y_train)
 
-        _progress(task_results, task_id, 75, {"live_metrics": [{"step": "training_done"}]})
+        _progress(
+            task_results, task_id, 75, {"live_metrics": [{"step": "training_done"}]}
+        )
 
         # ── Evaluate ──────────────────────────────────────────────────────────
         metrics = model.evaluate(X_test, y_test)
@@ -106,22 +113,26 @@ def run_training(self, pipeline_id: str, run_config: dict):
 
         pipelines.update_one(
             {"pipeline_id": pipeline_id},
-            {"$set": {
-                "status": "done",
-                "last_version_id": version_id,
-                "updated_at": datetime.now(timezone.utc),
-            }},
+            {
+                "$set": {
+                    "status": "done",
+                    "last_version_id": version_id,
+                    "updated_at": datetime.now(timezone.utc),
+                }
+            },
         )
 
         task_results.update_one(
             {"task_id": task_id},
-            {"$set": {
-                "status": "success",
-                "progress_pct": 100,
-                "completed_at": datetime.now(timezone.utc),
-                "metrics": metrics,
-                "version_id": version_id,
-            }},
+            {
+                "$set": {
+                    "status": "success",
+                    "progress_pct": 100,
+                    "completed_at": datetime.now(timezone.utc),
+                    "metrics": metrics,
+                    "version_id": version_id,
+                }
+            },
         )
 
         _send_notification(
@@ -135,11 +146,13 @@ def run_training(self, pipeline_id: str, run_config: dict):
         )
         task_results.update_one(
             {"task_id": task_id},
-            {"$set": {
-                "status": "failure",
-                "error_message": str(exc)[:500],
-                "completed_at": datetime.now(timezone.utc),
-            }},
+            {
+                "$set": {
+                    "status": "failure",
+                    "error_message": str(exc)[:500],
+                    "completed_at": datetime.now(timezone.utc),
+                }
+            },
         )
         _send_notification(run_config, success=False, error=str(exc))
         raise
@@ -153,6 +166,7 @@ def _send_notification(run_config: dict, success: bool, **kwargs):
     try:
         from flask import Flask
         from flask_mail import Mail, Message
+
         from ..config import Config
 
         user_email = run_config.get("user_email")
@@ -164,13 +178,13 @@ def _send_notification(run_config: dict, success: bool, **kwargs):
         m = Mail(app)
 
         if success:
-            version_id = kwargs.get("version_id", "")
             metrics = kwargs.get("metrics", {})
             frontend_url = run_config.get("frontend_url", "http://localhost:5173")
             subject = "[NoCode AI] Training complete"
             body = (
                 f"Your model has been trained successfully.\n\n"
                 f"Algorithm: {run_config.get('algorithm')}\n"
+                f"Version: {kwargs.get('version_id', '')}\n"
                 f"Metrics: {metrics}\n\n"
                 f"View results: {frontend_url}/pipelines/{run_config.get('pipeline_id', '')}\n"
             )

@@ -5,10 +5,8 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
 
 from .config import Config, TestingConfig
-from .utils.http_client import get_http_session
 
 
 def create_app(config=None):

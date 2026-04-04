@@ -1,5 +1,5 @@
-from flask import Blueprint, current_app, jsonify, request
-from flask_jwt_extended import get_jwt, get_jwt_identity, jwt_required
+from flask import Blueprint, jsonify, request
+from flask_jwt_extended import get_jwt, jwt_required
 from marshmallow import ValidationError
 
 from ..schemas.auth import LoginSchema, RegisterSchema
@@ -27,10 +27,18 @@ def register():
         )
     except ValueError as e:
         if str(e) == "email_taken":
-            return jsonify({"error": "email_taken", "message": "Email already in use"}), 409
+            return (
+                jsonify({"error": "email_taken", "message": "Email already in use"}),
+                409,
+            )
         raise
 
-    return jsonify({"user_id": str(user.id), "email": user.email, "message": "registered"}), 201
+    return (
+        jsonify(
+            {"user_id": str(user.id), "email": user.email, "message": "registered"}
+        ),
+        201,
+    )
 
 
 @auth_bp.post("/login")
@@ -42,7 +50,12 @@ def login():
 
     user = auth_service.authenticate_user(data["email"], data["password"])
     if not user:
-        return jsonify({"error": "invalid_credentials", "message": "Invalid email or password"}), 401
+        return (
+            jsonify(
+                {"error": "invalid_credentials", "message": "Invalid email or password"}
+            ),
+            401,
+        )
 
     if user.totp_enabled:
         session_token = auth_service.issue_2fa_session_token(str(user.id))

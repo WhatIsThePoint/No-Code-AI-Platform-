@@ -2,6 +2,7 @@
 Pipeline CRUD: create, list, get, update, delete.
 Pipelines are stored as JSON documents in MongoDB.
 """
+
 from __future__ import annotations
 
 import uuid
@@ -68,7 +69,9 @@ def list_pipelines():
         query = {"$or": [{"user_id": user_id}, {"company_id": company_id}]}
 
     total = _col().count_documents(query)
-    docs = list(_col().find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit))
+    docs = list(
+        _col().find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit)
+    )
     for d in docs:
         _serialize(d)
 

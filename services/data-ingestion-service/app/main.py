@@ -23,11 +23,11 @@ def create_app(config=None):
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
     # Register blueprints
-    from .routes.upload import upload_bp
     from .routes.connector import connector_bp
     from .routes.dataset import dataset_bp
     from .routes.preprocessing import preprocessing_bp
     from .routes.tasks import tasks_bp
+    from .routes.upload import upload_bp
 
     app.register_blueprint(upload_bp)
     app.register_blueprint(connector_bp)

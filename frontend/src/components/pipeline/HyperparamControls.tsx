@@ -163,6 +163,7 @@ export function HyperparamControls({ algorithm, values, onChange }: Props) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function defaultHyperparams(algorithm: Algorithm): Record<string, number | string | boolean> {
   const params = PARAMS[algorithm] ?? {};
   return Object.fromEntries(Object.entries(params).map(([k, def]) => [k, def.default]));

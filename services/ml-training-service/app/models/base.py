@@ -2,6 +2,7 @@
 Abstract base class for all ML models in the platform.
 Every model must implement train(), predict(), and evaluate().
 """
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -31,7 +32,9 @@ class BaseMLModel(ABC):
         """Return predictions for X."""
 
     @abstractmethod
-    def evaluate(self, X_test: pd.DataFrame, y_test: pd.Series | None = None) -> dict[str, Any]:
+    def evaluate(
+        self, X_test: pd.DataFrame, y_test: pd.Series | None = None
+    ) -> dict[str, Any]:
         """Compute and return a metrics dict."""
 
     @property

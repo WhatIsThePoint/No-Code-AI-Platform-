@@ -1,6 +1,7 @@
 """
 Additional boosting algorithms: LightGBM and CatBoost (classification).
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -31,11 +32,15 @@ class LightGBMModel(BaseMLModel):
     def predict(self, X: pd.DataFrame) -> np.ndarray:
         return self._estimator.predict(X)
 
-    def evaluate(self, X_test: pd.DataFrame, y_test: pd.Series | None = None) -> dict[str, Any]:
+    def evaluate(
+        self, X_test: pd.DataFrame, y_test: pd.Series | None = None
+    ) -> dict[str, Any]:
         y_pred = self.predict(X_test)
         y_prob = self._estimator.predict_proba(X_test)
         return _classification_metrics(
-            y_test, y_pred, y_prob,
+            y_test,
+            y_pred,
+            y_prob,
             list(X_test.columns),
             self._estimator.feature_importances_,
         )
@@ -58,12 +63,16 @@ class CatBoostModel(BaseMLModel):
     def predict(self, X: pd.DataFrame) -> np.ndarray:
         return self._estimator.predict(X)
 
-    def evaluate(self, X_test: pd.DataFrame, y_test: pd.Series | None = None) -> dict[str, Any]:
+    def evaluate(
+        self, X_test: pd.DataFrame, y_test: pd.Series | None = None
+    ) -> dict[str, Any]:
         y_pred = self.predict(X_test)
         y_prob = self._estimator.predict_proba(X_test)
         importances = self._estimator.get_feature_importance()
         return _classification_metrics(
-            y_test, y_pred, y_prob,
+            y_test,
+            y_pred,
+            y_prob,
             list(X_test.columns),
             importances,
         )

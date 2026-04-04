@@ -13,15 +13,19 @@ def get_task_status(task_id):
     if not doc:
         # Fall back to Celery result backend (in case worker hasn't written to Mongo yet)
         from ..tasks.celery_app import celery
+
         result = celery.AsyncResult(task_id)
-        return jsonify(
-            {
-                "task_id": task_id,
-                "status": result.status.lower(),
-                "progress_pct": 0,
-                "error_message": str(result.result) if result.failed() else None,
-            }
-        ), 200
+        return (
+            jsonify(
+                {
+                    "task_id": task_id,
+                    "status": result.status.lower(),
+                    "progress_pct": 0,
+                    "error_message": str(result.result) if result.failed() else None,
+                }
+            ),
+            200,
+        )
 
     # Normalize datetime fields
     for field in ("started_at", "completed_at", "created_at"):

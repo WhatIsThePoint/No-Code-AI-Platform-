@@ -2,7 +2,6 @@ import os
 
 import redis as redis_client
 from flask import Flask, jsonify
-from flask_jwt_extended import get_jwt
 
 from .config import Config, TestingConfig
 from .extensions import bcrypt, db, jwt, ma, migrate
@@ -36,7 +35,10 @@ def create_app(config=None):
 
     @jwt.revoked_token_loader
     def revoked_token_response(jwt_header, jwt_payload):
-        return jsonify({"error": "token_revoked", "message": "Token has been revoked"}), 401
+        return (
+            jsonify({"error": "token_revoked", "message": "Token has been revoked"}),
+            401,
+        )
 
     @jwt.expired_token_loader
     def expired_token_response(jwt_header, jwt_payload):

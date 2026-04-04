@@ -25,6 +25,7 @@ const LazyModelRegistryPage = lazy(() =>
   import("../pages/ModelRegistryPage").then((m) => ({ default: m.ModelRegistryPage }))
 );
 
+// eslint-disable-next-line react-refresh/only-export-components
 function SuspenseWrapper({ children }: { children: React.ReactNode }) {
   return (
     <Suspense fallback={<Box sx={{ display: "flex", justifyContent: "center", mt: 8 }}><CircularProgress /></Box>}>

@@ -7,6 +7,15 @@ redis==5.0.6
 python-dotenv==1.0.1
 gunicorn==22.0.0
 
+# Postgres access for chat history (gateway shares the auth-service DB)
+psycopg2-binary==2.9.9
+SQLAlchemy==2.0.32
+
+# Realtime: SocketIO backed by Redis message queue (DB 2)
+flask-socketio==5.3.7
+python-socketio[redis]==5.11.3
+eventlet==0.36.1
+
 # Testing
 pytest==8.2.2
 pytest-flask==1.3.0

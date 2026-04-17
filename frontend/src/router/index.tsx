@@ -3,6 +3,7 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 import { CircularProgress, Box } from "@mui/material";
 import { Layout } from "../components/common/Layout";
 import { ProtectedRoute } from "../components/common/ProtectedRoute";
+import { LandingPage } from "../pages/LandingPage";
 import { DashboardPage } from "../pages/DashboardPage";
 import { LoginPage } from "../pages/LoginPage";
 import { RegisterPage } from "../pages/RegisterPage";
@@ -46,8 +47,9 @@ function SuspenseWrapper({ children }: { children: React.ReactNode }) {
   );
 }
 
-export const router = createBrowserRouter([
-  { path: "/", element: <Navigate to="/dashboard" replace /> },
+export const router = createBrowserRouter(
+  [
+  { path: "/", element: <LandingPage /> },
   { path: "/login", element: <LoginPage /> },
   { path: "/register", element: <RegisterPage /> },
   { path: "/2fa", element: <TotpPage /> },
@@ -163,4 +165,10 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
   },
-]);
+  ],
+  {
+    future: {
+      v7_relativeSplatPath: true,
+    },
+  },
+);

@@ -17,7 +17,7 @@ export const authApi = {
 
   getMe: () => api.get<User>("/users/me"),
 
-  updateMe: (payload: Partial<Pick<User, "full_name" | "role">>) =>
+  updateMe: (payload: Partial<Pick<User, "full_name" | "role" | "has_seen_pipeline_tour">>) =>
     api.patch<User>("/users/me", payload),
 
   enable2FA: () =>

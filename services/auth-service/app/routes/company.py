@@ -36,6 +36,37 @@ def create_company():
     )
 
 
+@company_bp.get("/mine")
+@jwt_required()
+def get_my_company():
+    """Return the current user's active company membership, or 404."""
+    user_id = get_jwt_identity()
+    membership = (
+        Membership.query.filter_by(user_id=user_id, status="active")
+        .first()
+    )
+    if not membership:
+        return jsonify({"error": "no_company"}), 404
+
+    company = Company.query.get(membership.company_id)
+    if not company:
+        return jsonify({"error": "no_company"}), 404
+
+    return (
+        jsonify(
+            {
+                "company_id": str(company.id),
+                "name": company.name,
+                "slug": company.slug,
+                "owner_id": str(company.owner_id),
+                "created_at": company.created_at.isoformat(),
+                "your_role": membership.role,
+            }
+        ),
+        200,
+    )
+
+
 @company_bp.get("/<company_id>")
 @jwt_required()
 def get_company(company_id):
@@ -69,15 +100,19 @@ def list_members(company_id):
         return jsonify({"error": "forbidden"}), 403
 
     members = Membership.query.filter_by(company_id=company.id, status="active").all()
-    result = [
-        {
-            "user_id": str(m.user_id),
-            "role": m.role,
-            "status": m.status,
-            "created_at": m.created_at.isoformat(),
-        }
-        for m in members
-    ]
+    result = []
+    for m in members:
+        u = User.query.get(m.user_id)
+        result.append(
+            {
+                "user_id": str(m.user_id),
+                "full_name": u.full_name if u else None,
+                "email": u.email if u else None,
+                "role": m.role,
+                "status": m.status,
+                "created_at": m.created_at.isoformat(),
+            }
+        )
     return jsonify(result), 200
 
 
@@ -138,6 +173,41 @@ def remove_member(company_id, target_user_id):
 
     company_service.remove_member(company.id, uuid.UUID(target_user_id))
     return "", 204
+
+
+@company_bp.get("/invitations/pending")
+@jwt_required()
+def list_pending_invitations():
+    """Return all pending (unaccepted, unexpired) invitations for the current user's email."""
+    from datetime import datetime, timezone
+
+    from ..models.company import Invitation
+
+    user = User.query.get(get_jwt_identity())
+    if not user:
+        return jsonify([]), 200
+
+    now = datetime.now(timezone.utc)
+    invites = (
+        Invitation.query.filter_by(email=user.email, accepted=False)
+        .filter(Invitation.expires_at > now)
+        .all()
+    )
+
+    result = []
+    for inv in invites:
+        company = Company.query.get(inv.company_id)
+        result.append(
+            {
+                "invitation_id": str(inv.id),
+                "token": inv.token,
+                "company_name": company.name if company else "Unknown",
+                "company_id": str(inv.company_id),
+                "role": inv.role,
+                "expires_at": inv.expires_at.isoformat(),
+            }
+        )
+    return jsonify(result), 200
 
 
 @company_bp.get("/invitations/accept/<token>")

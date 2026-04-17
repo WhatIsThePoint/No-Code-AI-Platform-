@@ -1,3 +1,4 @@
+
 import os
 
 import redis as redis_client
@@ -56,13 +57,15 @@ def create_app(config=None):
     app.extensions["redis"] = _redis
 
     # Import models so Flask-Migrate can detect them
-    from .models import company, subscription, user  # noqa: F401
+    from .models import chat, company, subscription, user  # noqa: F401
 
     # Register blueprints
     from .routes.admin import admin_bp
     from .routes.auth import auth_bp
     from .routes.billing import billing_bp
     from .routes.company import company_bp
+    from .routes.google_oauth import google_oauth_bp
+    from .routes.meetings import meetings_bp
     from .routes.profile import profile_bp
     from .routes.totp import totp_bp
 
@@ -72,6 +75,8 @@ def create_app(config=None):
     app.register_blueprint(company_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(billing_bp)
+    app.register_blueprint(google_oauth_bp)
+    app.register_blueprint(meetings_bp)
 
     @app.get("/health")
     def health():

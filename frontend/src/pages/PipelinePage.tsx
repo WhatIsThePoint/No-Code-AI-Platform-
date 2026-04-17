@@ -14,9 +14,11 @@ import {
   Fab,
   TextField,
   Typography,
+  alpha,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
+import AccountTreeIcon from "@mui/icons-material/AccountTreeRounded";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { pipelinesApi } from "../api/pipelines";
@@ -72,36 +74,64 @@ export function PipelinePage() {
 
   return (
     <Box>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
-        <Typography variant="h5" fontWeight={700}>ML Pipelines</Typography>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}>
+        <Box
+          sx={{
+            width: 40,
+            height: 40,
+            borderRadius: "12px",
+            background: "linear-gradient(135deg, #8b5cf6, #7c3aed)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#fff",
+          }}
+        >
+          <AccountTreeIcon sx={{ fontSize: 22 }} />
+        </Box>
+        <Typography variant="h4">ML Pipelines</Typography>
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       {loading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", mt: 6 }}>
+        <Box sx={{ display: "flex", justifyContent: "center", mt: 8 }}>
           <CircularProgress />
         </Box>
       ) : pipelines.length === 0 ? (
-        <Box sx={{ textAlign: "center", mt: 6, color: "text.secondary" }}>
-          <Typography variant="h6">No pipelines yet</Typography>
-          <Typography variant="body2">Create your first pipeline to start training models.</Typography>
+        <Box
+          sx={{
+            textAlign: "center",
+            mt: 8,
+            py: 6,
+            px: 3,
+            borderRadius: 4,
+            border: "2px dashed",
+            borderColor: "divider",
+            bgcolor: alpha("#f8fafc", 0.5),
+          }}
+        >
+          <AccountTreeIcon sx={{ fontSize: 48, color: "text.secondary", mb: 1, opacity: 0.4 }} />
+          <Typography variant="h6" sx={{ color: "text.secondary", mb: 0.5 }}>No pipelines yet</Typography>
+          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+            Create your first pipeline to start training models.
+          </Typography>
         </Box>
       ) : (
-        <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 2 }}>
+        <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 2.5 }} className="stagger-children">
           {pipelines.map((p) => (
-            <Card key={p.pipeline_id} variant="outlined">
+            <Card key={p.pipeline_id}>
               <CardActionArea onClick={() => navigate(`/pipelines/${p.pipeline_id}`)}>
                 <CardContent>
-                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                    <Typography variant="h6" noWrap sx={{ flex: 1, mr: 1 }}>{p.name}</Typography>
+                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1 }}>
+                    <Typography variant="h6" noWrap sx={{ flex: 1, mr: 1, fontSize: "1rem" }}>{p.name}</Typography>
                     <Chip
                       label={p.status}
                       size="small"
                       color={STATUS_COLOR[p.status] ?? "default"}
                     />
                   </Box>
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography variant="caption" sx={{ color: "text.secondary" }}>
                     {p.nodes.length} nodes · Updated {new Date(p.updated_at).toLocaleDateString()}
                   </Typography>
                 </CardContent>
@@ -112,6 +142,7 @@ export function PipelinePage() {
                   color="error"
                   startIcon={<DeleteIcon />}
                   onClick={(e) => handleDelete(e, p.pipeline_id)}
+                  sx={{ "&:hover": { transform: "none" } }}
                 >
                   Delete
                 </Button>
@@ -123,14 +154,14 @@ export function PipelinePage() {
 
       <Fab
         color="primary"
-        sx={{ position: "fixed", bottom: 24, right: 24 }}
+        sx={{ position: "fixed", bottom: 32, right: 32 }}
         onClick={() => setCreateOpen(true)}
       >
         <AddIcon />
       </Fab>
 
       <Dialog open={createOpen} onClose={() => setCreateOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>New Pipeline</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>New Pipeline</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
@@ -142,7 +173,7 @@ export function PipelinePage() {
             onKeyDown={(e) => { if (e.key === "Enter") handleCreate(); }}
           />
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
           <Button onClick={() => setCreateOpen(false)}>Cancel</Button>
           <Button
             variant="contained"

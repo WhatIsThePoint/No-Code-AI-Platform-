@@ -15,3 +15,4 @@ catboost==1.2.5
 prophet==1.1.5
 joblib==1.4.2
 flask-mail==0.10.0
+shap==0.46.0

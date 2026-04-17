@@ -8,6 +8,7 @@ export interface ClassificationMetrics {
   roc_auc?: number;
   confusion_matrix: number[][];
   feature_importance?: Record<string, number>;
+  shap_importance?: Record<string, number>;
 }
 
 export interface ClusteringMetrics {
@@ -30,11 +31,18 @@ export interface ForecastMetrics {
   }>;
 }
 
+export interface ResidualPoint {
+  y_true: number;
+  y_pred: number;
+}
+
 export interface RegressionMetrics {
   mae: number;
   rmse: number;
   r2: number;
   feature_importance?: Record<string, number>;
+  shap_importance?: Record<string, number>;
+  residuals_sample?: ResidualPoint[];
 }
 
 export type ModelMetrics = ClassificationMetrics | RegressionMetrics | ClusteringMetrics | ForecastMetrics;

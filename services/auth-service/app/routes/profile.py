@@ -39,6 +39,8 @@ def update_profile():
         user.full_name = data["full_name"]
     if "role" in data:
         user.role = data["role"]
+    if "has_seen_pipeline_tour" in data:
+        user.has_seen_pipeline_tour = data["has_seen_pipeline_tour"]
 
     db.session.commit()
     return jsonify(_user_schema.dump(user)), 200

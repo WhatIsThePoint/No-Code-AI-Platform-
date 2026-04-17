@@ -14,6 +14,14 @@ gunicorn==22.0.0
 email-validator==2.2.0
 stripe==10.5.0
 
+# Google OAuth + Calendar (Meet) — optional at runtime; endpoints return 503 if unset
+google-auth==2.33.0
+google-auth-oauthlib==1.2.1
+google-api-python-client==2.143.0
+
+# SocketIO cross-process emit (publishes meeting_created into gateway's room)
+python-socketio[redis]==5.11.3
+
 # Testing
 pytest==8.2.2
 pytest-flask==1.3.0

@@ -1,8 +1,9 @@
-import { Box, CircularProgress, Alert, Typography, Paper } from "@mui/material";
+import { Box, CircularProgress, Alert, Chip, Typography, Paper, alpha } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import type { GridColDef } from "@mui/x-data-grid";
 import { useEffect, useState } from "react";
 import { datasetsApi } from "../../api/datasets";
+import TableChartIcon from "@mui/icons-material/TableChartRounded";
 
 interface Props {
   datasetId: string;
@@ -42,15 +43,23 @@ export function DatasetPreview({ datasetId }: Props) {
       .finally(() => setLoading(false));
   }, [datasetId]);
 
-  if (loading) return <CircularProgress />;
+  if (loading) return <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}><CircularProgress /></Box>;
   if (error) return <Alert severity="error">{error}</Alert>;
 
   return (
-    <Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-        Showing first {rows.length} of {totalRows.toLocaleString()} rows
-      </Typography>
-      <Paper sx={{ height: 450 }}>
+    <Box className="animate-fade-in">
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
+        <TableChartIcon sx={{ fontSize: 18, color: "#6366f1" }} />
+        <Typography variant="body2" color="text.secondary">
+          Showing first {rows.length} of {totalRows.toLocaleString()} rows
+        </Typography>
+        <Chip
+          label={`${columns.length} columns`}
+          size="small"
+          sx={{ fontSize: "0.65rem", height: 20, bgcolor: alpha("#6366f1", 0.08), color: "#4f46e5", fontWeight: 600 }}
+        />
+      </Box>
+      <Paper sx={{ height: 450, borderRadius: 4, overflow: "hidden" }}>
         <DataGrid
           rows={rows}
           columns={columns}

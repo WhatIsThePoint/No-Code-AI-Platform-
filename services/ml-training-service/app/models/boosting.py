@@ -43,6 +43,8 @@ class LightGBMModel(BaseMLModel):
             y_prob,
             list(X_test.columns),
             self._estimator.feature_importances_,
+            estimator=self._estimator,
+            X_test=X_test,
         )
 
 
@@ -75,4 +77,6 @@ class CatBoostModel(BaseMLModel):
             y_prob,
             list(X_test.columns),
             importances,
+            estimator=self._estimator,
+            X_test=X_test,
         )

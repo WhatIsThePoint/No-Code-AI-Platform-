@@ -5,6 +5,7 @@ export interface User {
   role: "data_scientist" | "engineer" | "analyst" | "super_admin";
   tier: "free" | "solo" | "company" | "super_admin";
   totp_enabled: boolean;
+  has_seen_pipeline_tour?: boolean;
   created_at: string;
 }
 

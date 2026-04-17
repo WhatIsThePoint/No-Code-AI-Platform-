@@ -115,8 +115,12 @@ services:
       ML_SERVICE_URL: http://ml-training-service:8003
       METRICS_SERVICE_URL: http://metrics-service:8004
       REDIS_URL: redis://redis:6379/0
+      SOCKETIO_MESSAGE_QUEUE: redis://redis:6379/2
+      DATABASE_URL: postgresql://${POSTGRES_USER:-nocode}:${POSTGRES_PASSWORD:-nocode_secret}@postgres:5432/${POSTGRES_DB:-nocode_auth}
     depends_on:
       redis:
+        condition: service_healthy
+      postgres:
         condition: service_healthy
       auth-service:
         condition: service_started
@@ -141,6 +145,10 @@ services:
       STRIPE_PRICE_COMPANY_MONTHLY: ${STRIPE_PRICE_COMPANY_MONTHLY:-}
       STRIPE_PRICE_COMPANY_YEARLY: ${STRIPE_PRICE_COMPANY_YEARLY:-}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_OAUTH_REDIRECT_URI: ${GOOGLE_OAUTH_REDIRECT_URI:-http://localhost:8000/auth/google/callback}
+      SOCKETIO_MESSAGE_QUEUE: redis://redis:6379/2
     depends_on:
       postgres:
         condition: service_healthy

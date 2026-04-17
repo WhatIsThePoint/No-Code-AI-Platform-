@@ -70,4 +70,16 @@ api.interceptors.response.use(
   }
 );
 
+// ── 429 retry-after handler ─────────────────────────────────────────────────
+api.interceptors.response.use(undefined, async (error) => {
+  const cfg = error.config;
+  if (error.response?.status === 429 && !cfg._rateLimitRetried) {
+    cfg._rateLimitRetried = true;
+    const retryAfter = Number(error.response.headers["retry-after"]) || 2;
+    await new Promise((r) => setTimeout(r, retryAfter * 1000));
+    return api(cfg);
+  }
+  return Promise.reject(error);
+});
+
 export default api;

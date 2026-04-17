@@ -15,6 +15,7 @@ _PUBLIC_PREFIXES = (
     "/auth/login",
     "/auth/refresh",
     "/auth/2fa/verify",
+    "/auth/google/callback",
     "/invitations/accept/",
 )
 

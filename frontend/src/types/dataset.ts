@@ -6,6 +6,11 @@ export type DatasetStatus =
   | "preprocessed"
   | "error";
 
+export interface ColumnHistogram {
+  bins: number[];
+  counts: number[];
+}
+
 export interface ColumnProfile {
   name: string;
   dtype: string;
@@ -17,6 +22,12 @@ export interface ColumnProfile {
   max?: number;
   unique_count: number;
   sample_values: unknown[];
+  histogram?: ColumnHistogram;
+}
+
+export interface CorrelationMatrix {
+  columns: string[];
+  values: number[][];
 }
 
 export interface ProfilingSummary {
@@ -24,6 +35,8 @@ export interface ProfilingSummary {
   total_missing_pct: number;
   duplicate_rows: number;
   profiling_completed_at?: string;
+  correlation_matrix?: CorrelationMatrix;
+  correlation_truncated?: boolean;
 }
 
 export interface PreprocessingConfig {

@@ -8,19 +8,62 @@ import {
   InputLabel,
   LinearProgress,
   MenuItem,
+  Paper,
   Select,
   Slider,
   Step,
   StepLabel,
   Stepper,
   Typography,
+  alpha,
 } from "@mui/material";
+import LightbulbIcon from "@mui/icons-material/LightbulbRounded";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForwardRounded";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { datasetsApi } from "../../api/datasets";
 import { useTaskStatus } from "../../hooks/useTaskStatus";
 import type { Dataset, PreprocessingConfig } from "../../types/dataset";
 
 const STEPS = ["Columns", "Strategies", "Split", "Run"];
+
+const IMPUTATION_HINTS: Record<string, string> = {
+  mean: "Fills missing numbers with the average value of the column. Best for roughly symmetric data.",
+  median: "Fills missing numbers with the middle value. Better than mean when your data has outliers.",
+  mode: "Fills missing values with the most common value. Works for text categories and numbers.",
+  constant: "Fills every missing value with 0. Use when missing means 'none' or 'zero'.",
+};
+
+const ENCODING_HINTS: Record<string, string> = {
+  onehot: "Creates a yes/no column per category (Color=Red → Red:1, Blue:0). Best when categories have no natural order.",
+  label: "Converts each category to an integer (Red=0, Blue=1, Green=2). Compact but may imply an order.",
+  ordinal: "Like label encoding — assigns ordered integers. Use when categories have a real order (Low < Medium < High).",
+};
+
+const SCALING_HINTS: Record<string, string> = {
+  standard: "Centers values around 0 with unit variance. A safe default for most algorithms.",
+  minmax: "Squeezes all values between 0 and 1. Great for neural networks and distance-based models.",
+  robust: "Similar to standard but ignores outliers. Use when your data has extreme values.",
+  none: "Keep original values. Fine for tree models (Random Forest, XGBoost) that don't need scaling.",
+};
+
+function StrategyHint({ text }: { text: string }) {
+  return (
+    <Typography
+      variant="body2"
+      sx={{
+        color: "text.secondary",
+        mt: 0.75,
+        pl: 1.5,
+        borderLeft: `3px solid ${alpha("#6366f1", 0.3)}`,
+        fontSize: "0.8rem",
+        lineHeight: 1.5,
+      }}
+    >
+      {text}
+    </Typography>
+  );
+}
 
 interface Props {
   dataset: Dataset;
@@ -29,6 +72,7 @@ interface Props {
 
 export function PreprocessingPanel({ dataset, onDone }: Props) {
   const columns = dataset.profiling_summary?.columns.map((c) => c.name) ?? [];
+  const navigate = useNavigate();
 
   const [step, setStep] = useState(0);
   const [included, setIncluded] = useState<string[]>(columns);
@@ -77,8 +121,30 @@ export function PreprocessingPanel({ dataset, onDone }: Props) {
   };
 
   return (
-    <Box>
-      <Stepper activeStep={step} sx={{ mb: 3 }}>
+    <Box className="animate-fade-in">
+      {/* Why preprocessing exists */}
+      <Alert
+        icon={<LightbulbIcon />}
+        severity="info"
+        sx={{
+          mb: 3,
+          bgcolor: alpha("#6366f1", 0.04),
+          border: 1,
+          borderColor: alpha("#6366f1", 0.15),
+          "& .MuiAlert-icon": { color: "#6366f1" },
+        }}
+      >
+        <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+          Why preprocessing?
+        </Typography>
+        <Typography variant="caption" sx={{ color: "text.secondary", lineHeight: 1.6 }}>
+          Machine learning models can't read messy spreadsheets — they need clean numbers. Preprocessing
+          fills missing values, turns text into numbers, and scales everything so models can learn patterns.
+          Once done, your data moves to the pipeline editor where you connect it to a training model.
+        </Typography>
+      </Alert>
+
+      <Stepper activeStep={step} sx={{ mb: 4 }}>
         {STEPS.map((label) => (
           <Step key={label}>
             <StepLabel>{label}</StepLabel>
@@ -90,9 +156,14 @@ export function PreprocessingPanel({ dataset, onDone }: Props) {
 
       {/* Step 0: Column selection */}
       {step === 0 && (
-        <Box>
-          <Typography variant="h6" gutterBottom>Select Columns</Typography>
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+        <Paper sx={{ p: 3, borderRadius: 4 }} className="animate-fade-in">
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>Select Columns</Typography>
+          <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
+            Choose which columns feed into the model, and pick your <strong>target column</strong> —
+            the value you want to predict. Remove identifier columns (IDs, names, timestamps) since they
+            don't help the model learn patterns.
+          </Typography>
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
             {columns.map((col) => (
               <FormControlLabel
                 key={col}
@@ -101,13 +172,21 @@ export function PreprocessingPanel({ dataset, onDone }: Props) {
                     checked={included.includes(col)}
                     onChange={() => toggleColumn(col)}
                     size="small"
+                    sx={{ "&.Mui-checked": { color: "#6366f1" } }}
                   />
                 }
-                label={col}
+                label={<Typography variant="body2">{col}</Typography>}
+                sx={{
+                  mr: 1,
+                  px: 1,
+                  borderRadius: 2,
+                  bgcolor: included.includes(col) ? alpha("#6366f1", 0.04) : "transparent",
+                  transition: "background 0.2s",
+                }}
               />
             ))}
           </Box>
-          <FormControl fullWidth sx={{ mt: 2, maxWidth: 300 }}>
+          <FormControl fullWidth sx={{ mt: 2.5, maxWidth: 300 }}>
             <InputLabel>Target Column</InputLabel>
             <Select value={target} label="Target Column" onChange={(e) => setTarget(e.target.value)}>
               {included.map((col) => (
@@ -115,16 +194,21 @@ export function PreprocessingPanel({ dataset, onDone }: Props) {
               ))}
             </Select>
           </FormControl>
-          <Button variant="contained" sx={{ mt: 2 }} onClick={() => setStep(1)}>
+          <StrategyHint text="Example: to predict house prices, pick 'price'. To predict churn, pick 'churned'." />
+          <Button variant="contained" sx={{ mt: 2.5 }} onClick={() => setStep(1)}>
             Next
           </Button>
-        </Box>
+        </Paper>
       )}
 
       {/* Step 1: Strategies */}
       {step === 1 && (
-        <Box sx={{ maxWidth: 400 }}>
-          <Typography variant="h6" gutterBottom>Preprocessing Strategies</Typography>
+        <Paper sx={{ p: 3, maxWidth: 500, borderRadius: 4 }} className="animate-fade-in">
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>Preprocessing Strategies</Typography>
+          <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
+            Each dropdown handles a common data problem. The hint under each option explains what it does.
+          </Typography>
+
           <FormControl fullWidth margin="normal">
             <InputLabel>Missing Value Imputation</InputLabel>
             <Select value={imputation} label="Missing Value Imputation" onChange={(e) => setImputation(e.target.value)}>
@@ -134,7 +218,9 @@ export function PreprocessingPanel({ dataset, onDone }: Props) {
               <MenuItem value="constant">Constant (0)</MenuItem>
             </Select>
           </FormControl>
-          <FormControl fullWidth margin="normal">
+          <StrategyHint text={IMPUTATION_HINTS[imputation]} />
+
+          <FormControl fullWidth margin="normal" sx={{ mt: 2 }}>
             <InputLabel>Categorical Encoding</InputLabel>
             <Select value={encoding} label="Categorical Encoding" onChange={(e) => setEncoding(e.target.value)}>
               <MenuItem value="onehot">One-Hot</MenuItem>
@@ -142,7 +228,9 @@ export function PreprocessingPanel({ dataset, onDone }: Props) {
               <MenuItem value="ordinal">Ordinal</MenuItem>
             </Select>
           </FormControl>
-          <FormControl fullWidth margin="normal">
+          <StrategyHint text={ENCODING_HINTS[encoding]} />
+
+          <FormControl fullWidth margin="normal" sx={{ mt: 2 }}>
             <InputLabel>Feature Scaling</InputLabel>
             <Select value={scaling} label="Feature Scaling" onChange={(e) => setScaling(e.target.value)}>
               <MenuItem value="standard">Standard Scaler</MenuItem>
@@ -151,18 +239,47 @@ export function PreprocessingPanel({ dataset, onDone }: Props) {
               <MenuItem value="none">None</MenuItem>
             </Select>
           </FormControl>
-          <Box sx={{ mt: 2, display: "flex", gap: 1 }}>
+          <StrategyHint text={SCALING_HINTS[scaling]} />
+
+          <Box sx={{ mt: 3, display: "flex", gap: 1 }}>
             <Button onClick={() => setStep(0)}>Back</Button>
             <Button variant="contained" onClick={() => setStep(2)}>Next</Button>
           </Box>
-        </Box>
+        </Paper>
       )}
 
       {/* Step 2: Split ratios */}
       {step === 2 && (
-        <Box sx={{ maxWidth: 400 }}>
-          <Typography variant="h6" gutterBottom>Train / Val / Test Split</Typography>
-          <Typography variant="body2">Train: {splitRatios.train}%</Typography>
+        <Paper sx={{ p: 3, maxWidth: 500, borderRadius: 4 }} className="animate-fade-in">
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>Train / Validation / Test Split</Typography>
+          <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
+            Your data gets split into three parts: <strong>Train</strong> (the model learns from this),
+            <strong> Validation</strong> (tunes the model during training), and <strong>Test</strong> (a
+            final exam the model has never seen). This prevents the model from just memorizing answers.
+          </Typography>
+          <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+            {[
+              { label: "Train", value: splitRatios.train, color: "#6366f1" },
+              { label: "Val", value: splitRatios.val, color: "#8b5cf6" },
+              { label: "Test", value: splitRatios.test, color: "#10b981" },
+            ].map((s) => (
+              <Box
+                key={s.label}
+                sx={{
+                  flex: 1,
+                  textAlign: "center",
+                  py: 1.5,
+                  borderRadius: 3,
+                  bgcolor: alpha(s.color, 0.06),
+                  border: 1,
+                  borderColor: alpha(s.color, 0.15),
+                }}
+              >
+                <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600 }}>{s.label}</Typography>
+                <Typography variant="h5" sx={{ fontWeight: 800, color: s.color }}>{s.value}%</Typography>
+              </Box>
+            ))}
+          </Box>
           <Slider
             value={splitRatios.train}
             min={50}
@@ -174,34 +291,65 @@ export function PreprocessingPanel({ dataset, onDone }: Props) {
               setSplitRatios({ train, val: Math.round(remaining / 2), test: remaining - Math.round(remaining / 2) });
             }}
           />
-          <Typography variant="body2">Validation: {splitRatios.val}% · Test: {splitRatios.test}%</Typography>
-          <Typography variant="caption" color="text.secondary">
-            Total: {splitRatios.train + splitRatios.val + splitRatios.test}%
-          </Typography>
-          <Box sx={{ mt: 2, display: "flex", gap: 1 }}>
+          <StrategyHint text="70/15/15 is a safe default. If you have very little data (under 1,000 rows), try 80/10/10." />
+          <Box sx={{ mt: 2.5, display: "flex", gap: 1 }}>
             <Button onClick={() => setStep(1)}>Back</Button>
             <Button variant="contained" onClick={handleRun}>Run Preprocessing</Button>
           </Box>
-        </Box>
+        </Paper>
       )}
 
       {/* Step 3: Running */}
       {step === 3 && (
-        <Box>
-          <Typography variant="h6" gutterBottom>Preprocessing in Progress</Typography>
+        <Paper sx={{ p: 3, maxWidth: 500, borderRadius: 4 }} className="animate-fade-in">
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>Preprocessing in Progress</Typography>
+          <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
+            Your data is being cleaned and split. Once complete, head to the pipeline editor to connect
+            it to a training node.
+          </Typography>
           {result && (
-            <Box sx={{ maxWidth: 400 }}>
-              <Typography variant="body2">{result.status} — {result.progress_pct}%</Typography>
-              <LinearProgress variant="determinate" value={result.progress_pct} sx={{ mt: 1 }} />
+            <Box>
+              <Typography variant="body2" sx={{ fontWeight: 600, color: "#8b5cf6", mb: 0.5 }}>
+                {result.status} — {result.progress_pct}%
+              </Typography>
+              <LinearProgress
+                variant="determinate"
+                value={result.progress_pct}
+                sx={{
+                  height: 6,
+                  borderRadius: 3,
+                  bgcolor: alpha("#8b5cf6", 0.1),
+                  "& .MuiLinearProgress-bar": {
+                    borderRadius: 3,
+                    background: "linear-gradient(90deg, #6366f1, #8b5cf6)",
+                  },
+                }}
+              />
               {result.status === "failure" && (
-                <Alert severity="error" sx={{ mt: 1 }}>{result.error_message}</Alert>
+                <Alert severity="error" sx={{ mt: 1.5 }}>{result.error_message}</Alert>
               )}
               {result.status === "success" && (
-                <Alert severity="success" sx={{ mt: 1 }}>Preprocessing complete! Train/val/test splits saved.</Alert>
+                <>
+                  <Alert severity="success" sx={{ mt: 1.5 }}>
+                    Preprocessing complete! Train/val/test splits are saved and ready to train.
+                  </Alert>
+                  <Button
+                    variant="contained"
+                    endIcon={<ArrowForwardIcon />}
+                    onClick={() => navigate("/pipelines")}
+                    sx={{
+                      mt: 2,
+                      background: "linear-gradient(135deg, #10b981, #059669)",
+                      textTransform: "none",
+                    }}
+                  >
+                    Go to Pipelines
+                  </Button>
+                </>
               )}
             </Box>
           )}
-        </Box>
+        </Paper>
       )}
     </Box>
   );

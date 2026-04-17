@@ -35,6 +35,15 @@ class Config:
     STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
     FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
 
+    # Google OAuth (Meet + Calendar). All optional — if absent, endpoints
+    # return 503 google_not_configured and the UI disables the Meet button.
+    GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
+    GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
+    GOOGLE_OAUTH_REDIRECT_URI = os.environ.get(
+        "GOOGLE_OAUTH_REDIRECT_URI",
+        "http://localhost:8000/auth/google/callback",
+    )
+
 
 class TestingConfig(Config):
     TESTING = True

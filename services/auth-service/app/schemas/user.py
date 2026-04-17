@@ -8,6 +8,7 @@ class UserSchema(Schema):
     role = fields.Str(dump_only=True)
     tier = fields.Str(dump_only=True)
     totp_enabled = fields.Bool(dump_only=True)
+    has_seen_pipeline_tour = fields.Bool()
     created_at = fields.DateTime(dump_only=True)
 
 
@@ -16,3 +17,4 @@ class UpdateProfileSchema(Schema):
     role = fields.Str(
         validate=validate.OneOf(["data_scientist", "engineer", "analyst"])
     )
+    has_seen_pipeline_tour = fields.Bool()

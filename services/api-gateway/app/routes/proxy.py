@@ -46,6 +46,17 @@ def proxy_tasks(subpath):
 # ── ML Training Service routes ────────────────────────────────────────────────
 
 
+@proxy_bp.route(
+    "/pipelines/<pipeline_id>/meetings",
+    methods=["GET", "POST"],
+    endpoint="proxy_pipeline_meetings",
+)
+def proxy_pipeline_meetings(pipeline_id: str):
+    """Meetings live on the auth-service (holds Google OAuth tokens)."""
+    upstream = current_app.config["AUTH_SERVICE_URL"]
+    return _forward(upstream, f"/pipelines/{pipeline_id}/meetings", require_auth=True)
+
+
 @proxy_bp.route("/pipelines", methods=["GET", "POST"])
 @proxy_bp.route(
     "/pipelines/<path:subpath>", methods=["GET", "POST", "PUT", "PATCH", "DELETE"]

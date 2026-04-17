@@ -12,6 +12,15 @@ class Config:
     JWT_HEADER_TYPE = "Bearer"
 
     REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+    # SocketIO message queue (DB 2 — avoids Celery broker/result DBs 0/1)
+    SOCKETIO_MESSAGE_QUEUE = os.environ.get(
+        "SOCKETIO_MESSAGE_QUEUE", "redis://localhost:6379/2"
+    )
+    # Shared auth DB for chat persistence
+    DATABASE_URL = os.environ.get(
+        "DATABASE_URL",
+        "postgresql://nocode:nocode_secret@localhost:5434/nocode_auth",
+    )
 
     AUTH_SERVICE_URL = os.environ.get("AUTH_SERVICE_URL", "http://localhost:8001")
     DATA_SERVICE_URL = os.environ.get("DATA_SERVICE_URL", "http://localhost:8002")

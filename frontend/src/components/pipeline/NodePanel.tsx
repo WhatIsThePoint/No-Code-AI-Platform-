@@ -9,7 +9,11 @@ import {
   Tabs,
   TextField,
   Typography,
+  alpha,
 } from "@mui/material";
+import StorageIcon from "@mui/icons-material/StorageRounded";
+import ModelTrainingIcon from "@mui/icons-material/ModelTrainingRounded";
+import AssessmentIcon from "@mui/icons-material/AssessmentRounded";
 import { useState } from "react";
 import type { PipelineNode, Algorithm, TaskType, TrainNodeData, DatasetNodeData } from "../../types/pipeline";
 import type { Dataset } from "../../types/dataset";
@@ -52,8 +56,23 @@ export function NodePanel({ node, pipelineId, datasets, latestVersion, onUpdate 
   if (node.type === "dataset") {
     const d = node.data as DatasetNodeData;
     return (
-      <Box sx={{ p: 2 }}>
-        <Typography variant="subtitle1" fontWeight={700} gutterBottom>Dataset Node</Typography>
+      <Box sx={{ p: 2.5 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
+          <Box
+            sx={{
+              width: 28,
+              height: 28,
+              borderRadius: "8px",
+              background: "linear-gradient(135deg, #6366f1, #4f46e5)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <StorageIcon sx={{ fontSize: 15, color: "#fff" }} />
+          </Box>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Dataset Node</Typography>
+        </Box>
         <FormControl fullWidth size="small" sx={{ mb: 2 }}>
           <InputLabel>Dataset</InputLabel>
           <Select
@@ -80,8 +99,23 @@ export function NodePanel({ node, pipelineId, datasets, latestVersion, onUpdate 
     const algo = d.algorithm ?? "xgboost";
 
     return (
-      <Box sx={{ p: 2 }}>
-        <Typography variant="subtitle1" fontWeight={700} gutterBottom>Train Node</Typography>
+      <Box sx={{ p: 2.5 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
+          <Box
+            sx={{
+              width: 28,
+              height: 28,
+              borderRadius: "8px",
+              background: "linear-gradient(135deg, #8b5cf6, #7c3aed)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <ModelTrainingIcon sx={{ fontSize: 15, color: "#fff" }} />
+          </Box>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Train Node</Typography>
+        </Box>
         <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
           <Tab label="Config" />
           <Tab label="Notes" />
@@ -143,8 +177,23 @@ export function NodePanel({ node, pipelineId, datasets, latestVersion, onUpdate 
 
   if (node.type === "evaluate") {
     return (
-      <Box sx={{ p: 2 }}>
-        <Typography variant="subtitle1" fontWeight={700} gutterBottom>Evaluate Node</Typography>
+      <Box sx={{ p: 2.5 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
+          <Box
+            sx={{
+              width: 28,
+              height: 28,
+              borderRadius: "8px",
+              background: "linear-gradient(135deg, #10b981, #059669)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <AssessmentIcon sx={{ fontSize: 15, color: "#fff" }} />
+          </Box>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Evaluate Node</Typography>
+        </Box>
         {latestVersion ? (
           <MetricsChart metrics={latestVersion.metrics} taskType={latestVersion.task_type} />
         ) : (

@@ -1,4 +1,4 @@
-.PHONY: up down build test lint migrate shell-auth shell-ingestion shell-ml logs
+.PHONY: up down build test lint migrate seed shell-auth shell-ingestion shell-ml logs
 
 up:
 	docker compose up -d
@@ -37,6 +37,17 @@ migrate:
 # Generate a new Alembic migration (usage: make migration MSG="add table foo")
 migration:
 	docker compose run --rm -e FLASK_APP=app.main auth-service flask db migrate -m "$(MSG)"
+
+# Seed the database with demo users (run after `make migrate`)
+# All demo users share the password: Demo1234!
+seed:
+	@echo "Seeding database with demo users..."
+	@docker compose exec -T postgres psql \
+		-U $${POSTGRES_USER:-nocode} \
+		-d $${POSTGRES_DB:-nocode_auth} \
+		-v ON_ERROR_STOP=1 \
+		< infra/postgres/seed.sql
+	@echo "Done. Login with alice@acme-ml.com / Demo1234!"
 
 shell-auth:
 	docker compose exec auth-service /bin/bash

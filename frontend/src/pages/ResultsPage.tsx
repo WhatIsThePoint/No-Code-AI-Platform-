@@ -16,13 +16,16 @@ import {
   TableHead,
   TableRow,
   Typography,
+  alpha,
 } from "@mui/material";
 import DownloadIcon from "@mui/icons-material/Download";
 import CompareIcon from "@mui/icons-material/Compare";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import ArrowBackIcon from "@mui/icons-material/ArrowBackRounded";
+import AssessmentIcon from "@mui/icons-material/AssessmentRounded";
 import { modelsApi } from "../api/models";
 import { MetricsChart } from "../components/pipeline/MetricsChart";
-import type { ModelVersion } from "../types/model";
+import { ResidualPlot } from "../components/pipeline/ResidualPlot";
+import type { ModelVersion, RegressionMetrics, ResidualPoint } from "../types/model";
 import type { ClassificationMetrics } from "../types/model";
 
 export function ResultsPage() {
@@ -47,53 +50,111 @@ export function ResultsPage() {
   const metrics = version.metrics as unknown as Record<string, unknown>;
 
   return (
-    <Box>
-      <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(-1)} sx={{ mb: 2 }}>
+    <Box className="animate-fade-in">
+      <Button
+        startIcon={<ArrowBackIcon />}
+        onClick={() => navigate(-1)}
+        sx={{ mb: 2, color: "text.secondary" }}
+      >
         Back
       </Button>
 
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3 }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}>
+        <Box
+          sx={{
+            width: 40,
+            height: 40,
+            borderRadius: "12px",
+            background: "linear-gradient(135deg, #10b981, #059669)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#fff",
+          }}
+        >
+          <AssessmentIcon sx={{ fontSize: 22 }} />
+        </Box>
         <Typography variant="h4">Results</Typography>
-        <Chip label={version.algorithm} color="primary" />
+        <Chip
+          label={version.algorithm}
+          sx={{
+            fontWeight: 600,
+            bgcolor: alpha("#6366f1", 0.1),
+            color: "#4f46e5",
+          }}
+        />
         <Chip label={version.task_type} variant="outlined" />
       </Box>
 
       <Grid container spacing={3}>
-        {/* Summary card */}
         <Grid item xs={12} md={4}>
           <Card>
             <CardContent>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                Model Info
-              </Typography>
-              <Divider sx={{ mb: 1 }} />
-              <Typography variant="body2"><strong>Version ID:</strong> {version.version_id.slice(0, 8)}…</Typography>
-              <Typography variant="body2"><strong>Algorithm:</strong> {version.algorithm}</Typography>
-              <Typography variant="body2"><strong>Task Type:</strong> {version.task_type}</Typography>
-              <Typography variant="body2">
-                <strong>Training Time:</strong> {version.training_duration_s.toFixed(1)}s
-              </Typography>
-              <Typography variant="body2">
-                <strong>Created:</strong> {new Date(version.created_at).toLocaleString()}
-              </Typography>
-            </CardContent>
-          </Card>
-
-          <Card sx={{ mt: 2 }}>
-            <CardContent>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                Hyperparameters
-              </Typography>
-              <Divider sx={{ mb: 1 }} />
-              {Object.entries(version.hyperparams).map(([k, v]) => (
-                <Typography key={k} variant="body2">
-                  <strong>{k}:</strong> {String(v)}
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
+                <Box
+                  sx={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: "8px",
+                    bgcolor: alpha("#6366f1", 0.1),
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <AssessmentIcon sx={{ fontSize: 15, color: "#6366f1" }} />
+                </Box>
+                <Typography variant="subtitle2" sx={{ color: "text.secondary", fontWeight: 600 }}>
+                  Model Info
                 </Typography>
-              ))}
+              </Box>
+              <Divider sx={{ mb: 1.5 }} />
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
+                <Typography variant="body2"><strong>Version ID:</strong> {version.version_id.slice(0, 8)}...</Typography>
+                <Typography variant="body2"><strong>Algorithm:</strong> {version.algorithm}</Typography>
+                <Typography variant="body2"><strong>Task Type:</strong> {version.task_type}</Typography>
+                <Typography variant="body2">
+                  <strong>Training Time:</strong> {version.training_duration_s.toFixed(1)}s
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Created:</strong> {new Date(version.created_at).toLocaleString()}
+                </Typography>
+              </Box>
             </CardContent>
           </Card>
 
-          <Box sx={{ mt: 2, display: "flex", gap: 1, flexWrap: "wrap" }}>
+          <Card sx={{ mt: 2.5 }}>
+            <CardContent>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
+                <Box
+                  sx={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: "8px",
+                    bgcolor: alpha("#8b5cf6", 0.1),
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Typography sx={{ fontSize: 13, fontWeight: 800, color: "#8b5cf6" }}>H</Typography>
+                </Box>
+                <Typography variant="subtitle2" sx={{ color: "text.secondary", fontWeight: 600 }}>
+                  Hyperparameters
+                </Typography>
+              </Box>
+              <Divider sx={{ mb: 1.5 }} />
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+                {Object.entries(version.hyperparams).map(([k, v]) => (
+                  <Typography key={k} variant="body2">
+                    <strong>{k}:</strong> {String(v)}
+                  </Typography>
+                ))}
+              </Box>
+            </CardContent>
+          </Card>
+
+          <Box sx={{ mt: 2.5, display: "flex", gap: 1, flexWrap: "wrap" }}>
             <Button
               variant="outlined"
               startIcon={<DownloadIcon />}
@@ -113,17 +174,15 @@ export function ResultsPage() {
           </Box>
         </Grid>
 
-        {/* Metrics charts */}
         <Grid item xs={12} md={8}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>Metrics</Typography>
+          <Paper sx={{ p: 3, borderRadius: 4 }}>
+            <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>Metrics</Typography>
             <MetricsChart metrics={version.metrics} taskType={version.task_type} />
           </Paper>
 
-          {/* Confusion matrix */}
           {"confusion_matrix" in metrics && Array.isArray(metrics.confusion_matrix) && (
-            <Paper sx={{ p: 3, mt: 2 }}>
-              <Typography variant="h6" gutterBottom>Confusion Matrix</Typography>
+            <Paper sx={{ p: 3, mt: 2.5, borderRadius: 4 }}>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>Confusion Matrix</Typography>
               <Box sx={{ overflowX: "auto" }}>
                 <Table size="small" sx={{ width: "auto" }}>
                   <TableHead>
@@ -143,8 +202,10 @@ export function ResultsPage() {
                             key={j}
                             align="center"
                             sx={{
-                              bgcolor: i === j ? "success.light" : val > 0 ? "error.light" : "inherit",
+                              bgcolor: i === j ? alpha("#10b981", 0.12) : val > 0 ? alpha("#ef4444", 0.08) : "inherit",
                               fontWeight: i === j ? 700 : 400,
+                              color: i === j ? "#059669" : val > 0 ? "#dc2626" : "inherit",
+                              borderRadius: 1,
                             }}
                           >
                             {val}
@@ -158,11 +219,25 @@ export function ResultsPage() {
             </Paper>
           )}
 
-          {/* ROC AUC */}
+          {"residuals_sample" in metrics && Array.isArray(metrics.residuals_sample) && (metrics.residuals_sample as ResidualPoint[]).length > 0 && (
+            <Paper sx={{ p: 3, mt: 2.5, borderRadius: 4 }}>
+              <ResidualPlot points={(version.metrics as RegressionMetrics).residuals_sample!} />
+            </Paper>
+          )}
+
           {"roc_auc" in metrics && metrics.roc_auc != null && (
-            <Paper sx={{ p: 3, mt: 2 }}>
-              <Typography variant="h6" gutterBottom>ROC-AUC</Typography>
-              <Typography variant="h3" color="primary">
+            <Paper sx={{ p: 3, mt: 2.5, borderRadius: 4 }}>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>ROC-AUC</Typography>
+              <Typography
+                variant="h3"
+                sx={{
+                  fontWeight: 800,
+                  background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                  backgroundClip: "text",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                }}
+              >
                 {((version.metrics as unknown as ClassificationMetrics).roc_auc! * 100).toFixed(2)}%
               </Typography>
             </Paper>

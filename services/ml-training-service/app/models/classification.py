@@ -20,6 +20,7 @@ from sklearn.metrics import (
 )
 from xgboost import XGBClassifier
 
+from ..services.explainability import compute_shap_global
 from .base import BaseMLModel
 
 
@@ -29,6 +30,8 @@ def _classification_metrics(
     y_prob: np.ndarray | None,
     feature_names: list[str],
     importances: np.ndarray | None,
+    estimator: Any | None = None,
+    X_test: pd.DataFrame | None = None,
 ) -> dict[str, Any]:
     n_classes = len(np.unique(y_true))
     avg = "binary" if n_classes == 2 else "macro"
@@ -71,6 +74,11 @@ def _classification_metrics(
             )
         }
 
+    if estimator is not None and X_test is not None:
+        shap_imp = compute_shap_global(estimator, X_test)
+        if shap_imp:
+            metrics["shap_importance"] = shap_imp
+
     return metrics
 
 
@@ -103,6 +111,8 @@ class XGBoostClassifierModel(BaseMLModel):
             y_prob,
             list(X_test.columns),
             self._estimator.feature_importances_,
+            estimator=self._estimator,
+            X_test=X_test,
         )
 
 
@@ -133,6 +143,8 @@ class RandomForestModel(BaseMLModel):
             y_prob,
             list(X_test.columns),
             self._estimator.feature_importances_,
+            estimator=self._estimator,
+            X_test=X_test,
         )
 
 
@@ -162,6 +174,8 @@ class GBMClassifierModel(BaseMLModel):
             y_prob,
             list(X_test.columns),
             self._estimator.feature_importances_,
+            estimator=self._estimator,
+            X_test=X_test,
         )
 
 

@@ -8,11 +8,13 @@ import {
   TextField,
   Tooltip,
   Typography,
+  alpha,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
+import StickyNote2Icon from "@mui/icons-material/StickyNote2Rounded";
 import { pipelinesApi } from "../../api/pipelines";
 import type { StepNote } from "../../types/pipeline";
 import { useAuthStore } from "../../store/authSlice";
@@ -64,13 +66,16 @@ export function NotesPanel({ pipelineId, nodeId }: Props) {
 
   return (
     <Box>
-      <Typography variant="subtitle2" gutterBottom>Step Notes</Typography>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, mb: 1.5 }}>
+        <StickyNote2Icon sx={{ fontSize: 16, color: "#f59e0b" }} />
+        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Step Notes</Typography>
+      </Box>
       {loading ? (
-        <CircularProgress size={20} />
+        <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}><CircularProgress size={20} /></Box>
       ) : (
         <>
           {notes.map((note) => (
-            <Box key={note.note_id} sx={{ mb: 1 }}>
+            <Box key={note.note_id} sx={{ mb: 1.5 }}>
               {editingId === note.note_id ? (
                 <Box sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
                   <TextField
@@ -81,7 +86,7 @@ export function NotesPanel({ pipelineId, nodeId }: Props) {
                     multiline
                     maxRows={3}
                   />
-                  <IconButton size="small" onClick={() => handleEdit(note.note_id)} color="primary">
+                  <IconButton size="small" onClick={() => handleEdit(note.note_id)} sx={{ color: "#6366f1" }}>
                     <CheckIcon fontSize="small" />
                   </IconButton>
                   <IconButton size="small" onClick={() => setEditingId(null)}>
@@ -89,34 +94,44 @@ export function NotesPanel({ pipelineId, nodeId }: Props) {
                   </IconButton>
                 </Box>
               ) : (
-                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <Box
+                  sx={{
+                    p: 1.5,
+                    borderRadius: 2,
+                    bgcolor: alpha("#f59e0b", 0.04),
+                    border: 1,
+                    borderColor: alpha("#f59e0b", 0.1),
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                  }}
+                >
                   <Box sx={{ flex: 1 }}>
-                    <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>{note.content}</Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", lineHeight: 1.6 }}>{note.content}</Typography>
+                    <Typography variant="caption" sx={{ color: "text.secondary", mt: 0.5, display: "block" }}>
                       {new Date(note.created_at).toLocaleString()}
                     </Typography>
                   </Box>
                   {note.user_id === userId && (
-                    <Box>
+                    <Box sx={{ ml: 1, display: "flex", gap: 0.25 }}>
                       <Tooltip title="Edit">
                         <IconButton size="small" onClick={() => { setEditingId(note.note_id); setEditContent(note.content); }}>
-                          <EditIcon fontSize="small" />
+                          <EditIcon sx={{ fontSize: 14 }} />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Delete">
-                        <IconButton size="small" color="error" onClick={() => handleDelete(note.note_id)}>
-                          <DeleteIcon fontSize="small" />
+                        <IconButton size="small" onClick={() => handleDelete(note.note_id)} sx={{ color: "#ef4444" }}>
+                          <DeleteIcon sx={{ fontSize: 14 }} />
                         </IconButton>
                       </Tooltip>
                     </Box>
                   )}
                 </Box>
               )}
-              <Divider sx={{ mt: 1 }} />
             </Box>
           ))}
           {notes.length === 0 && (
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>No notes yet.</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontStyle: "italic" }}>No notes yet.</Typography>
           )}
           <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
             <TextField

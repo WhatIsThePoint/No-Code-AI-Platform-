@@ -17,9 +17,11 @@ import {
   TableRow,
   Tooltip,
   Typography,
+  alpha,
 } from "@mui/material";
 import StarIcon from "@mui/icons-material/Star";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import ArrowBackIcon from "@mui/icons-material/ArrowBackRounded";
+import CompareArrowsIcon from "@mui/icons-material/CompareArrowsRounded";
 import {
   Bar,
   BarChart,
@@ -40,6 +42,8 @@ interface CompareResult {
   best_by_metric: Record<string, string | null>;
   metric_keys: string[];
 }
+
+const CHART_COLORS = ["#6366f1", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444"];
 
 export function ModelComparisonPage() {
   const { pipelineId } = useParams<{ pipelineId: string }>();
@@ -91,16 +95,36 @@ export function ModelComparisonPage() {
   const metricLabel = (k: string) => k.replace(/_/g, " ").toUpperCase();
 
   return (
-    <Box>
-      <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(-1)} sx={{ mb: 2 }}>
+    <Box className="animate-fade-in">
+      <Button
+        startIcon={<ArrowBackIcon />}
+        onClick={() => navigate(-1)}
+        sx={{ mb: 2, color: "text.secondary" }}
+      >
         Back
       </Button>
-      <Typography variant="h4" gutterBottom>Compare Models</Typography>
+
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}>
+        <Box
+          sx={{
+            width: 40,
+            height: 40,
+            borderRadius: "12px",
+            background: "linear-gradient(135deg, #6366f1, #4f46e5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#fff",
+          }}
+        >
+          <CompareArrowsIcon sx={{ fontSize: 22 }} />
+        </Box>
+        <Typography variant="h4">Compare Models</Typography>
+      </Box>
 
       {fetchError && <Alert severity="error" sx={{ mb: 2 }}>{fetchError}</Alert>}
 
-      {/* Selection table */}
-      <Paper sx={{ mb: 3 }}>
+      <Paper sx={{ mb: 3, borderRadius: 4, overflow: "hidden" }}>
         <Table size="small">
           <TableHead>
             <TableRow>
@@ -117,14 +141,25 @@ export function ModelComparisonPage() {
                 key={v.version_id}
                 hover
                 selected={selected.has(v.version_id)}
-                sx={{ cursor: "pointer" }}
+                sx={{
+                  cursor: "pointer",
+                  "&.Mui-selected": { bgcolor: alpha("#6366f1", 0.06) },
+                  "&.Mui-selected:hover": { bgcolor: alpha("#6366f1", 0.1) },
+                }}
                 onClick={() => toggle(v.version_id)}
               >
                 <TableCell padding="checkbox">
-                  <Checkbox checked={selected.has(v.version_id)} />
+                  <Checkbox
+                    checked={selected.has(v.version_id)}
+                    sx={{ "&.Mui-checked": { color: "#6366f1" } }}
+                  />
                 </TableCell>
                 <TableCell>
-                  <Chip label={v.algorithm} size="small" />
+                  <Chip
+                    label={v.algorithm}
+                    size="small"
+                    sx={{ bgcolor: alpha("#8b5cf6", 0.08), color: "#7c3aed", fontWeight: 600, fontSize: "0.7rem" }}
+                  />
                 </TableCell>
                 <TableCell>{v.task_type}</TableCell>
                 <TableCell>{new Date(v.created_at).toLocaleString()}</TableCell>
@@ -148,10 +183,9 @@ export function ModelComparisonPage() {
       {compareError && <Alert severity="error" sx={{ mb: 2 }}>{compareError}</Alert>}
 
       {result && (
-        <>
-          {/* Metrics table */}
-          <Typography variant="h5" gutterBottom>Comparison Table</Typography>
-          <Paper sx={{ mb: 3, overflowX: "auto" }}>
+        <Box className="animate-fade-in-up">
+          <Typography variant="h5" gutterBottom sx={{ fontWeight: 700 }}>Comparison Table</Typography>
+          <Paper sx={{ mb: 3, overflowX: "auto", borderRadius: 4 }}>
             <Table size="small">
               <TableHead>
                 <TableRow>
@@ -166,12 +200,16 @@ export function ModelComparisonPage() {
                 {result.versions.map((row) => (
                   <TableRow key={String(row.version_id)}>
                     <TableCell>
-                      <Chip label={String(row.algorithm)} size="small" />
+                      <Chip
+                        label={String(row.algorithm)}
+                        size="small"
+                        sx={{ bgcolor: alpha("#6366f1", 0.08), color: "#4f46e5", fontWeight: 600 }}
+                      />
                     </TableCell>
                     <TableCell>
                       {row.training_duration_s != null
                         ? `${Number(row.training_duration_s).toFixed(1)}s`
-                        : "—"}
+                        : "\u2014"}
                     </TableCell>
                     {result.metric_keys.map((k) => {
                       const val = row[k];
@@ -179,10 +217,15 @@ export function ModelComparisonPage() {
                       return (
                         <TableCell key={k} align="right">
                           <Box sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 0.5 }}>
-                            {val != null ? Number(val).toFixed(4) : "—"}
+                            <Typography
+                              variant="body2"
+                              sx={{ fontWeight: isBest ? 700 : 400, color: isBest ? "#059669" : "text.primary" }}
+                            >
+                              {val != null ? Number(val).toFixed(4) : "\u2014"}
+                            </Typography>
                             {isBest && (
                               <Tooltip title="Best">
-                                <StarIcon sx={{ fontSize: 14, color: "warning.main" }} />
+                                <StarIcon sx={{ fontSize: 14, color: "#f59e0b" }} />
                               </Tooltip>
                             )}
                           </Box>
@@ -195,11 +238,10 @@ export function ModelComparisonPage() {
             </Table>
           </Paper>
 
-          {/* Overlaid bar chart */}
           {result.metric_keys.length > 0 && (
             <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>Metric Comparison Chart</Typography>
+              <CardContent sx={{ p: 3 }}>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>Metric Comparison Chart</Typography>
                 <ResponsiveContainer width="100%" height={320}>
                   <BarChart
                     data={result.metric_keys.map((k) => ({
@@ -212,16 +254,20 @@ export function ModelComparisonPage() {
                       ),
                     }))}
                   >
-                    <CartesianGrid strokeDasharray="3 3" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                     <XAxis dataKey="metric" tick={{ fontSize: 11 }} />
                     <YAxis />
-                    <RechartsTooltip formatter={(v: number) => v.toFixed(4)} />
+                    <RechartsTooltip
+                      formatter={(v: number) => v.toFixed(4)}
+                      contentStyle={{ borderRadius: 12, border: "1px solid #e2e8f0" }}
+                    />
                     <Legend />
                     {result.versions.map((v, i) => (
                       <Bar
                         key={String(v.version_id)}
                         dataKey={String(v.algorithm)}
-                        fill={["#1976d2", "#9c27b0", "#2e7d32", "#f57c00", "#d32f2f"][i % 5]}
+                        fill={CHART_COLORS[i % CHART_COLORS.length]}
+                        radius={[4, 4, 0, 0]}
                       />
                     ))}
                   </BarChart>
@@ -229,7 +275,7 @@ export function ModelComparisonPage() {
               </CardContent>
             </Card>
           )}
-        </>
+        </Box>
       )}
     </Box>
   );

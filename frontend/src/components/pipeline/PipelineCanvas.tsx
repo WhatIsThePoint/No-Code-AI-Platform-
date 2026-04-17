@@ -22,15 +22,24 @@ import {
   LinearProgress,
   Snackbar,
   Typography,
+  alpha,
 } from "@mui/material";
-import PlayArrowIcon from "@mui/icons-material/PlayArrow";
-import SaveIcon from "@mui/icons-material/Save";
-import AddIcon from "@mui/icons-material/Add";
+import PlayArrowIcon from "@mui/icons-material/PlayArrowRounded";
+import SaveIcon from "@mui/icons-material/SaveRounded";
+import StorageIcon from "@mui/icons-material/StorageRounded";
+import ModelTrainingIcon from "@mui/icons-material/ModelTrainingRounded";
+import AssessmentIcon from "@mui/icons-material/AssessmentRounded";
+import ChatBubbleIcon from "@mui/icons-material/ChatBubbleOutlineRounded";
 
 import { DatasetNode } from "./nodes/DatasetNode";
 import { TrainNode } from "./nodes/TrainNode";
 import { EvaluateNode } from "./nodes/EvaluateNode";
 import { NodePanel } from "./NodePanel";
+import { PipelineStepper, derivePipelineStep } from "./PipelineStepper";
+import { PipelineTour } from "../onboarding/PipelineTour";
+import { ChatDrawer } from "./ChatDrawer";
+import { MeetingButton } from "./MeetingButton";
+import { useAuthStore } from "../../store/authSlice";
 import { defaultHyperparams } from "./HyperparamControls";
 import { pipelinesApi } from "../../api/pipelines";
 import { modelsApi } from "../../api/models";
@@ -79,6 +88,9 @@ export function PipelineCanvas({ pipeline, datasets, onSaved }: Props) {
   const [snack, setSnack] = useState<{ open: boolean; msg: string; severity: "success" | "error" }>({
     open: false, msg: "", severity: "success",
   });
+  const [chatOpen, setChatOpen] = useState(false);
+  const userTier = useAuthStore((s) => s.user?.tier);
+  const isCompanyTier = userTier === "company" || userTier === "super_admin";
 
   const { result: taskResult } = useTaskStatus(trainTaskId);
 
@@ -188,40 +200,128 @@ export function PipelineCanvas({ pipeline, datasets, onSaved }: Props) {
   const isRunning = pipeline.status === "running" || taskResult?.status === "running";
   const progress = taskResult?.progress_pct ?? 0;
 
+  const { activeStep, completedSteps } = derivePipelineStep({
+    nodes,
+    edges,
+    datasets,
+    pipelineStatus: pipeline.status,
+    taskStatus: taskResult?.status,
+    hasLatestVersion: !!latestVersion,
+  });
+
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      <PipelineTour shouldStart={pipeline.nodes.length === 0} />
+      <PipelineStepper activeStep={activeStep} completedSteps={completedSteps} />
       {/* Toolbar */}
-      <Box sx={{ display: "flex", gap: 1, p: 1, borderBottom: 1, borderColor: "divider", alignItems: "center" }}>
-        <Button size="small" startIcon={<AddIcon />} onClick={() => addNode("dataset")} variant="outlined">
+      <Box
+        sx={{
+          display: "flex",
+          gap: 1,
+          px: 2,
+          py: 1,
+          borderBottom: 1,
+          borderColor: "divider",
+          alignItems: "center",
+          bgcolor: alpha("#f8fafc", 0.6),
+          backdropFilter: "blur(8px)",
+        }}
+      >
+        <Button
+          data-tour="add-dataset"
+          size="small"
+          startIcon={<StorageIcon sx={{ fontSize: 15 }} />}
+          onClick={() => addNode("dataset")}
+          variant="outlined"
+          sx={{ borderColor: alpha("#6366f1", 0.25), color: "#4f46e5", "&:hover": { borderColor: "#6366f1", bgcolor: alpha("#6366f1", 0.04) } }}
+        >
           Dataset
         </Button>
-        <Button size="small" startIcon={<AddIcon />} onClick={() => addNode("train")} variant="outlined">
+        <Button
+          data-tour="add-train"
+          size="small"
+          startIcon={<ModelTrainingIcon sx={{ fontSize: 15 }} />}
+          onClick={() => addNode("train")}
+          variant="outlined"
+          sx={{ borderColor: alpha("#8b5cf6", 0.25), color: "#7c3aed", "&:hover": { borderColor: "#8b5cf6", bgcolor: alpha("#8b5cf6", 0.04) } }}
+        >
           Train
         </Button>
-        <Button size="small" startIcon={<AddIcon />} onClick={() => addNode("evaluate")} variant="outlined">
+        <Button
+          data-tour="add-evaluate"
+          size="small"
+          startIcon={<AssessmentIcon sx={{ fontSize: 15 }} />}
+          onClick={() => addNode("evaluate")}
+          variant="outlined"
+          sx={{ borderColor: alpha("#10b981", 0.25), color: "#059669", "&:hover": { borderColor: "#10b981", bgcolor: alpha("#10b981", 0.04) } }}
+        >
           Evaluate
         </Button>
         <Box sx={{ flex: 1 }} />
-        <Button size="small" startIcon={saving ? <CircularProgress size={14} /> : <SaveIcon />} onClick={handleSave} disabled={saving}>
+        {isCompanyTier && (
+          <>
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<ChatBubbleIcon sx={{ fontSize: 15 }} />}
+              onClick={() => setChatOpen((o) => !o)}
+              sx={{
+                borderColor: alpha("#6366f1", 0.25),
+                color: "#4f46e5",
+                "&:hover": {
+                  borderColor: "#6366f1",
+                  bgcolor: alpha("#6366f1", 0.04),
+                },
+              }}
+            >
+              Chat
+            </Button>
+            <MeetingButton pipelineId={pipeline.pipeline_id} />
+          </>
+        )}
+        <Button
+          size="small"
+          startIcon={saving ? <CircularProgress size={14} /> : <SaveIcon />}
+          onClick={handleSave}
+          disabled={saving}
+          sx={{ color: "text.secondary" }}
+        >
           Save
         </Button>
         <Button
+          data-tour="run-pipeline"
           size="small"
-          startIcon={isRunning ? <CircularProgress size={14} /> : <PlayArrowIcon />}
+          startIcon={isRunning ? <CircularProgress size={14} sx={{ color: "#fff" }} /> : <PlayArrowIcon />}
           variant="contained"
           onClick={handleRun}
           disabled={isRunning}
-          color="success"
+          sx={{
+            background: "linear-gradient(135deg, #10b981, #059669)",
+            "&:hover": { background: "linear-gradient(135deg, #059669, #047857)" },
+          }}
         >
-          {isRunning ? "Running…" : "Run"}
+          {isRunning ? "Running..." : "Run"}
         </Button>
       </Box>
 
       {/* Progress bar */}
       {isRunning && (
-        <Box sx={{ px: 2, py: 0.5 }}>
-          <Typography variant="caption">Training… {progress}%</Typography>
-          <LinearProgress variant="determinate" value={progress} />
+        <Box sx={{ px: 2.5, py: 1 }}>
+          <Typography variant="caption" sx={{ fontWeight: 600, color: "#8b5cf6" }}>Training... {progress}%</Typography>
+          <LinearProgress
+            variant="determinate"
+            value={progress}
+            sx={{
+              mt: 0.5,
+              height: 6,
+              borderRadius: 3,
+              bgcolor: alpha("#8b5cf6", 0.1),
+              "& .MuiLinearProgress-bar": {
+                borderRadius: 3,
+                background: "linear-gradient(90deg, #6366f1, #8b5cf6)",
+              },
+            }}
+          />
         </Box>
       )}
       {taskResult?.status === "failure" && (
@@ -260,7 +360,16 @@ export function PipelineCanvas({ pipeline, datasets, onSaved }: Props) {
           variant="persistent"
           anchor="right"
           open={!!selectedNode}
-          PaperProps={{ sx: { width: 340, position: "relative", height: "100%" } }}
+          PaperProps={{
+            sx: {
+              width: 360,
+              position: "relative",
+              height: "100%",
+              borderLeft: 1,
+              borderColor: "divider",
+              boxShadow: `-4px 0 24px -8px ${alpha("#0f172a", 0.06)}`,
+            },
+          }}
         >
           {selectedNode && (
             <NodePanel
@@ -289,6 +398,14 @@ export function PipelineCanvas({ pipeline, datasets, onSaved }: Props) {
           {snack.msg}
         </Alert>
       </Snackbar>
+
+      {isCompanyTier && (
+        <ChatDrawer
+          pipelineId={pipeline.pipeline_id}
+          open={chatOpen}
+          onClose={() => setChatOpen(false)}
+        />
+      )}
     </Box>
   );
 }

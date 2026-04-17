@@ -26,22 +26,54 @@ import {
   TextField,
   Tooltip,
   Typography,
+  alpha,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import BlockIcon from "@mui/icons-material/Block";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
+import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettingsRounded";
+import PeopleIcon from "@mui/icons-material/PeopleRounded";
+import TrendingUpIcon from "@mui/icons-material/TrendingUpRounded";
+import BlockRoundedIcon from "@mui/icons-material/BlockRounded";
+import BusinessIcon from "@mui/icons-material/BusinessRounded";
+import PaymentIcon from "@mui/icons-material/PaymentRounded";
 import { adminApi } from "../api/admin";
 import type { AdminUser, AdminCompany, AuditLog, PlatformStats, AdminAnnouncement } from "../types/admin";
 import { useAuthStore } from "../store/authSlice";
 
-function StatCard({ label, value, color }: { label: string; value: number; color?: string }) {
+const STAT_CARDS = [
+  { key: "total_users" as const, label: "Total Users", icon: PeopleIcon, gradient: "linear-gradient(135deg, #6366f1, #4f46e5)" },
+  { key: "active_users" as const, label: "Active", icon: TrendingUpIcon, gradient: "linear-gradient(135deg, #10b981, #059669)" },
+  { key: "suspended_users" as const, label: "Suspended", icon: BlockRoundedIcon, gradient: "linear-gradient(135deg, #ef4444, #dc2626)" },
+  { key: "total_companies" as const, label: "Companies", icon: BusinessIcon, gradient: "linear-gradient(135deg, #8b5cf6, #7c3aed)" },
+  { key: "paid_subscriptions" as const, label: "Paid Subs", icon: PaymentIcon, gradient: "linear-gradient(135deg, #f59e0b, #d97706)" },
+];
+
+function StatCard({ label, value, icon: Icon, gradient }: { label: string; value: number; icon: React.ElementType; gradient: string }) {
   return (
     <Card>
-      <CardContent>
-        <Typography color="text.secondary" variant="body2">{label}</Typography>
-        <Typography variant="h3" color={color}>{value}</Typography>
+      <CardContent sx={{ p: 2.5 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+          <Box
+            sx={{
+              width: 36,
+              height: 36,
+              borderRadius: "10px",
+              background: gradient,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Icon sx={{ fontSize: 18, color: "#fff" }} />
+          </Box>
+          <Box>
+            <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 500, lineHeight: 1 }}>{label}</Typography>
+            <Typography variant="h4" sx={{ fontWeight: 800, lineHeight: 1.2 }}>{value}</Typography>
+          </Box>
+        </Box>
       </CardContent>
     </Card>
   );
@@ -161,16 +193,31 @@ export function AdminPage() {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>Super Admin</Typography>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}>
+        <Box
+          sx={{
+            width: 40,
+            height: 40,
+            borderRadius: "12px",
+            background: "linear-gradient(135deg, #ef4444, #dc2626)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#fff",
+          }}
+        >
+          <AdminPanelSettingsIcon sx={{ fontSize: 22 }} />
+        </Box>
+        <Typography variant="h4">Super Admin</Typography>
+      </Box>
 
-      {/* Stats row */}
       {stats && (
-        <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={6} sm={4} md={2}><StatCard label="Total Users" value={stats.total_users} /></Grid>
-          <Grid item xs={6} sm={4} md={2}><StatCard label="Active" value={stats.active_users} color="success.main" /></Grid>
-          <Grid item xs={6} sm={4} md={2}><StatCard label="Suspended" value={stats.suspended_users} color="error.main" /></Grid>
-          <Grid item xs={6} sm={4} md={2}><StatCard label="Companies" value={stats.total_companies} /></Grid>
-          <Grid item xs={6} sm={4} md={2}><StatCard label="Paid Subs" value={stats.paid_subscriptions} color="primary.main" /></Grid>
+        <Grid container spacing={2} sx={{ mb: 3 }} className="stagger-children">
+          {STAT_CARDS.map((sc) => (
+            <Grid item xs={6} sm={4} md={2.4} key={sc.key}>
+              <StatCard label={sc.label} value={stats[sc.key]} icon={sc.icon} gradient={sc.gradient} />
+            </Grid>
+          ))}
         </Grid>
       )}
 
@@ -191,19 +238,19 @@ export function AdminPage() {
 
       {/* Users */}
       {tab === 1 && (
-        <Box>
+        <Box className="animate-fade-in">
           <TextField
-            placeholder="Search by email or name…"
+            placeholder="Search by email or name..."
             size="small"
             value={userSearch}
             onChange={(e) => setUserSearch(e.target.value)}
-            sx={{ mb: 2, width: 320 }}
+            sx={{ mb: 2, width: 360 }}
             InputProps={{
-              startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment>,
+              startAdornment: <InputAdornment position="start"><SearchIcon sx={{ color: "text.secondary" }} /></InputAdornment>,
             }}
           />
-          {loading ? <CircularProgress /> : (
-            <Paper>
+          {loading ? <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}><CircularProgress /></Box> : (
+            <Paper sx={{ borderRadius: 4, overflow: "hidden" }}>
               <Table size="small">
                 <TableHead>
                   <TableRow>
@@ -255,8 +302,8 @@ export function AdminPage() {
 
       {/* Companies */}
       {tab === 2 && (
-        loading ? <CircularProgress /> : (
-          <Paper>
+        loading ? <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}><CircularProgress /></Box> : (
+          <Paper sx={{ borderRadius: 4, overflow: "hidden" }} className="animate-fade-in">
             <Table size="small">
               <TableHead>
                 <TableRow>
@@ -289,8 +336,8 @@ export function AdminPage() {
 
       {/* Audit Logs */}
       {tab === 3 && (
-        loading ? <CircularProgress /> : (
-          <Paper sx={{ overflowX: "auto" }}>
+        loading ? <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}><CircularProgress /></Box> : (
+          <Paper sx={{ overflowX: "auto", borderRadius: 4, overflow: "hidden" }} className="animate-fade-in">
             <Table size="small">
               <TableHead>
                 <TableRow>
@@ -323,49 +370,57 @@ export function AdminPage() {
 
       {/* Announcements */}
       {tab === 4 && (
-        <Box>
+        <Box className="animate-fade-in">
           <Button
             variant="contained"
             startIcon={<AddIcon />}
             onClick={() => setAnnDialog(true)}
-            sx={{ mb: 2 }}
+            sx={{ mb: 2.5 }}
           >
             New Announcement
           </Button>
-          {announcements.map((a) => (
-            <Card key={a.id} sx={{ mb: 2 }}>
-              <CardContent>
-                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                  <Typography variant="subtitle1"><strong>{a.title}</strong></Typography>
-                  <Box sx={{ display: "flex", gap: 1 }}>
-                    <Chip
-                      label={a.is_active ? "Active" : "Hidden"}
-                      color={a.is_active ? "success" : "default"}
-                      size="small"
-                      onClick={() => handleToggleAnnouncement(a.id, a.is_active)}
-                    />
-                    <IconButton
-                      size="small"
-                      onClick={() => adminApi.deleteAnnouncement(a.id).then(() =>
-                        setAnnouncements((prev) => prev.filter((x) => x.id !== a.id))
-                      )}
-                    >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
+          <Box className="stagger-children">
+            {announcements.map((a) => (
+              <Card key={a.id} sx={{ mb: 2 }}>
+                <CardContent sx={{ p: 2.5 }}>
+                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{a.title}</Typography>
+                    <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                      <Chip
+                        label={a.is_active ? "Active" : "Hidden"}
+                        size="small"
+                        onClick={() => handleToggleAnnouncement(a.id, a.is_active)}
+                        sx={{
+                          cursor: "pointer",
+                          fontWeight: 600,
+                          fontSize: "0.65rem",
+                          bgcolor: a.is_active ? alpha("#10b981", 0.1) : alpha("#94a3b8", 0.1),
+                          color: a.is_active ? "#059669" : "#64748b",
+                        }}
+                      />
+                      <IconButton
+                        size="small"
+                        onClick={() => adminApi.deleteAnnouncement(a.id).then(() =>
+                          setAnnouncements((prev) => prev.filter((x) => x.id !== a.id))
+                        )}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
                   </Box>
-                </Box>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                  {a.body}
-                </Typography>
-              </CardContent>
-            </Card>
-          ))}
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
+                    {a.body}
+                  </Typography>
+                </CardContent>
+              </Card>
+            ))}
+          </Box>
         </Box>
       )}
 
       {/* Create announcement dialog */}
       <Dialog open={annDialog} onClose={() => setAnnDialog(false)} fullWidth maxWidth="sm">
-        <DialogTitle>New Announcement</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>New Announcement</DialogTitle>
         <DialogContent>
           <TextField
             label="Title"
@@ -383,7 +438,7 @@ export function AdminPage() {
             onChange={(e) => setAnnBody(e.target.value)}
           />
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
           <Button onClick={() => setAnnDialog(false)}>Cancel</Button>
           <Button variant="contained" onClick={handleCreateAnn}>Create</Button>
         </DialogActions>

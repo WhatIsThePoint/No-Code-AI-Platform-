@@ -13,6 +13,7 @@ from sklearn.linear_model import Ridge
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from xgboost import XGBRegressor
 
+from ..services.explainability import compute_shap_global, residuals_sample
 from .base import BaseMLModel
 
 
@@ -21,6 +22,8 @@ def _regression_metrics(
     y_pred: np.ndarray,
     feature_names: list[str],
     importances: np.ndarray | None,
+    estimator: Any | None = None,
+    X_test: pd.DataFrame | None = None,
 ) -> dict[str, Any]:
     mae = float(mean_absolute_error(y_true, y_pred))
     rmse = float(np.sqrt(mean_squared_error(y_true, y_pred)))
@@ -29,6 +32,7 @@ def _regression_metrics(
         "mae": round(mae, 4),
         "rmse": round(rmse, 4),
         "r2": round(r2, 4),
+        "residuals_sample": residuals_sample(y_true, y_pred),
     }
     if importances is not None:
         metrics["feature_importance"] = {
@@ -37,6 +41,10 @@ def _regression_metrics(
                 zip(feature_names, importances), key=lambda x: -x[1]
             )
         }
+    if estimator is not None and X_test is not None:
+        shap_imp = compute_shap_global(estimator, X_test)
+        if shap_imp:
+            metrics["shap_importance"] = shap_imp
     return metrics
 
 
@@ -61,7 +69,12 @@ class XGBoostRegressorModel(BaseMLModel):
     ) -> dict[str, Any]:
         y_pred = self.predict(X_test)
         return _regression_metrics(
-            y_test, y_pred, list(X_test.columns), self._estimator.feature_importances_
+            y_test,
+            y_pred,
+            list(X_test.columns),
+            self._estimator.feature_importances_,
+            estimator=self._estimator,
+            X_test=X_test,
         )
 
 
@@ -86,7 +99,12 @@ class RandomForestRegressorModel(BaseMLModel):
     ) -> dict[str, Any]:
         y_pred = self.predict(X_test)
         return _regression_metrics(
-            y_test, y_pred, list(X_test.columns), self._estimator.feature_importances_
+            y_test,
+            y_pred,
+            list(X_test.columns),
+            self._estimator.feature_importances_,
+            estimator=self._estimator,
+            X_test=X_test,
         )
 
 
@@ -110,7 +128,12 @@ class GBMRegressorModel(BaseMLModel):
     ) -> dict[str, Any]:
         y_pred = self.predict(X_test)
         return _regression_metrics(
-            y_test, y_pred, list(X_test.columns), self._estimator.feature_importances_
+            y_test,
+            y_pred,
+            list(X_test.columns),
+            self._estimator.feature_importances_,
+            estimator=self._estimator,
+            X_test=X_test,
         )
 
 
@@ -127,7 +150,9 @@ class RidgeRegressorModel(BaseMLModel):
         self, X_test: pd.DataFrame, y_test: pd.Series | None = None
     ) -> dict[str, Any]:
         y_pred = self.predict(X_test)
-        return _regression_metrics(y_test, y_pred, list(X_test.columns), None)
+        return _regression_metrics(
+            y_test, y_pred, list(X_test.columns), None
+        )
 
 
 class LightGBMRegressorModel(BaseMLModel):
@@ -154,7 +179,12 @@ class LightGBMRegressorModel(BaseMLModel):
     ) -> dict[str, Any]:
         y_pred = self.predict(X_test)
         return _regression_metrics(
-            y_test, y_pred, list(X_test.columns), self._estimator.feature_importances_
+            y_test,
+            y_pred,
+            list(X_test.columns),
+            self._estimator.feature_importances_,
+            estimator=self._estimator,
+            X_test=X_test,
         )
 
 
@@ -180,4 +210,11 @@ class CatBoostRegressorModel(BaseMLModel):
     ) -> dict[str, Any]:
         y_pred = self.predict(X_test)
         importances = self._estimator.get_feature_importance()
-        return _regression_metrics(y_test, y_pred, list(X_test.columns), importances)
+        return _regression_metrics(
+            y_test,
+            y_pred,
+            list(X_test.columns),
+            importances,
+            estimator=self._estimator,
+            X_test=X_test,
+        )

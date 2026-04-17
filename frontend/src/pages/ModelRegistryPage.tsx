@@ -10,9 +10,11 @@ import {
   Tab,
   Tabs,
   Typography,
+  alpha,
 } from "@mui/material";
 import DownloadIcon from "@mui/icons-material/Download";
 import DeleteIcon from "@mui/icons-material/Delete";
+import ModelTrainingIcon from "@mui/icons-material/ModelTrainingRounded";
 import { useEffect, useState } from "react";
 import { modelsApi } from "../api/models";
 import { pipelinesApi } from "../api/pipelines";
@@ -58,12 +60,45 @@ export function ModelRegistryPage() {
 
   return (
     <Box>
-      <Typography variant="h5" fontWeight={700} gutterBottom>Model Registry</Typography>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}>
+        <Box
+          sx={{
+            width: 40,
+            height: 40,
+            borderRadius: "12px",
+            background: "linear-gradient(135deg, #8b5cf6, #7c3aed)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#fff",
+          }}
+        >
+          <ModelTrainingIcon sx={{ fontSize: 22 }} />
+        </Box>
+        <Typography variant="h4">Model Registry</Typography>
+      </Box>
 
       {loading ? (
-        <CircularProgress />
+        <Box sx={{ display: "flex", justifyContent: "center", mt: 8 }}><CircularProgress /></Box>
       ) : pipelines.length === 0 ? (
-        <Alert severity="info">No trained models yet. Run a pipeline to create model versions.</Alert>
+        <Box
+          sx={{
+            textAlign: "center",
+            mt: 8,
+            py: 6,
+            px: 3,
+            borderRadius: 4,
+            border: "2px dashed",
+            borderColor: "divider",
+            bgcolor: alpha("#f8fafc", 0.5),
+          }}
+        >
+          <ModelTrainingIcon sx={{ fontSize: 48, color: "text.secondary", mb: 1, opacity: 0.4 }} />
+          <Typography variant="h6" sx={{ color: "text.secondary", mb: 0.5 }}>No trained models yet</Typography>
+          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+            Run a pipeline to create model versions.
+          </Typography>
+        </Box>
       ) : (
         <>
           <Tabs
@@ -78,22 +113,34 @@ export function ModelRegistryPage() {
           </Tabs>
 
           {currentVersions.length === 0 && activePipeline && !(versions[activePipeline]) ? (
-            <CircularProgress size={20} />
+            <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}><CircularProgress size={24} /></Box>
           ) : currentVersions.length === 0 ? (
-            <Alert severity="info">No model versions for this pipeline yet.</Alert>
+            <Alert severity="info" sx={{ borderRadius: 3 }}>No model versions for this pipeline yet.</Alert>
           ) : (
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }} className="stagger-children">
               {currentVersions.map((v) => (
-                <Card key={v.version_id} variant="outlined">
-                  <CardContent>
+                <Card key={v.version_id}>
+                  <CardContent sx={{ p: 3 }}>
                     <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
                       <Box>
-                        <Typography variant="h6">
-                          {v.algorithm.toUpperCase()}
-                          <Chip label={v.task_type} size="small" sx={{ ml: 1 }} />
-                        </Typography>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
+                          <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                            {v.algorithm.toUpperCase()}
+                          </Typography>
+                          <Chip
+                            label={v.task_type}
+                            size="small"
+                            sx={{
+                              fontSize: "0.65rem",
+                              height: 22,
+                              bgcolor: alpha("#8b5cf6", 0.08),
+                              color: "#7c3aed",
+                              fontWeight: 600,
+                            }}
+                          />
+                        </Box>
                         <Typography variant="caption" color="text.secondary">
-                          {new Date(v.created_at).toLocaleString()} · {v.training_duration_s}s
+                          {new Date(v.created_at).toLocaleString()} · {v.training_duration_s}s training
                         </Typography>
                       </Box>
                       <Box sx={{ display: "flex", gap: 1 }}>
@@ -110,12 +157,13 @@ export function ModelRegistryPage() {
                           startIcon={<DeleteIcon />}
                           color="error"
                           onClick={() => handleDelete(v.version_id, v.pipeline_id)}
+                          sx={{ "&:hover": { transform: "none" } }}
                         >
                           Delete
                         </Button>
                       </Box>
                     </Box>
-                    <Divider sx={{ mb: 2 }} />
+                    <Divider sx={{ mb: 2.5 }} />
                     <MetricsChart metrics={v.metrics} taskType={v.task_type} />
                   </CardContent>
                 </Card>

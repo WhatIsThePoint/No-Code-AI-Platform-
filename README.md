@@ -195,7 +195,7 @@ For deeper architectural context, see **[`TECHNICAL_REPORT.md`](TECHNICAL_REPORT
 
 ## 8. License
 
-Released under an **academic / educational** license. Built as the End-of-Studies project (Projet de Fin d'Études) for a Master's degree in Computer Science.
+Released under an **academic / educational** license. Built as the End-of-Studies project (Projet de Fin d'Études).
 
 ---
 

@@ -57,7 +57,7 @@ def create_app(config=None):
     app.extensions["redis"] = _redis
 
     # Import models so Flask-Migrate can detect them
-    from .models import chat, company, subscription, user  # noqa: F401
+    from .models import chat, company, project_member, subscription, user  # noqa: F401
 
     # Register blueprints
     from .routes.admin import admin_bp
@@ -67,6 +67,7 @@ def create_app(config=None):
     from .routes.google_oauth import google_oauth_bp
     from .routes.meetings import meetings_bp
     from .routes.profile import profile_bp
+    from .routes.projects import projects_bp
     from .routes.totp import totp_bp
 
     app.register_blueprint(auth_bp)
@@ -77,6 +78,7 @@ def create_app(config=None):
     app.register_blueprint(billing_bp)
     app.register_blueprint(google_oauth_bp)
     app.register_blueprint(meetings_bp)
+    app.register_blueprint(projects_bp)
 
     @app.get("/health")
     def health():

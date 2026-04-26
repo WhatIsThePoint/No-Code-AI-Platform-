@@ -91,7 +91,7 @@ function PlanCard({
         }}
       />
       <CardContent sx={{ flexGrow: 1, pt: 3 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700 }}>{plan.name}</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 700 }}>{plan.name.replace(/Company/gi, "Collaborator")}</Typography>
 
         <Typography variant="h3" sx={{ mt: 1, mb: 0.5, fontWeight: 800 }}>
           {plan.price_usd === 0 ? "Free" : `$${plan.price_usd}`}
@@ -241,7 +241,7 @@ export function BillingPage() {
             <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 700 }}>Current Plan</Typography>
             <Box sx={{ display: "flex", gap: 1.5, alignItems: "center", flexWrap: "wrap" }}>
               <Chip
-                label={subscription.plan.replace("_", " ")}
+                label={subscription.plan.replace(/^company/, "collaborator").replace("_", " ")}
                 sx={{
                   fontWeight: 700,
                   background: "linear-gradient(135deg, #6366f1, #8b5cf6)",

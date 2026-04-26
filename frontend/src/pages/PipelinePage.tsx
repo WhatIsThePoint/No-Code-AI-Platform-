@@ -58,7 +58,10 @@ export function PipelinePage() {
     if (!newName.trim()) return;
     setCreating(true);
     try {
-      const { data } = await pipelinesApi.create({ name: newName.trim() });
+      const { data } = await pipelinesApi.create({
+        name: newName.trim(),
+        owner_type: "personal",
+      });
       navigate(`/pipelines/${data.pipeline_id}`);
     } finally {
       setCreating(false);

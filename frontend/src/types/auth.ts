@@ -6,6 +6,7 @@ export interface User {
   tier: "free" | "solo" | "company" | "super_admin";
   totp_enabled: boolean;
   has_seen_pipeline_tour?: boolean;
+  has_seen_genai_tour?: boolean;
   created_at: string;
 }
 

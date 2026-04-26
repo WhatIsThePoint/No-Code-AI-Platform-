@@ -18,4 +18,15 @@ export const modelsApi = {
 
   deleteVersion: (versionId: string) =>
     api.delete(`/models/${versionId}`),
+
+  // Sprint 7 Module 1: portable export bundles.
+  exportTabular: (pipelineId: string) =>
+    api.get<Blob>(`/pipelines/${pipelineId}/export/tabular`, {
+      responseType: "blob",
+    }),
+
+  exportGenai: (pipelineId: string) =>
+    api.get<Blob>(`/pipelines/${pipelineId}/export/genai`, {
+      responseType: "blob",
+    }),
 };

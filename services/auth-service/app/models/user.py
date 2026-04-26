@@ -20,6 +20,7 @@ class User(db.Model):
     totp_enabled = db.Column(db.Boolean, nullable=False, default=False)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     has_seen_pipeline_tour = db.Column(db.Boolean, nullable=False, default=False)
+    has_seen_genai_tour = db.Column(db.Boolean, nullable=False, default=False)
     google_oauth_refresh_token = db.Column(db.Text, nullable=True)
     google_oauth_expires_at = db.Column(db.DateTime(timezone=True), nullable=True)
     created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())

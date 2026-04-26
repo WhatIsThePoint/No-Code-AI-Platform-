@@ -27,6 +27,10 @@ class Config:
     ML_SERVICE_URL = os.environ.get("ML_SERVICE_URL", "http://localhost:8003")
     METRICS_SERVICE_URL = os.environ.get("METRICS_SERVICE_URL", "http://localhost:8004")
 
+    # Sprint 7 Module 4 — local AI companion
+    OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://ollama:11434")
+    OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3.2:3b")
+
     # CORS
     CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "http://localhost:5173").split(",")
 

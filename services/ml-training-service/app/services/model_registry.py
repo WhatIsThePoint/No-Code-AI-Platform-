@@ -27,6 +27,7 @@ def save_model_version(
     estimator: Any,
     model_folder: str,
     training_duration_s: float,
+    feature_columns: list[str] | None = None,
 ) -> str:
     version_id = str(uuid.uuid4())
     rel_path = os.path.join(pipeline_id, f"{version_id}.joblib")
@@ -44,6 +45,7 @@ def save_model_version(
         "hyperparams": hyperparams,
         "metrics": metrics,
         "artifact_path": abs_path,
+        "feature_columns": list(feature_columns) if feature_columns else [],
         "training_duration_s": round(training_duration_s, 2),
         "created_at": datetime.now(timezone.utc),
     }

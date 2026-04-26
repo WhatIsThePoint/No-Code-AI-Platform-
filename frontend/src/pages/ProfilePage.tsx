@@ -58,7 +58,7 @@ type TwoFAStep = "idle" | "loading" | "scan" | "verify" | "done";
 const TIER_CONFIG: Record<string, { label: string; color: string; gradient: string; limits: string }> = {
   free: { label: "Free", color: "#64748b", gradient: "linear-gradient(135deg, #94a3b8, #64748b)", limits: "3 datasets, 2 pipelines" },
   solo: { label: "Solo", color: "#6366f1", gradient: "linear-gradient(135deg, #6366f1, #4f46e5)", limits: "20 datasets, 10 pipelines" },
-  company: { label: "Company", color: "#8b5cf6", gradient: "linear-gradient(135deg, #8b5cf6, #7c3aed)", limits: "Unlimited" },
+  company: { label: "Collaborator", color: "#8b5cf6", gradient: "linear-gradient(135deg, #8b5cf6, #7c3aed)", limits: "Unlimited" },
   super_admin: { label: "Admin", color: "#f59e0b", gradient: "linear-gradient(135deg, #f59e0b, #d97706)", limits: "Unlimited" },
 };
 

@@ -44,4 +44,11 @@ db.createCollection("pipeline_step_notes");
 db.pipeline_step_notes.createIndex({ note_id: 1 }, { unique: true });
 db.pipeline_step_notes.createIndex({ pipeline_id: 1, node_id: 1, created_at: 1 });
 
-print("MongoDB init complete: all Sprint 1 + Sprint 2 collections and indexes created.");
+// ── rag_documents collection (Sprint 5 Module 2) ──────────────────────────────
+db.createCollection("rag_documents");
+
+db.rag_documents.createIndex({ document_id: 1 }, { unique: true });
+db.rag_documents.createIndex({ pipeline_id: 1, created_at: -1 });
+db.rag_documents.createIndex({ user_id: 1, created_at: -1 });
+
+print("MongoDB init complete: all collections and indexes created.");

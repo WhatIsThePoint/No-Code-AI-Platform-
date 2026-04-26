@@ -76,24 +76,34 @@ export function ChatDrawer({ pipelineId, open, onClose }: Props) {
     const onError = (payload: { error: string }) => {
       setSocketError(payload?.error ?? "socket_error");
     };
-    const onConnected = () => {
+    const joinRoom = () => {
       setSocketError(null);
       socket.emit("join_pipeline", { pipeline_id: pipelineId });
+    };
+    const onDisconnect = (reason: string) => {
+      // Ignore the local cleanup path — only surface real drops.
+      if (reason === "io client disconnect") return;
+      setSocketError("connection_lost");
     };
 
     socket.on("message", onMessage);
     socket.on("error", onError);
-    socket.on("connected", onConnected);
-    if (socket.connected) {
-      socket.emit("join_pipeline", { pipeline_id: pipelineId });
-    }
+    // Server emits `connected` after auth; socket.io also emits the
+    // lower-level `connect` on every (re)connect. Either one triggers a
+    // fresh join so we don't miss the room on reconnects.
+    socket.on("connected", joinRoom);
+    socket.on("connect", joinRoom);
+    socket.on("disconnect", onDisconnect);
+    if (socket.connected) joinRoom();
 
     return () => {
       cancelled = true;
-      socket.emit("leave_pipeline", { pipeline_id: pipelineId });
+      if (socket.connected) socket.emit("leave_pipeline", { pipeline_id: pipelineId });
       socket.off("message", onMessage);
       socket.off("error", onError);
-      socket.off("connected", onConnected);
+      socket.off("connected", joinRoom);
+      socket.off("connect", joinRoom);
+      socket.off("disconnect", onDisconnect);
     };
   }, [pipelineId, open]);
 
@@ -149,13 +159,15 @@ export function ChatDrawer({ pipelineId, open, onClose }: Props) {
       </Box>
 
       {socketError && (
-        <Alert severity="warning" sx={{ m: 1, fontSize: 12 }}>
+        <Alert severity={socketError === "connection_lost" ? "info" : "warning"} sx={{ m: 1, fontSize: 12 }}>
           {socketError === "company_tier_required"
-            ? "Chat is available on the Company plan."
+            ? "Chat is available on the Collaborator plan."
             : socketError === "no_company_membership"
-            ? "Join a company workspace to chat."
+            ? "Join a Collaborator workspace to chat."
             : socketError === "pipeline_access_denied"
             ? "You don't have access to this pipeline."
+            : socketError === "connection_lost"
+            ? "Reconnecting to chat…"
             : `Chat error: ${socketError}`}
         </Alert>
       )}

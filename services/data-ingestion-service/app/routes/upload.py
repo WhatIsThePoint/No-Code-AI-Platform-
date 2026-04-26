@@ -57,6 +57,7 @@ def upload_file():
 
     dataset_id = str(uuid.uuid4())
     company_id = request.form.get("company_id")
+    description = (request.form.get("description") or "").strip() or None
 
     ext = file.filename.rsplit(".", 1)[1].lower()
     safe_name = f"{dataset_id}.{ext}"
@@ -70,6 +71,7 @@ def upload_file():
         "user_id": user_id,
         "company_id": company_id,
         "name": file.filename,
+        "description": description,
         "source_type": ext if ext != "xls" else "excel",
         "file_path": file_path,
         "status": "uploaded",

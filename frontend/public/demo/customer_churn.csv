@@ -1,0 +1,101 @@
+customer_id,gender,senior_citizen,tenure_months,contract,monthly_charges,total_charges,payment_method,has_internet,support_calls,churn
+C0001,Female,0,1,Month-to-month,29.85,29.85,Electronic check,1,3,1
+C0002,Male,0,34,One year,56.95,1889.5,Mailed check,1,0,0
+C0003,Male,0,2,Month-to-month,53.85,108.15,Mailed check,1,4,1
+C0004,Male,0,45,One year,42.30,1840.75,Bank transfer,1,1,0
+C0005,Female,0,2,Month-to-month,70.70,151.65,Electronic check,1,5,1
+C0006,Female,0,8,Month-to-month,99.65,820.5,Electronic check,1,2,1
+C0007,Male,0,22,Month-to-month,89.10,1949.4,Credit card,1,0,0
+C0008,Female,0,10,Month-to-month,29.75,301.9,Mailed check,0,0,0
+C0009,Female,0,28,Month-to-month,104.80,3046.05,Electronic check,1,6,1
+C0010,Male,0,62,Two year,56.15,3487.95,Bank transfer,1,0,0
+C0011,Male,0,13,Month-to-month,49.95,587.45,Mailed check,1,2,1
+C0012,Male,0,16,Two year,18.95,326.8,Credit card,0,0,0
+C0013,Male,1,58,One year,100.35,5681.1,Credit card,1,1,0
+C0014,Male,0,49,Month-to-month,103.70,5036.3,Bank transfer,1,4,1
+C0015,Male,0,25,Month-to-month,105.50,2686.05,Electronic check,1,3,0
+C0016,Female,0,69,Two year,113.25,7895.15,Credit card,1,0,0
+C0017,Female,0,52,One year,20.65,1022.95,Mailed check,0,0,0
+C0018,Male,0,71,Two year,106.70,7382.25,Bank transfer,1,1,0
+C0019,Female,0,10,Month-to-month,55.20,528.35,Credit card,1,2,0
+C0020,Female,0,21,Month-to-month,90.05,1862.9,Electronic check,1,4,1
+C0021,Male,1,1,Month-to-month,39.65,39.65,Electronic check,1,3,1
+C0022,Male,0,12,One year,59.60,727.8,Mailed check,1,1,0
+C0023,Female,0,1,Month-to-month,59.90,59.9,Electronic check,1,4,1
+C0024,Male,0,58,Two year,48.20,2791.5,Credit card,0,0,0
+C0025,Female,0,49,One year,76.30,3728.5,Bank transfer,1,1,0
+C0026,Male,0,30,Month-to-month,25.25,767.1,Mailed check,0,1,0
+C0027,Female,0,47,One year,79.85,3815.35,Credit card,1,0,0
+C0028,Female,0,1,Month-to-month,20.15,20.15,Mailed check,0,3,1
+C0029,Female,0,72,Two year,19.80,1418.3,Credit card,0,0,0
+C0030,Male,0,17,Month-to-month,64.70,1115.1,Electronic check,1,2,0
+C0031,Male,1,71,Two year,96.35,6849.4,Bank transfer,1,0,0
+C0032,Female,0,2,Month-to-month,55.65,110.5,Mailed check,1,5,1
+C0033,Male,0,27,Month-to-month,90.25,2439.1,Electronic check,1,3,1
+C0034,Female,0,5,Month-to-month,74.85,390.15,Credit card,1,4,1
+C0035,Female,0,46,Two year,20.10,920.75,Mailed check,0,0,0
+C0036,Male,0,11,Month-to-month,95.50,1102.5,Electronic check,1,2,1
+C0037,Female,0,70,Two year,20.15,1363.05,Bank transfer,0,0,0
+C0038,Male,0,17,Month-to-month,45.50,776.5,Credit card,1,1,0
+C0039,Male,0,4,Month-to-month,75.30,304.6,Electronic check,1,3,1
+C0040,Female,0,63,Two year,99.45,6300.15,Bank transfer,1,1,0
+C0041,Male,0,12,One year,78.95,983.35,Mailed check,1,0,0
+C0042,Female,0,1,Month-to-month,19.85,19.85,Electronic check,0,2,0
+C0043,Female,0,33,Month-to-month,102.45,3394.45,Electronic check,1,4,1
+C0044,Male,0,58,One year,75.90,4352.55,Credit card,1,0,0
+C0045,Male,0,9,Month-to-month,20.35,186.7,Mailed check,0,1,0
+C0046,Female,1,22,Month-to-month,85.45,1878.35,Electronic check,1,3,1
+C0047,Male,0,37,One year,54.45,2030.45,Bank transfer,1,1,0
+C0048,Male,0,6,Month-to-month,69.85,414.05,Credit card,1,4,1
+C0049,Female,0,16,Month-to-month,95.20,1548.4,Electronic check,1,2,0
+C0050,Male,0,72,Two year,21.15,1528.85,Bank transfer,0,0,0
+C0051,Female,0,2,Month-to-month,89.95,178.75,Electronic check,1,5,1
+C0052,Male,0,26,Month-to-month,79.95,2073.75,Credit card,1,0,0
+C0053,Male,0,1,Month-to-month,45.60,45.6,Electronic check,1,3,1
+C0054,Female,0,49,One year,29.60,1434.9,Mailed check,0,0,0
+C0055,Female,0,11,Month-to-month,74.95,835.25,Credit card,1,2,1
+C0056,Male,0,64,Two year,102.15,6528.05,Bank transfer,1,0,0
+C0057,Female,0,34,Month-to-month,94.90,3238.8,Electronic check,1,4,1
+C0058,Male,1,1,Month-to-month,70.30,70.3,Electronic check,1,5,1
+C0059,Male,0,20,Month-to-month,19.95,406.25,Mailed check,0,0,0
+C0060,Female,0,45,One year,89.40,4053.15,Credit card,1,1,0
+C0061,Male,0,2,Month-to-month,60.05,125.15,Electronic check,1,4,1
+C0062,Male,0,71,Two year,73.90,5238.35,Bank transfer,1,0,0
+C0063,Female,0,8,Month-to-month,88.65,712.2,Electronic check,1,3,1
+C0064,Female,0,57,One year,20.45,1191.6,Mailed check,0,0,0
+C0065,Male,0,16,Month-to-month,98.75,1633.75,Credit card,1,2,0
+C0066,Female,0,1,Month-to-month,34.45,34.45,Electronic check,1,3,1
+C0067,Male,0,30,Month-to-month,75.65,2301.45,Bank transfer,1,1,0
+C0068,Female,0,66,Two year,95.75,6361.95,Credit card,1,0,0
+C0069,Male,0,11,Month-to-month,20.75,237.9,Mailed check,0,1,0
+C0070,Female,1,24,Month-to-month,106.40,2583.55,Electronic check,1,4,1
+C0071,Male,0,4,Month-to-month,45.95,184.7,Credit card,1,2,0
+C0072,Male,0,72,Two year,99.80,7210.35,Bank transfer,1,0,0
+C0073,Female,0,1,Month-to-month,75.95,75.95,Electronic check,1,3,1
+C0074,Male,0,40,One year,80.45,3263.05,Mailed check,1,1,0
+C0075,Female,0,8,Month-to-month,54.35,457.3,Credit card,1,2,1
+C0076,Male,0,21,Month-to-month,95.15,2013.05,Electronic check,1,3,1
+C0077,Female,0,63,Two year,89.10,5671.45,Bank transfer,1,0,0
+C0078,Male,0,7,Month-to-month,35.45,261.55,Mailed check,0,0,0
+C0079,Female,0,14,Month-to-month,85.95,1211.9,Electronic check,1,2,1
+C0080,Male,0,55,One year,70.35,3889.85,Credit card,1,1,0
+C0081,Female,1,3,Month-to-month,95.45,289.75,Electronic check,1,4,1
+C0082,Male,0,44,Two year,24.60,1110.95,Mailed check,0,0,0
+C0083,Male,0,15,Month-to-month,69.15,1063.35,Credit card,1,2,0
+C0084,Female,0,1,Month-to-month,20.45,20.45,Electronic check,0,3,1
+C0085,Female,0,68,Two year,109.30,7469.55,Bank transfer,1,0,0
+C0086,Male,0,18,Month-to-month,79.95,1471.85,Electronic check,1,3,0
+C0087,Female,0,50,One year,20.80,1049.35,Mailed check,0,0,0
+C0088,Male,0,5,Month-to-month,100.40,512.25,Electronic check,1,4,1
+C0089,Female,0,28,Month-to-month,85.90,2420.85,Credit card,1,2,1
+C0090,Male,0,62,Two year,19.75,1226.05,Bank transfer,0,0,0
+C0091,Female,0,2,Month-to-month,74.15,146.8,Electronic check,1,5,1
+C0092,Male,0,10,Month-to-month,34.75,339.85,Mailed check,0,1,0
+C0093,Male,0,42,One year,95.30,4006.55,Credit card,1,1,0
+C0094,Female,0,1,Month-to-month,54.95,54.95,Electronic check,1,3,1
+C0095,Male,0,72,Two year,115.05,8295.3,Bank transfer,1,0,0
+C0096,Female,1,19,Month-to-month,94.45,1812.4,Electronic check,1,4,1
+C0097,Male,0,33,Two year,20.85,682.25,Mailed check,0,0,0
+C0098,Male,0,12,Month-to-month,89.65,1085.55,Credit card,1,2,1
+C0099,Female,0,57,One year,74.25,4243.85,Bank transfer,1,1,0
+C0100,Male,0,1,Month-to-month,60.55,60.55,Electronic check,1,4,1

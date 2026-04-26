@@ -1,5 +1,12 @@
 export type PipelineStatus = "draft" | "running" | "done" | "error";
-export type NodeType = "dataset" | "train" | "evaluate";
+export type PipelineType = "ml" | "rag";
+export type NodeType =
+  | "dataset"
+  | "train"
+  | "evaluate"
+  | "document"
+  | "vector_store"
+  | "rag_config";
 export type TaskType = "classification" | "regression" | "clustering" | "forecasting";
 export type Algorithm =
   | "xgboost"
@@ -33,10 +40,40 @@ export interface EvaluateNodeData {
   version_id?: string;
 }
 
+// ── RAG / GenAI workspace nodes (Sprint 5 Module 2) ─────────────────────────
+export interface DocumentNodeData {
+  document_id?: string;
+  source_name?: string;
+  chunk_count?: number;
+  status?: "queued" | "running" | "ready" | "error";
+}
+
+export interface VectorStoreNodeData {
+  // Visual representation only — pgvector is the backing store.
+  total_chunks?: number;
+}
+
+export type RAGLlmEngine =
+  | "llama3.2:3b"
+  | "llama3.2:1b"
+  | "phi3:mini"
+  | "gemma2:2b";
+
+export interface RAGConfigNodeData {
+  llm_engine?: RAGLlmEngine;
+  top_k?: number;
+}
+
 export interface PipelineNode {
   node_id: string;
   type: NodeType;
-  data: DatasetNodeData | TrainNodeData | EvaluateNodeData;
+  data:
+    | DatasetNodeData
+    | TrainNodeData
+    | EvaluateNodeData
+    | DocumentNodeData
+    | VectorStoreNodeData
+    | RAGConfigNodeData;
   position: { x: number; y: number };
 }
 
@@ -45,11 +82,15 @@ export interface PipelineEdge {
   target: string;
 }
 
+export type OwnerType = "personal" | "company";
+
 export interface Pipeline {
   pipeline_id: string;
   user_id: string;
+  owner_type?: OwnerType;
   company_id: string | null;
   name: string;
+  type?: PipelineType; // "ml" (default) | "rag"
   nodes: PipelineNode[];
   edges: PipelineEdge[];
   status: PipelineStatus;

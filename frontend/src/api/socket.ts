@@ -52,4 +52,49 @@ export function disconnectSocket(): void {
     _socket.disconnect();
     _socket = null;
   }
+  if (_trainingSocket) {
+    _trainingSocket.removeAllListeners();
+    _trainingSocket.disconnect();
+    _trainingSocket = null;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sprint 7 Module 3 — `/training` namespace for live training events.
+// Separate namespace because chat is company-tier-only; training must work
+// for personal-tier users on their own pipelines.
+// ─────────────────────────────────────────────────────────────────────────────
+
+let _trainingSocket: Socket | null = null;
+let _trainingTokenSubscribed = false;
+
+export function getTrainingSocket(): Socket {
+  if (_trainingSocket) return _trainingSocket;
+
+  const token = useAuthStore.getState().accessToken ?? "";
+  _trainingSocket = io("/training", {
+    path: "/socket.io",
+    transports: ["websocket", "polling"],
+    auth: { token },
+    autoConnect: true,
+    reconnection: true,
+    reconnectionAttempts: 5,
+    reconnectionDelay: 1000,
+  });
+
+  if (!_trainingTokenSubscribed) {
+    _trainingTokenSubscribed = true;
+    let lastToken = token;
+    useAuthStore.subscribe((state) => {
+      if (state.accessToken !== lastToken && _trainingSocket) {
+        lastToken = state.accessToken ?? "";
+        _trainingSocket.auth = { token: lastToken };
+        if (_trainingSocket.connected) {
+          _trainingSocket.disconnect().connect();
+        }
+      }
+    });
+  }
+
+  return _trainingSocket;
 }

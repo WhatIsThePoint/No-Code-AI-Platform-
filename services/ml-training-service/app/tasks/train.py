@@ -11,15 +11,29 @@ import time
 from datetime import datetime, timezone
 
 from ..services.model_registry import save_model_version
+from ..services.realtime_emitter import (
+    emit_complete,
+    emit_failed,
+    emit_metric_point,
+    emit_progress,
+)
 from ..services.training_service import get_model, load_split, prepare_xy
 from .celery_app import celery
 
 
-def _progress(task_results, task_id: str, pct: int, extra: dict | None = None):
+def _progress(
+    task_results,
+    task_id: str,
+    pct: int,
+    pipeline_id: str,
+    stage: str,
+    extra: dict | None = None,
+):
     upd = {"progress_pct": pct}
     if extra:
         upd.update(extra)
     task_results.update_one({"task_id": task_id}, {"$set": upd})
+    emit_progress(pipeline_id, pct, stage)
 
 
 @celery.task(name="app.tasks.train.run_training", bind=True)
@@ -71,33 +85,51 @@ def run_training(self, pipeline_id: str, run_config: dict):
         user_id = run_config["user_id"]
 
         # ── Load data ──────────────────────────────────────────────────────────
-        _progress(task_results, task_id, 10)
+        _progress(task_results, task_id, 10, pipeline_id, "loading_data")
         df_train = load_split(dataset_dir, "train")
         df_test = (
             load_split(dataset_dir, "test") if task_type != "forecasting" else df_train
         )
 
-        _progress(task_results, task_id, 25)
+        _progress(task_results, task_id, 25, pipeline_id, "preparing_features")
 
         X_train, y_train = prepare_xy(df_train, target_column, task_type)
         X_test, y_test = prepare_xy(df_test, target_column, task_type)
 
         # ── Train ──────────────────────────────────────────────────────────────
-        _progress(task_results, task_id, 40)
+        _progress(task_results, task_id, 40, pipeline_id, "fitting_model")
         model = get_model(algorithm, hyperparams)
         model.train(X_train, y_train)
 
         _progress(
-            task_results, task_id, 75, {"live_metrics": [{"step": "training_done"}]}
+            task_results,
+            task_id,
+            75,
+            pipeline_id,
+            "training_done",
+            {"live_metrics": [{"step": "training_done"}]},
         )
 
         # ── Evaluate ──────────────────────────────────────────────────────────
         metrics = model.evaluate(X_test, y_test)
 
-        _progress(task_results, task_id, 90)
+        # Stream the headline metric so the LiveTrainingChart shows real values
+        # (auto-scaling Y-axis on the client absorbs the range mismatch with
+        # the prior progress_pct points).
+        for metric_name in ("accuracy", "f1", "roc_auc", "r2", "rmse", "mae"):
+            value = metrics.get(metric_name)
+            if isinstance(value, (int, float)):
+                emit_metric_point(
+                    pipeline_id, step=100, metric=metric_name, value=value, split="test"
+                )
+
+        _progress(task_results, task_id, 90, pipeline_id, "saving_model")
 
         # ── Save artifact ─────────────────────────────────────────────────────
         duration = time.time() - start_time
+        feature_columns = (
+            list(X_train.columns) if hasattr(X_train, "columns") else []
+        )
         version_id = save_model_version(
             db=db,
             pipeline_id=pipeline_id,
@@ -109,6 +141,7 @@ def run_training(self, pipeline_id: str, run_config: dict):
             estimator=model.estimator,
             model_folder=model_folder,
             training_duration_s=duration,
+            feature_columns=feature_columns,
         )
 
         pipelines.update_one(
@@ -135,11 +168,19 @@ def run_training(self, pipeline_id: str, run_config: dict):
             },
         )
 
+        emit_complete(
+            pipeline_id,
+            version_id=version_id,
+            metrics=metrics,
+            duration_s=round(duration, 2),
+        )
+
         _send_notification(
             run_config, success=True, version_id=version_id, metrics=metrics
         )
 
     except Exception as exc:
+        emit_failed(pipeline_id, str(exc))
         pipelines.update_one(
             {"pipeline_id": pipeline_id},
             {"$set": {"status": "error", "updated_at": datetime.now(timezone.utc)}},

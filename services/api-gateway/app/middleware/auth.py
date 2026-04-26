@@ -40,4 +40,9 @@ def get_forwarded_headers() -> dict:
         headers["X-User-Role"] = g.user_role
     if hasattr(g, "user_tier") and g.user_tier:
         headers["X-User-Tier"] = g.user_tier
+    # Sprint 6 — ACL middleware fills these for /pipelines/* routes.
+    if getattr(g, "project_company_id", None):
+        headers["X-Company-Id"] = str(g.project_company_id)
+    if getattr(g, "project_role", None):
+        headers["X-Project-Role"] = g.project_role
     return headers

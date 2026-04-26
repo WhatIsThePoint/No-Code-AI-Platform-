@@ -157,9 +157,9 @@ export function CompanyPage() {
       setCompanyName(resp.data.name);
       const membersResp = await api.get(`/companies/${resp.data.company_id}/members`);
       setMembers(membersResp.data);
-      setSnack("Company created!");
+      setSnack("Collaborator workspace created!");
     } catch {
-      setError("Failed to create company");
+      setError("Failed to create collaborator workspace");
     }
   };
 
@@ -224,7 +224,7 @@ export function CompanyPage() {
           <BusinessRoundedIcon sx={{ fontSize: 22 }} />
         </Box>
         <Box>
-          <Typography variant="h4">Company</Typography>
+          <Typography variant="h4">Collaborator</Typography>
         </Box>
       </Box>
       <Typography variant="body2" sx={{ color: "text.secondary", mb: 3 }}>
@@ -318,7 +318,7 @@ export function CompanyPage() {
                   <BusinessRoundedIcon sx={{ color: "#fff", fontSize: 28 }} />
                 </Box>
                 <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
-                  Create a Company
+                  Create a Collaborator Workspace
                 </Typography>
                 <Typography variant="body2" sx={{ color: "text.secondary", mb: 3 }}>
                   Start a team workspace and invite colleagues to collaborate on ML pipelines.
@@ -326,13 +326,13 @@ export function CompanyPage() {
                 <Box component="form" onSubmit={createForm.handleSubmit(handleCreateCompany)}>
                   <TextField
                     fullWidth
-                    label="Company Name"
+                    label="Workspace Name"
                     size="small"
                     sx={{ mb: 1.5 }}
                     {...createForm.register("name", { required: true })}
                   />
                   <Button type="submit" variant="contained" fullWidth>
-                    Create Company
+                    Create Workspace
                   </Button>
                 </Box>
               </CardContent>
@@ -357,7 +357,7 @@ export function CompanyPage() {
                   <PersonAddAlt1RoundedIcon sx={{ color: "#fff", fontSize: 28 }} />
                 </Box>
                 <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
-                  Join a Company
+                  Join a Collaborator Workspace
                 </Typography>
                 <Typography variant="body2" sx={{ color: "text.secondary", mb: 3 }}>
                   Ask your team owner to send you an invite. Pending invitations will appear here automatically.
@@ -579,7 +579,7 @@ export function CompanyPage() {
               <Alert severity="info" variant="outlined">
                 <Typography variant="caption">
                   The invitee must register or log in with <strong>{lastInvite.email}</strong> and visit
-                  this link — or navigate to the Company page where the invite will appear automatically.
+                  this link — or navigate to the Collaborator page where the invite will appear automatically.
                   Expires {new Date(lastInvite.expires_at).toLocaleDateString()}.
                 </Typography>
               </Alert>

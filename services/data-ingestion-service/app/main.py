@@ -26,6 +26,7 @@ def create_app(config=None):
     from .routes.connector import connector_bp
     from .routes.dataset import dataset_bp
     from .routes.preprocessing import preprocessing_bp
+    from .routes.rag import rag_bp
     from .routes.tasks import tasks_bp
     from .routes.upload import upload_bp
 
@@ -34,6 +35,7 @@ def create_app(config=None):
     app.register_blueprint(dataset_bp)
     app.register_blueprint(preprocessing_bp)
     app.register_blueprint(tasks_bp)
+    app.register_blueprint(rag_bp)
 
     @app.get("/health")
     def health():

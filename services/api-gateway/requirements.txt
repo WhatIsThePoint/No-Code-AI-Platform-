@@ -12,9 +12,9 @@ psycopg2-binary==2.9.9
 SQLAlchemy==2.0.32
 
 # Realtime: SocketIO backed by Redis message queue (DB 2)
+# async_mode="threading" — no eventlet; standard threads + Redis queue for fan-out
 flask-socketio==5.3.7
 python-socketio[redis]==5.11.3
-eventlet==0.36.1
 
 # Testing
 pytest==8.2.2

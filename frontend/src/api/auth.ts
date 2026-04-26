@@ -17,8 +17,11 @@ export const authApi = {
 
   getMe: () => api.get<User>("/users/me"),
 
-  updateMe: (payload: Partial<Pick<User, "full_name" | "role" | "has_seen_pipeline_tour">>) =>
-    api.patch<User>("/users/me", payload),
+  updateMe: (
+    payload: Partial<
+      Pick<User, "full_name" | "role" | "has_seen_pipeline_tour" | "has_seen_genai_tour">
+    >,
+  ) => api.patch<User>("/users/me", payload),
 
   enable2FA: () =>
     api.post<{ secret: string; qr_uri: string; qr_image_base64: string }>(

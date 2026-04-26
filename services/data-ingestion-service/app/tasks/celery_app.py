@@ -11,6 +11,12 @@ def make_celery() -> Celery:
         "nocode_ingestion",
         broker=BROKER_URL,
         backend=RESULT_BACKEND,
+        include=[
+            "app.tasks.profiling",
+            "app.tasks.preprocessing",
+            "app.tasks.sql_import",
+            "app.tasks.rag_ingest",
+        ],
     )
     celery.conf.update(
         task_serializer="json",
@@ -23,6 +29,7 @@ def make_celery() -> Celery:
             "app.tasks.profiling.*": {"queue": "ingestion"},
             "app.tasks.preprocessing.*": {"queue": "ingestion"},
             "app.tasks.sql_import.*": {"queue": "connectors"},
+            "app.tasks.rag_ingest.*": {"queue": "rag"},
         },
     )
     return celery

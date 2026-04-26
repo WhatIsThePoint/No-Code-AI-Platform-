@@ -52,6 +52,7 @@ def sql_connect():
 
     dataset_id = str(uuid.uuid4())
     company_id = data.get("company_id")
+    description = (data.get("description") or "").strip() or None
     now = datetime.now(timezone.utc)
 
     # Encrypt password before storing
@@ -71,6 +72,7 @@ def sql_connect():
         "user_id": user_id,
         "company_id": company_id,
         "name": f"SQL:{data['database']}/{db_type}",
+        "description": description,
         "source_type": db_type,
         "file_path": "",
         "status": "uploaded",

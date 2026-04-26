@@ -9,6 +9,13 @@ export interface ChatMessage {
   created_at: string;
 }
 
+export type ExternalMeetingProvider =
+  | "zoom"
+  | "teams"
+  | "jitsi"
+  | "whereby"
+  | "other";
+
 export interface Meeting {
   meeting_id: string;
   pipeline_id: string;
@@ -17,6 +24,7 @@ export interface Meeting {
   created_by_name?: string;
   start_at?: string;
   end_at?: string;
+  provider?: ExternalMeetingProvider;
 }
 
 export const collabApi = {
@@ -28,6 +36,16 @@ export const collabApi = {
   createMeeting: (pipelineId: string, title?: string) =>
     api.post<Meeting>(`/pipelines/${pipelineId}/meetings`, {
       title: title ?? "Pipeline Collab Session",
+    }),
+
+  createExternalMeeting: (
+    pipelineId: string,
+    body: { url: string; provider?: ExternalMeetingProvider; title?: string }
+  ) =>
+    api.post<Meeting>(`/pipelines/${pipelineId}/meetings/external`, {
+      url: body.url,
+      provider: body.provider ?? "other",
+      title: body.title ?? "Pipeline Collab Session",
     }),
 
   listMeetings: (pipelineId: string) =>

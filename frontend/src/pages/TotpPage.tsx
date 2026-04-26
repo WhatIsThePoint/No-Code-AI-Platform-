@@ -1,4 +1,4 @@
-import { Alert, Box, Button, Container, Paper, TextField, Typography, alpha } from "@mui/material";
+import { Alert, Box, Button, Container, Paper, TextField, Typography } from "@mui/material";
 import LockIcon from "@mui/icons-material/LockRounded";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -31,7 +31,7 @@ export function TotpPage() {
       const { data } = await authApi.verify2FA(session_token, code);
       const { data: userData } = await authApi.getMe();
       setAuth(userData, data.access_token!);
-      navigate("/dashboard");
+      navigate(userData.role === "super_admin" ? "/admin" : "/dashboard");
     } catch {
       setApiError("Invalid code. Please try again.");
     }
@@ -44,41 +44,27 @@ export function TotpPage() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "linear-gradient(135deg, #f8fafc 0%, #eef2ff 50%, #f8fafc 100%)",
+        bgcolor: "background.default",
       }}
     >
-      <Container maxWidth="sm" className="animate-scale-in">
+      <Container maxWidth="sm">
         <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
           <Paper
+            variant="outlined"
             sx={{
               p: { xs: 3, sm: 5 },
               width: "100%",
               maxWidth: 440,
-              borderRadius: 3,
-              border: "1px solid",
-              borderColor: alpha("#6366f1", 0.12),
               textAlign: "center",
-              position: "relative",
-              overflow: "hidden",
-              "&::before": {
-                content: '""',
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                height: "3px",
-                background: "linear-gradient(90deg, #6366f1, #8b5cf6, #6366f1)",
-                backgroundSize: "200% 100%",
-                animation: "gradient-shift 3s ease infinite",
-              },
             }}
           >
             <Box
               sx={{
-                width: 56,
-                height: 56,
-                borderRadius: "16px",
-                background: `linear-gradient(135deg, ${alpha("#6366f1", 0.12)} 0%, ${alpha("#8b5cf6", 0.12)} 100%)`,
+                width: 48,
+                height: 48,
+                borderRadius: "2px",
+                border: "1px solid",
+                borderColor: "divider",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -86,7 +72,7 @@ export function TotpPage() {
                 mb: 2.5,
               }}
             >
-              <LockIcon sx={{ fontSize: 28, color: "primary.main" }} />
+              <LockIcon sx={{ fontSize: 24, color: "primary.main" }} />
             </Box>
 
             <Typography variant="h5" gutterBottom sx={{ fontWeight: 700, mb: 0.5 }}>

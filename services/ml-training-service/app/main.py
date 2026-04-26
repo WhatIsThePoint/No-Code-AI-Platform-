@@ -23,7 +23,9 @@ def create_app(config=None):
 
     os.makedirs(app.config["MODEL_FOLDER"], exist_ok=True)
 
+    from .routes.chat import chat_bp
     from .routes.compare import compare_bp
+    from .routes.export import export_bp
     from .routes.models import models_bp
     from .routes.notes import notes_bp
     from .routes.pipelines import pipelines_bp
@@ -36,6 +38,8 @@ def create_app(config=None):
     app.register_blueprint(notes_bp)
     app.register_blueprint(predict_bp)
     app.register_blueprint(compare_bp)
+    app.register_blueprint(chat_bp)
+    app.register_blueprint(export_bp)
 
     @app.get("/health")
     def health():

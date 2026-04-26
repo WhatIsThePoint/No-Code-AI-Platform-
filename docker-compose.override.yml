@@ -9,6 +9,12 @@ services:
   api-gateway:
     volumes:
       - ./services/api-gateway:/app
+    environment:
+      # Declare host GPU so /system/hardware reports accurately even though
+      # the gateway container has no nvidia runtime mounted. Override per host.
+      GPU_NAME: "${GPU_NAME:-NVIDIA GeForce GTX 1660 SUPER}"
+      GPU_TOTAL_VRAM_MB: "${GPU_TOTAL_VRAM_MB:-6144}"
+      GPU_FREE_VRAM_MB: "${GPU_FREE_VRAM_MB:-5500}"
     command: flask --app app.main run --host=0.0.0.0 --port=8000 --debug
 
   auth-service:
@@ -26,9 +32,10 @@ services:
     volumes:
       - ./services/data-ingestion-service:/app
       - uploaded_files:/uploads
-    command: celery -A app.tasks.celery_app worker --loglevel=debug -Q ingestion,connectors --concurrency=1 --include=app.tasks.profiling,app.tasks.preprocessing,app.tasks.sql_import
+    command: celery -A app.tasks.celery_app worker --loglevel=debug -Q ingestion,connectors,rag --concurrency=1 --include=app.tasks.profiling,app.tasks.preprocessing,app.tasks.sql_import,app.tasks.rag_ingest
 
   ml-training-service:
+    image: ml-training-with-rag-deps:local
     volumes:
       - ./services/ml-training-service:/app
       - model_artifacts:/models

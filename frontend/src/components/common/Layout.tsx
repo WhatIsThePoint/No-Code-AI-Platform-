@@ -1,4 +1,4 @@
-import { Box, AppBar, Toolbar, Typography, Button, Drawer, List, ListItemButton, ListItemIcon, ListItemText, Divider, Avatar, alpha, Chip } from "@mui/material";
+import { Box, AppBar, Toolbar, Typography, Button, Drawer, List, ListItemButton, ListItemIcon, ListItemText, Divider, Avatar, Chip } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import DashboardIcon from "@mui/icons-material/DashboardRounded";
@@ -10,6 +10,7 @@ import PaymentIcon from "@mui/icons-material/PaymentRounded";
 import PersonIcon from "@mui/icons-material/PersonRounded";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettingsRounded";
 import LogoutIcon from "@mui/icons-material/LogoutRounded";
+import { PlatformCompanion } from "../companion/PlatformCompanion";
 
 const DRAWER_WIDTH = 260;
 
@@ -18,7 +19,7 @@ const navItems = [
   { label: "Datasets", path: "/data", icon: <StorageIcon /> },
   { label: "Pipelines", path: "/pipelines", icon: <AccountTreeIcon /> },
   { label: "Model Registry", path: "/models", icon: <ModelTrainingIcon /> },
-  { label: "Company", path: "/company", icon: <BusinessIcon /> },
+  { label: "Collaborator", path: "/company", icon: <BusinessIcon /> },
   { label: "Billing", path: "/billing", icon: <PaymentIcon /> },
   { label: "Profile", path: "/profile", icon: <PersonIcon /> },
 ];
@@ -31,6 +32,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
+  const isAdmin = user?.role === "super_admin";
+  const visibleNavItems = isAdmin ? [] : navItems;
 
   const initials = user?.full_name
     ? user.full_name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
@@ -38,44 +41,35 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "background.default" }}>
-      <AppBar
-        position="fixed"
-        sx={{
-          zIndex: (theme) => theme.zIndex.drawer + 1,
-          borderBottom: "1px solid",
-          borderColor: alpha("#fff", 0.08),
-        }}
-      >
+      <AppBar position="fixed" sx={{ zIndex: (t) => t.zIndex.drawer + 1 }}>
         <Toolbar sx={{ gap: 2 }}>
           {/* Brand */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mr: 2 }}>
             <Box
               sx={{
-                width: 32,
-                height: 32,
-                borderRadius: "10px",
-                background: "linear-gradient(135deg, #818cf8 0%, #6366f1 50%, #4f46e5 100%)",
+                width: 28,
+                height: 28,
+                borderRadius: "2px",
+                bgcolor: "#0b0d0e",
+                color: "#fafaf7",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontWeight: 800,
-                fontSize: "0.875rem",
-                color: "#fff",
-                letterSpacing: "-0.03em",
+                fontWeight: 700,
+                fontSize: "0.7rem",
+                fontFamily: "'JetBrains Mono', monospace",
+                letterSpacing: "0.04em",
               }}
             >
               AI
             </Box>
             <Typography
-              variant="h6"
+              variant="subtitle1"
               noWrap
               sx={{
                 fontWeight: 700,
-                letterSpacing: "-0.02em",
-                background: "linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.8) 100%)",
-                backgroundClip: "text",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
+                letterSpacing: "-0.01em",
+                color: "#0b0d0e",
               }}
             >
               NoCode AI
@@ -86,56 +80,32 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
           {/* User info */}
           <Chip
-            label={user?.tier ?? "free"}
+            label={(user?.tier === "company" ? "collaborator" : user?.tier) ?? "free"}
             size="small"
-            sx={{
-              bgcolor: alpha("#fff", 0.12),
-              color: "#fff",
-              fontWeight: 600,
-              fontSize: "0.7rem",
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-              height: 24,
-            }}
+            variant="outlined"
           />
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-            <Avatar
-              sx={{
-                width: 34,
-                height: 34,
-                bgcolor: alpha("#fff", 0.15),
-                fontSize: "0.8rem",
-                fontWeight: 700,
-                border: "2px solid",
-                borderColor: alpha("#fff", 0.2),
-              }}
-            >
+            <Avatar sx={{ width: 30, height: 30, fontSize: "0.7rem" }}>
               {initials}
             </Avatar>
             <Box sx={{ display: { xs: "none", md: "block" } }}>
-              <Typography variant="body2" sx={{ color: "#fff", fontWeight: 600, lineHeight: 1.3, fontSize: "0.8125rem" }}>
+              <Typography
+                variant="body2"
+                sx={{ color: "#0b0d0e", fontWeight: 600, lineHeight: 1.3, fontSize: "0.8125rem" }}
+              >
                 {user?.full_name ?? user?.email}
               </Typography>
-              <Typography variant="caption" sx={{ color: alpha("#fff", 0.6), fontSize: "0.7rem" }}>
+              <Typography variant="caption" sx={{ fontSize: "0.65rem" }}>
                 {user?.role?.replace("_", " ")}
               </Typography>
             </Box>
           </Box>
           <Button
-            color="inherit"
             onClick={logout}
-            startIcon={<LogoutIcon />}
+            startIcon={<LogoutIcon sx={{ fontSize: 14 }} />}
             size="small"
-            sx={{
-              ml: 1,
-              bgcolor: alpha("#fff", 0.08),
-              borderRadius: 2,
-              px: 2,
-              "&:hover": {
-                bgcolor: alpha("#fff", 0.15),
-                transform: "none",
-              },
-            }}
+            variant="outlined"
+            sx={{ ml: 1 }}
           >
             Logout
           </Button>
@@ -150,16 +120,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
           [`& .MuiDrawer-paper`]: {
             width: DRAWER_WIDTH,
             boxSizing: "border-box",
-            bgcolor: "#fff",
-            borderRight: "1px solid",
-            borderColor: "divider",
           },
         }}
       >
         <Toolbar />
         <Box sx={{ overflow: "auto", py: 1.5, display: "flex", flexDirection: "column", flex: 1 }}>
           <List sx={{ px: 0.5 }}>
-            {navItems.map((item) => {
+            {visibleNavItems.map((item) => {
               const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + "/");
               return (
                 <ListItemButton
@@ -167,16 +134,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   onClick={() => navigate(item.path)}
                   selected={isActive}
                   sx={{
-                    mb: 0.25,
+                    position: "relative",
                     ...(isActive && {
                       "&::before": {
                         content: '""',
                         position: "absolute",
                         left: 0,
-                        top: "20%",
-                        bottom: "20%",
-                        width: 3,
-                        borderRadius: "0 4px 4px 0",
+                        top: 0,
+                        bottom: 0,
+                        width: 2,
                         bgcolor: "primary.main",
                       },
                     }),
@@ -184,28 +150,21 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 >
                   <ListItemIcon
                     sx={{
-                      minWidth: 40,
+                      minWidth: 36,
                       color: isActive ? "primary.main" : "text.secondary",
-                      transition: "color 0.2s ease",
                     }}
                   >
                     {item.icon}
                   </ListItemIcon>
-                  <ListItemText
-                    primary={item.label}
-                    primaryTypographyProps={{
-                      fontSize: "0.875rem",
-                      fontWeight: isActive ? 600 : 500,
-                    }}
-                  />
+                  <ListItemText primary={item.label} />
                 </ListItemButton>
               );
             })}
           </List>
 
-          {user?.role === "super_admin" && (
+          {isAdmin && (
             <>
-              <Divider sx={{ mx: 2, my: 1 }} />
+              {visibleNavItems.length > 0 && <Divider sx={{ mx: 2, my: 1 }} />}
               <List sx={{ px: 0.5 }}>
                 {adminItems.map((item) => {
                   const isActive = location.pathname === item.path;
@@ -215,33 +174,26 @@ export function Layout({ children }: { children: React.ReactNode }) {
                       onClick={() => navigate(item.path)}
                       selected={isActive}
                       sx={{
-                        mb: 0.25,
+                        position: "relative",
                         ...(isActive && {
-                          bgcolor: alpha("#ef4444", 0.08),
-                          "&:hover": { bgcolor: alpha("#ef4444", 0.12) },
                           "&::before": {
                             content: '""',
                             position: "absolute",
                             left: 0,
-                            top: "20%",
-                            bottom: "20%",
-                            width: 3,
-                            borderRadius: "0 4px 4px 0",
-                            bgcolor: "error.main",
+                            top: 0,
+                            bottom: 0,
+                            width: 2,
+                            bgcolor: "primary.main",
                           },
                         }),
                       }}
                     >
-                      <ListItemIcon sx={{ minWidth: 40, color: "error.main" }}>
+                      <ListItemIcon sx={{ minWidth: 36, color: isActive ? "primary.main" : "text.secondary" }}>
                         {item.icon}
                       </ListItemIcon>
                       <ListItemText
                         primary={item.label}
-                        primaryTypographyProps={{
-                          color: "error.main",
-                          fontWeight: 600,
-                          fontSize: "0.875rem",
-                        }}
+                        primaryTypographyProps={{ fontWeight: isActive ? 700 : 500 }}
                       />
                     </ListItemButton>
                   );
@@ -276,6 +228,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
           {children}
         </Box>
       </Box>
+
+      <PlatformCompanion />
     </Box>
   );
 }

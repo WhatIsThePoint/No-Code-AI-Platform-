@@ -26,7 +26,7 @@ from sqlalchemy import text
 from ..extensions import get_session
 from . import socketio
 
-# Per-SID state lives in memory on the single eventlet worker.
+# Per-SID state lives in memory on the single threaded worker.
 # Maps sid → {"user_id", "company_id", "email", "full_name"}
 _sessions: dict[str, dict] = {}
 

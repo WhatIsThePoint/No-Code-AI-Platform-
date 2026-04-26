@@ -7,7 +7,7 @@ from flask_socketio import SocketIO
 # meetings route) land on connected clients.
 socketio = SocketIO(
     cors_allowed_origins="*",
-    async_mode="eventlet",
+    async_mode="threading",
     logger=False,
     engineio_logger=False,
 )
@@ -21,3 +21,4 @@ def register_socket_handlers(app) -> None:
     )
     # Import side effects: decorators register event handlers on `socketio`.
     from . import chat  # noqa: F401
+    from . import training  # noqa: F401  # Sprint 7 Module 3

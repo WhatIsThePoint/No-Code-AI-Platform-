@@ -5,6 +5,9 @@
 -- Enable UUID generation
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
+-- Enable pgvector for RAG embeddings (Sprint 5 Module 2)
+CREATE EXTENSION IF NOT EXISTS vector;
+
 -- ── Users ─────────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS users (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -21,6 +24,7 @@ CREATE TABLE IF NOT EXISTS users (
     totp_enabled    BOOLEAN NOT NULL DEFAULT FALSE,
     is_active       BOOLEAN NOT NULL DEFAULT TRUE,
     has_seen_pipeline_tour BOOLEAN NOT NULL DEFAULT FALSE,
+    has_seen_genai_tour BOOLEAN NOT NULL DEFAULT FALSE,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -97,3 +101,25 @@ DROP TRIGGER IF EXISTS trg_users_updated_at ON users;
 CREATE TRIGGER trg_users_updated_at
     BEFORE UPDATE ON users
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- ── RAG: document_chunks (Sprint 5 Module 2) ─────────────────────────────────
+-- 384-dim vectors match sentence-transformers/all-MiniLM-L6-v2.
+CREATE TABLE IF NOT EXISTS document_chunks (
+    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    pipeline_id   VARCHAR(64) NOT NULL,
+    document_id   VARCHAR(64),
+    source_name   VARCHAR(512),
+    chunk_index   INTEGER NOT NULL DEFAULT 0,
+    text_content  TEXT NOT NULL,
+    embedding     VECTOR(384) NOT NULL,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_document_chunks_pipeline
+    ON document_chunks (pipeline_id);
+
+-- IVFFlat cosine index — accelerates `embedding <=> :query` retrieval.
+-- lists=100 is a sane default; tune up for larger corpora.
+CREATE INDEX IF NOT EXISTS idx_document_chunks_embedding_cosine
+    ON document_chunks USING ivfflat (embedding vector_cosine_ops)
+    WITH (lists = 100);

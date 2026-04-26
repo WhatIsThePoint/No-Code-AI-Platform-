@@ -60,7 +60,23 @@ def profile_dataset(self, dataset_id: str):
             {"$set": {"progress_pct": 50}},
         )
 
-        summary = compute_profile_summary(df)
+        # Sprint 7 Module 2: profile is target-aware when the user has already
+        # picked a target via the preprocessing step or upload form.
+        target_column = (
+            (doc.get("preprocessing_config") or {}).get("target_column")
+            or doc.get("target_column")
+        )
+        summary = compute_profile_summary(df, target_column=target_column)
+
+        # Inject user-provided context (Sprint 5 Module 2.1).
+        # Downstream model-suggestion / chat steps read summary["context"]
+        # to ground their guidance in the dataset's domain semantics.
+        description = (doc.get("description") or "").strip()
+        if description:
+            summary["context"] = {
+                "description": description,
+                "source": "user_provided",
+            }
 
         task_results.update_one(
             {"task_id": self.request.id},

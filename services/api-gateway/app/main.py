@@ -9,6 +9,22 @@ from flask_limiter import Limiter
 from .config import Config, TestingConfig
 
 
+def _rate_limit_key():
+    """Use user ID from JWT if available, else remote IP."""
+    try:
+        from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
+
+        verify_jwt_in_request(optional=True)
+        identity = get_jwt_identity()
+        if identity:
+            return f"user:{identity}"
+    except Exception:
+        pass
+    from flask import request
+
+    return request.remote_addr
+
+
 def create_app(config=None):
     app = Flask(__name__)
 
@@ -61,28 +77,36 @@ def create_app(config=None):
         return jsonify({"error": "missing_token"}), 401
 
     # Register routes
+    from .routes.admin_ops import admin_ops_bp
     from .routes.auth import auth_bp
+    from .routes.companion import _attach_limit as _attach_companion_limit
+    from .routes.companion import companion_bp
     from .routes.health import health_bp
+    from .routes.pipeline_messages import pipeline_messages_bp
     from .routes.proxy import proxy_bp
+    from .routes.system import system_bp
 
     app.register_blueprint(health_bp)
     app.register_blueprint(auth_bp)
+    # admin_ops + system MUST register before proxy_bp so their static-segment
+    # routes win over the catch-all /admin/<path:subpath> proxy to auth-service.
+    app.register_blueprint(admin_ops_bp)
+    app.register_blueprint(system_bp)
     app.register_blueprint(proxy_bp)
+    app.register_blueprint(companion_bp)
+    app.register_blueprint(pipeline_messages_bp)
+    _attach_companion_limit(app)
+
+    # SQLAlchemy session for chat persistence (pipeline_messages)
+    from .extensions import init_db
+    init_db(app.config["DATABASE_URL"])
+
+    # Socket.IO (async_mode="threading" — works under gunicorn --threads)
+    from .sockets import register_socket_handlers
+    register_socket_handlers(app)
 
     return app
 
 
-def _rate_limit_key():
-    """Use user ID from JWT if available, else remote IP."""
-    try:
-        from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
-
-        verify_jwt_in_request(optional=True)
-        identity = get_jwt_identity()
-        if identity:
-            return f"user:{identity}"
-    except Exception:
-        pass
-    from flask import request
-
-    return request.remote_addr
+# Module-level WSGI app for gunicorn (`app.main:app`)
+app = create_app()

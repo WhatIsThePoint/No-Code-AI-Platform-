@@ -10,11 +10,6 @@ import {
   Divider,
   Grid,
   Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
   Typography,
   alpha,
 } from "@mui/material";
@@ -23,15 +18,20 @@ import CompareIcon from "@mui/icons-material/Compare";
 import ArrowBackIcon from "@mui/icons-material/ArrowBackRounded";
 import AssessmentIcon from "@mui/icons-material/AssessmentRounded";
 import { modelsApi } from "../api/models";
+import { pipelinesApi } from "../api/pipelines";
 import { MetricsChart } from "../components/pipeline/MetricsChart";
 import { ResidualPlot } from "../components/pipeline/ResidualPlot";
+import { ConfusionMatrixHeatmap } from "../components/pipeline/ConfusionMatrixHeatmap";
+import { ExportModelCard } from "../components/results/ExportModelCard";
 import type { ModelVersion, RegressionMetrics, ResidualPoint } from "../types/model";
 import type { ClassificationMetrics } from "../types/model";
+import type { Pipeline } from "../types/pipeline";
 
 export function ResultsPage() {
   const { versionId } = useParams<{ versionId: string }>();
   const navigate = useNavigate();
   const [version, setVersion] = useState<ModelVersion | null>(null);
+  const [pipeline, setPipeline] = useState<Pipeline | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -39,7 +39,11 @@ export function ResultsPage() {
     if (!versionId) return;
     modelsApi
       .getVersion(versionId)
-      .then((res) => setVersion(res.data))
+      .then((res) => {
+        setVersion(res.data);
+        return pipelinesApi.get(res.data.pipeline_id);
+      })
+      .then((p) => setPipeline(p.data))
       .catch(() => setError("Failed to load model version"))
       .finally(() => setLoading(false));
   }, [versionId]);
@@ -161,7 +165,7 @@ export function ResultsPage() {
               onClick={() => modelsApi.downloadModel(version.version_id)}
               size="small"
             >
-              Download Model
+              .joblib only
             </Button>
             <Button
               variant="outlined"
@@ -172,6 +176,16 @@ export function ResultsPage() {
               Compare Models
             </Button>
           </Box>
+
+          {pipeline && (
+            <Box sx={{ mt: 2.5 }}>
+              <ExportModelCard
+                pipelineId={pipeline.pipeline_id}
+                pipelineType={pipeline.type ?? "ml"}
+                pipelineName={pipeline.name}
+              />
+            </Box>
+          )}
         </Grid>
 
         <Grid item xs={12} md={8}>
@@ -181,42 +195,11 @@ export function ResultsPage() {
           </Paper>
 
           {"confusion_matrix" in metrics && Array.isArray(metrics.confusion_matrix) && (
-            <Paper sx={{ p: 3, mt: 2.5, borderRadius: 4 }}>
-              <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>Confusion Matrix</Typography>
-              <Box sx={{ overflowX: "auto" }}>
-                <Table size="small" sx={{ width: "auto" }}>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell />
-                      {(metrics.confusion_matrix as number[][])[0].map((_, j) => (
-                        <TableCell key={j} align="center"><strong>Pred {j}</strong></TableCell>
-                      ))}
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {(metrics.confusion_matrix as number[][]).map((row, i) => (
-                      <TableRow key={i}>
-                        <TableCell><strong>Act {i}</strong></TableCell>
-                        {row.map((val, j) => (
-                          <TableCell
-                            key={j}
-                            align="center"
-                            sx={{
-                              bgcolor: i === j ? alpha("#10b981", 0.12) : val > 0 ? alpha("#ef4444", 0.08) : "inherit",
-                              fontWeight: i === j ? 700 : 400,
-                              color: i === j ? "#059669" : val > 0 ? "#dc2626" : "inherit",
-                              borderRadius: 1,
-                            }}
-                          >
-                            {val}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </Box>
-            </Paper>
+            <Box sx={{ mt: 2.5 }}>
+              <ConfusionMatrixHeatmap
+                matrix={metrics.confusion_matrix as number[][]}
+              />
+            </Box>
           )}
 
           {"residuals_sample" in metrics && Array.isArray(metrics.residuals_sample) && (metrics.residuals_sample as ResidualPoint[]).length > 0 && (

@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Alert, Box, Button, Container, Paper, TextField, Typography, alpha } from "@mui/material";
+import { Alert, Box, Button, Container, Paper, TextField, Typography } from "@mui/material";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
@@ -31,7 +31,7 @@ export function LoginPage() {
       if (result.requires2FA) {
         navigate("/2fa", { state: { session_token: result.session_token } });
       } else {
-        navigate("/dashboard");
+        navigate(result.user?.role === "super_admin" ? "/admin" : "/dashboard");
       }
     } catch (e: unknown) {
       const err = e as { response?: { data?: { error?: string } } };
@@ -50,82 +50,50 @@ export function LoginPage() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "linear-gradient(135deg, #f8fafc 0%, #eef2ff 50%, #f8fafc 100%)",
-        position: "relative",
-        overflow: "hidden",
-        "&::before": {
-          content: '""',
-          position: "absolute",
-          width: "600px",
-          height: "600px",
-          borderRadius: "50%",
-          background: `radial-gradient(circle, ${alpha("#6366f1", 0.08)} 0%, transparent 70%)`,
-          top: "-200px",
-          right: "-100px",
-          pointerEvents: "none",
-        },
-        "&::after": {
-          content: '""',
-          position: "absolute",
-          width: "400px",
-          height: "400px",
-          borderRadius: "50%",
-          background: `radial-gradient(circle, ${alpha("#8b5cf6", 0.06)} 0%, transparent 70%)`,
-          bottom: "-100px",
-          left: "-100px",
-          pointerEvents: "none",
-        },
+        bgcolor: "background.default",
       }}
     >
-      <Container maxWidth="sm" className="animate-scale-in">
+      <Container maxWidth="sm">
         <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
           {/* Brand */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 4 }}>
             <Box
               sx={{
-                width: 44,
-                height: 44,
-                borderRadius: "14px",
-                background: "linear-gradient(135deg, #818cf8 0%, #6366f1 50%, #4f46e5 100%)",
+                width: 40,
+                height: 40,
+                borderRadius: "2px",
+                bgcolor: "#0b0d0e",
+                color: "#fafaf7",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontWeight: 800,
-                fontSize: "1.1rem",
-                color: "#fff",
-                boxShadow: `0 8px 25px -5px ${alpha("#6366f1", 0.4)}`,
+                fontWeight: 700,
+                fontSize: "0.9rem",
+                fontFamily: "'JetBrains Mono', monospace",
+                letterSpacing: "0.04em",
               }}
             >
               AI
             </Box>
-            <Typography variant="h5" sx={{ fontWeight: 700, letterSpacing: "-0.02em", color: "#0f172a" }}>
+            <Typography variant="h5" sx={{ fontWeight: 700, letterSpacing: "-0.02em" }}>
               NoCode AI
             </Typography>
           </Box>
 
           <Paper
+            variant="outlined"
             sx={{
               p: { xs: 3, sm: 5 },
               width: "100%",
               maxWidth: 440,
-              borderRadius: 3,
-              border: "1px solid",
-              borderColor: alpha("#6366f1", 0.12),
-              position: "relative",
-              overflow: "hidden",
-              "&::before": {
-                content: '""',
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                height: "3px",
-                background: "linear-gradient(90deg, #6366f1, #8b5cf6, #6366f1)",
-                backgroundSize: "200% 100%",
-                animation: "gradient-shift 3s ease infinite",
-              },
             }}
           >
+            <Typography
+              variant="overline"
+              sx={{ display: "block", mb: 0.5 }}
+            >
+              Sign in
+            </Typography>
             <Typography variant="h5" gutterBottom sx={{ fontWeight: 700, mb: 0.5 }}>
               Welcome back
             </Typography>
@@ -166,10 +134,10 @@ export function LoginPage() {
               </Button>
               <Button
                 fullWidth
-                sx={{ mt: 1.5, color: "text.secondary" }}
+                sx={{ mt: 1.5 }}
                 onClick={() => navigate("/register")}
               >
-                Don't have an account? <Box component="span" sx={{ color: "primary.main", fontWeight: 600, ml: 0.5 }}>Register</Box>
+                Don't have an account? <Box component="span" sx={{ color: "primary.main", ml: 0.5 }}>Register</Box>
               </Button>
             </Box>
           </Paper>

@@ -10,10 +10,11 @@ export const datasetsApi = {
 
   get: (id: string) => api.get<Dataset>(`/datasets/${id}`),
 
-  upload: (file: File, company_id?: string) => {
+  upload: (file: File, opts?: { company_id?: string; description?: string }) => {
     const form = new FormData();
     form.append("file", file);
-    if (company_id) form.append("company_id", company_id);
+    if (opts?.company_id) form.append("company_id", opts.company_id);
+    if (opts?.description) form.append("description", opts.description);
     return api.post<{ dataset_id: string; task_id: string; status: string }>(
       "/datasets/upload",
       form,
@@ -30,6 +31,7 @@ export const datasetsApi = {
     password: string;
     query: string;
     company_id?: string;
+    description?: string;
   }) => api.post<{ dataset_id: string; task_id: string }>("/datasets/sql-connect", payload),
 
   preview: (id: string, rows = 50) =>

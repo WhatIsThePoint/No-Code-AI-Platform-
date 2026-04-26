@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { createBrowserRouter, Navigate } from "react-router-dom";
+import { createBrowserRouter } from "react-router-dom";
 import { CircularProgress, Box } from "@mui/material";
 import { Layout } from "../components/common/Layout";
 import { ProtectedRoute } from "../components/common/ProtectedRoute";
@@ -56,7 +56,7 @@ export const router = createBrowserRouter(
   {
     path: "/dashboard",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute blockAdmin>
         <Layout><DashboardPage /></Layout>
       </ProtectedRoute>
     ),
@@ -64,7 +64,7 @@ export const router = createBrowserRouter(
   {
     path: "/profile",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute blockAdmin>
         <Layout><ProfilePage /></Layout>
       </ProtectedRoute>
     ),
@@ -72,7 +72,7 @@ export const router = createBrowserRouter(
   {
     path: "/company",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute blockAdmin>
         <Layout><CompanyPage /></Layout>
       </ProtectedRoute>
     ),
@@ -80,7 +80,7 @@ export const router = createBrowserRouter(
   {
     path: "/data",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute blockAdmin>
         <Layout>
           <SuspenseWrapper><LazyDataPage /></SuspenseWrapper>
         </Layout>
@@ -90,7 +90,7 @@ export const router = createBrowserRouter(
   {
     path: "/data/:id",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute blockAdmin>
         <Layout>
           <SuspenseWrapper><LazyDatasetDetailPage /></SuspenseWrapper>
         </Layout>
@@ -100,7 +100,7 @@ export const router = createBrowserRouter(
   {
     path: "/pipelines",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute blockAdmin>
         <Layout>
           <SuspenseWrapper><LazyPipelinePage /></SuspenseWrapper>
         </Layout>
@@ -110,7 +110,7 @@ export const router = createBrowserRouter(
   {
     path: "/pipelines/:id",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute blockAdmin>
         <SuspenseWrapper><LazyPipelineEditorPage /></SuspenseWrapper>
       </ProtectedRoute>
     ),
@@ -118,7 +118,7 @@ export const router = createBrowserRouter(
   {
     path: "/pipelines/:pipelineId/compare",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute blockAdmin>
         <Layout>
           <SuspenseWrapper><LazyModelComparisonPage /></SuspenseWrapper>
         </Layout>
@@ -128,7 +128,7 @@ export const router = createBrowserRouter(
   {
     path: "/models",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute blockAdmin>
         <Layout>
           <SuspenseWrapper><LazyModelRegistryPage /></SuspenseWrapper>
         </Layout>
@@ -138,7 +138,7 @@ export const router = createBrowserRouter(
   {
     path: "/models/:versionId/results",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute blockAdmin>
         <Layout>
           <SuspenseWrapper><LazyResultsPage /></SuspenseWrapper>
         </Layout>
@@ -148,7 +148,7 @@ export const router = createBrowserRouter(
   {
     path: "/billing",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute blockAdmin>
         <Layout>
           <SuspenseWrapper><LazyBillingPage /></SuspenseWrapper>
         </Layout>
@@ -158,7 +158,7 @@ export const router = createBrowserRouter(
   {
     path: "/admin",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute adminOnly>
         <Layout>
           <SuspenseWrapper><LazyAdminPage /></SuspenseWrapper>
         </Layout>

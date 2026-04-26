@@ -18,7 +18,7 @@ export function useAuth() {
       setToken(data.access_token!);
       const { data: userData } = await authApi.getMe();
       setAuth(userData, data.access_token!);
-      return { requires2FA: false };
+      return { requires2FA: false, user: userData };
     },
     [setAuth, setToken]
   );

@@ -27,6 +27,14 @@ class Config:
     )
     FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
 
+    # RAG / GenAI (Sprint 5 Module 2) — all-local
+    OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://ollama:11434")
+    OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3.2:3b")
+    PGVECTOR_DSN = os.environ.get("PGVECTOR_DSN", "")
+    EMBEDDING_MODEL = os.environ.get(
+        "EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2"
+    )
+
 
 class TestingConfig(Config):
     TESTING = True

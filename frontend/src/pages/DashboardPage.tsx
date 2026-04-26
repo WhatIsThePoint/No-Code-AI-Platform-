@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Alert,
@@ -14,6 +14,8 @@ import {
   Snackbar,
   Tab,
   Tabs,
+  ToggleButton,
+  ToggleButtonGroup,
   Tooltip,
   Typography,
   alpha,
@@ -26,14 +28,20 @@ import StorageIcon from "@mui/icons-material/StorageRounded";
 import CheckCircleIcon from "@mui/icons-material/CheckCircleRounded";
 import AccountTreeIcon from "@mui/icons-material/AccountTreeRounded";
 import ModelTrainingIcon from "@mui/icons-material/ModelTrainingRounded";
+import GroupsIcon from "@mui/icons-material/GroupsRounded";
+import PersonIcon from "@mui/icons-material/PersonRounded";
 import { useAuthStore } from "../store/authSlice";
 import { useDatasets } from "../hooks/useDatasets";
+import { useMyCompany } from "../hooks/useMyCompany";
 import { datasetsApi } from "../api/datasets";
 import { pipelinesApi } from "../api/pipelines";
 import { billingApi } from "../api/billing";
-import type { Pipeline } from "../types/pipeline";
+import { CreatePipelineDialog } from "../components/CreatePipelineDialog";
+import type { OwnerType, Pipeline } from "../types/pipeline";
 import type { Dataset } from "../types/dataset";
 import type { Announcement } from "../types/billing";
+import { UploadQuotaCard } from "../components/common/UploadQuotaCard";
+import { DemoDatasetButton } from "../components/common/DemoDatasetButton";
 
 const STAT_CARDS = [
   { key: "datasets", label: "Datasets", icon: <StorageIcon />, gradient: "linear-gradient(135deg, #6366f1, #4f46e5)" },
@@ -46,17 +54,33 @@ export function DashboardPage() {
   const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
   const { datasets, refetch: refetchDatasets } = useDatasets();
+  const { company } = useMyCompany();
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [tab, setTab] = useState(0);
+  const [workspaceFilter, setWorkspaceFilter] = useState<OwnerType>("personal");
   const [pipelineLoading, setPipelineLoading] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
   const [snack, setSnack] = useState({ open: false, msg: "" });
 
   useEffect(() => {
     setPipelineLoading(true);
-    pipelinesApi.list().then((r) => setPipelines(r.data.items)).finally(() => setPipelineLoading(false));
+    const params: { owner_type?: OwnerType; company_id?: string } = {};
+    if (workspaceFilter === "company" && company) {
+      params.owner_type = "company";
+      params.company_id = company.company_id;
+    } else if (workspaceFilter === "personal") {
+      params.owner_type = "personal";
+    }
+    pipelinesApi
+      .list(params)
+      .then((r) => setPipelines(r.data.items))
+      .catch(() => setPipelines([]))
+      .finally(() => setPipelineLoading(false));
     billingApi.getAnnouncements().then((r) => setAnnouncements(r.data)).catch(() => {});
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [workspaceFilter, company]);
+
+  const visiblePipelineCount = useMemo(() => pipelines.length, [pipelines]);
 
   const stats = {
     datasets: datasets.length,
@@ -89,6 +113,8 @@ export function DashboardPage() {
     try {
       const res = await pipelinesApi.create({
         name: `${pipeline.name} (copy)`,
+        owner_type: pipeline.owner_type ?? "personal",
+        company_id: pipeline.company_id ?? undefined,
         nodes: pipeline.nodes,
         edges: pipeline.edges,
       });
@@ -173,23 +199,30 @@ export function DashboardPage() {
         ))}
       </Grid>
 
+      {/* Upload Quota */}
+      <UploadQuotaCard datasets={datasets} />
+
       {/* Tabs */}
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 3 }}>
         <Tab label={`Datasets (${datasets.length})`} />
-        <Tab label={`Pipelines (${pipelines.length})`} />
+        <Tab label={`Pipelines (${visiblePipelineCount})`} />
       </Tabs>
 
       {/* Datasets tab */}
       {tab === 0 && (
         <Box>
-          <Button
-            variant="contained"
-            size="small"
-            sx={{ mb: 2.5 }}
-            onClick={() => navigate("/data")}
-          >
-            + New Dataset
-          </Button>
+          <Box sx={{ display: "flex", gap: 1.5, mb: 2.5, flexWrap: "wrap" }}>
+            <Button
+              variant="contained"
+              size="small"
+              onClick={() => navigate("/data")}
+            >
+              + New Dataset
+            </Button>
+            {datasets.length === 0 && (
+              <DemoDatasetButton size="small" onDone={refetchDatasets} />
+            )}
+          </Box>
           <Grid container spacing={2} className="stagger-children">
             {datasets.map((d: Dataset) => (
               <Grid item xs={12} sm={6} md={4} key={d.dataset_id}>
@@ -234,14 +267,38 @@ export function DashboardPage() {
       {/* Pipelines tab */}
       {tab === 1 && (
         <Box>
-          <Button
-            variant="contained"
-            size="small"
-            sx={{ mb: 2.5 }}
-            onClick={() => navigate("/pipelines")}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 2,
+              mb: 2.5,
+              flexWrap: "wrap",
+            }}
           >
-            + New Pipeline
-          </Button>
+            <ToggleButtonGroup
+              size="small"
+              exclusive
+              value={workspaceFilter}
+              onChange={(_, v) => v && setWorkspaceFilter(v)}
+            >
+              <ToggleButton value="personal">
+                <PersonIcon fontSize="small" sx={{ mr: 0.5 }} /> Personal
+              </ToggleButton>
+              <ToggleButton value="company" disabled={!company}>
+                <GroupsIcon fontSize="small" sx={{ mr: 0.5 }} /> Company
+                {company ? ` — ${company.name}` : ""}
+              </ToggleButton>
+            </ToggleButtonGroup>
+            <Box sx={{ flex: 1 }} />
+            <Button
+              variant="contained"
+              size="small"
+              onClick={() => setCreateOpen(true)}
+            >
+              + New Pipeline
+            </Button>
+          </Box>
           {pipelineLoading ? (
             <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
               <CircularProgress />
@@ -299,6 +356,18 @@ export function DashboardPage() {
         autoHideDuration={3000}
         onClose={() => setSnack((s) => ({ ...s, open: false }))}
         message={snack.msg}
+      />
+
+      <CreatePipelineDialog
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreated={(p) => {
+          setPipelines((prev) => [p, ...prev]);
+          if (p.owner_type === "company") setWorkspaceFilter("company");
+          else setWorkspaceFilter("personal");
+          setSnack({ open: true, msg: "Pipeline created" });
+          navigate(`/pipelines/${p.pipeline_id}`);
+        }}
       />
     </Box>
   );

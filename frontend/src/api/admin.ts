@@ -51,4 +51,34 @@ export const adminApi = {
     api.patch(`/admin/announcements/${id}`, data),
 
   deleteAnnouncement: (id: string) => api.delete(`/admin/announcements/${id}`),
+
+  // ── Ops Console (live telemetry) ─────────────────────────────────────────
+  getQueueDepths: () => api.get<QueueSnapshot>("/admin/system/queues"),
+  listOllamaModels: () => api.get<OllamaModelList>("/admin/ollama/models"),
+  deleteOllamaModel: (modelName: string) =>
+    api.delete<{ deleted: string }>(
+      `/admin/ollama/models/${encodeURIComponent(modelName)}`
+    ),
 };
+
+export interface QueueSnapshot {
+  redis_ok: boolean;
+  redis_error: string | null;
+  queues: Record<string, number | null>;
+  total_pending: number;
+}
+
+export interface OllamaModel {
+  name: string;
+  size_bytes: number;
+  modified_at: string | null;
+  digest: string | null;
+  family: string | null;
+  parameter_size: string | null;
+  quantization: string | null;
+}
+
+export interface OllamaModelList {
+  models: OllamaModel[];
+  count: number;
+}

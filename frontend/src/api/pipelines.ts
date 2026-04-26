@@ -1,8 +1,19 @@
 import api from "./axios";
-import type { Pipeline, PipelineNode, PipelineEdge, StepNote } from "../types/pipeline";
+import type {
+  OwnerType,
+  Pipeline,
+  PipelineEdge,
+  PipelineNode,
+  StepNote,
+} from "../types/pipeline";
 
 export const pipelinesApi = {
-  list: (params?: { company_id?: string; page?: number; limit?: number }) =>
+  list: (params?: {
+    owner_type?: OwnerType;
+    company_id?: string;
+    page?: number;
+    limit?: number;
+  }) =>
     api.get<{ items: Pipeline[]; total: number; page: number; limit: number }>(
       "/pipelines",
       { params }
@@ -10,11 +21,24 @@ export const pipelinesApi = {
 
   get: (id: string) => api.get<Pipeline>(`/pipelines/${id}`),
 
-  create: (payload: { name: string; company_id?: string; nodes?: PipelineNode[]; edges?: PipelineEdge[] }) =>
-    api.post<Pipeline>("/pipelines", payload),
+  create: (payload: {
+    name: string;
+    type?: "ml" | "rag";
+    owner_type: OwnerType;
+    company_id?: string;
+    nodes?: PipelineNode[];
+    edges?: PipelineEdge[];
+  }) => api.post<Pipeline>("/pipelines", payload),
 
-  update: (id: string, payload: { name?: string; nodes?: PipelineNode[]; edges?: PipelineEdge[] }) =>
-    api.put<Pipeline>(`/pipelines/${id}`, payload),
+  update: (
+    id: string,
+    payload: {
+      name?: string;
+      type?: "ml" | "rag";
+      nodes?: PipelineNode[];
+      edges?: PipelineEdge[];
+    }
+  ) => api.put<Pipeline>(`/pipelines/${id}`, payload),
 
   delete: (id: string) => api.delete(`/pipelines/${id}`),
 

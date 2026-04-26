@@ -16,3 +16,9 @@ prophet==1.1.5
 joblib==1.4.2
 flask-mail==0.10.0
 shap==0.46.0
+
+# RAG / GenAI inference (Sprint 5 Module 2)
+sentence-transformers==3.2.1
+pgvector==0.3.6
+psycopg2-binary==2.9.9
+requests==2.32.3

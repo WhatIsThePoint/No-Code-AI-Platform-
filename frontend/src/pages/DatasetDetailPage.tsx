@@ -6,17 +6,63 @@ import {
   Typography,
   CircularProgress,
   Alert,
-  alpha,
 } from "@mui/material";
 import StorageIcon from "@mui/icons-material/StorageRounded";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { datasetsApi } from "../api/datasets";
-import type { Dataset } from "../types/dataset";
+import type { Dataset, ProfilingSummary } from "../types/dataset";
 import { DatasetPreview } from "../components/data/DatasetPreview";
 import { ProfilingReport } from "../components/data/ProfilingReport";
 import { PreprocessingPanel } from "../components/data/PreprocessingPanel";
 import { DataInsights } from "../components/data/DataInsights";
+import { useReportCompanionContext } from "../components/companion/useCompanionContext";
+
+// Surface the profiling alerts to the AI Companion so its SMOTE / log-transform
+// suggestions are grounded in *this* dataset, not generic ML trivia.
+function buildProfilingNotes(
+  summary: ProfilingSummary | null | undefined,
+  description: string | null | undefined,
+): string | undefined {
+  const parts: string[] = [];
+  if (description) parts.push(`User-provided description: ${description}`);
+  if (!summary) return parts.join("\n") || undefined;
+
+  if (summary.target_column && summary.target_imbalance) {
+    const t = summary.target_imbalance;
+    if (t.needs_balancing) {
+      parts.push(
+        `Target "${summary.target_column}" is imbalanced — minority class is ${t.minority_pct}% of ${t.total} rows. SMOTE or class weighting is recommended.`,
+      );
+    } else if (t.classes && t.classes.length) {
+      const top = t.classes
+        .slice(0, 3)
+        .map((c) => `${c.label}=${c.pct}%`)
+        .join(", ");
+      parts.push(
+        `Target "${summary.target_column}" class distribution: ${top}.`,
+      );
+    }
+  }
+
+  if (summary.skewed_columns && summary.skewed_columns.length) {
+    parts.push(
+      `Highly skewed numeric columns (consider log transform): ${summary.skewed_columns
+        .slice(0, 8)
+        .join(", ")}.`,
+    );
+  }
+
+  const outlierCols = (summary.columns || [])
+    .filter((c) => c.outliers && c.outliers.count > 0 && c.outliers.pct >= 1)
+    .map((c) => `${c.name} (${c.outliers!.pct}%)`)
+    .slice(0, 6);
+  if (outlierCols.length) {
+    parts.push(`Columns with notable z-score outliers: ${outlierCols.join(", ")}.`);
+  }
+
+  return parts.length ? parts.join("\n") : undefined;
+}
 
 export function DatasetDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -31,6 +77,33 @@ export function DatasetDetailPage() {
       setLoading(false);
     });
   }, [id]);
+
+  const companionNotes = useMemo(
+    () => buildProfilingNotes(dataset?.profiling_summary, dataset?.description),
+    [dataset?.profiling_summary, dataset?.description],
+  );
+
+  const schemaPreview = useMemo(() => {
+    const cols = dataset?.profiling_summary?.columns;
+    if (!cols || cols.length === 0) return undefined;
+    return cols.slice(0, 20).map((c) => `${c.name}:${c.dtype}`).join(", ");
+  }, [dataset?.profiling_summary?.columns]);
+
+  useReportCompanionContext({
+    active_view: "DatasetDetailPage",
+    dataset: dataset
+      ? {
+          name: dataset.name,
+          row_count: dataset.row_count,
+          column_count: dataset.column_count,
+          schema_preview: schemaPreview,
+          target_column:
+            dataset.preprocessing_config?.target_column ??
+            dataset.profiling_summary?.target_column,
+        }
+      : null,
+    notes: companionNotes,
+  });
 
   if (loading) return <Box sx={{ display: "flex", justifyContent: "center", mt: 8 }}><CircularProgress /></Box>;
   if (!dataset) return <Alert severity="error">Dataset not found</Alert>;

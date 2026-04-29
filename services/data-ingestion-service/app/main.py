@@ -7,6 +7,10 @@ from .extensions import mongo
 
 
 def create_app(config=None):
+    from .observability import init_sentry
+
+    init_sentry("data-ingestion-service")
+
     app = Flask(__name__)
 
     if config:

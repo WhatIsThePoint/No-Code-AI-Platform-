@@ -22,6 +22,13 @@ class Subscription(db.Model):
     status = db.Column(db.String(50), nullable=False, default="active")
     trial_end = db.Column(db.DateTime(timezone=True), nullable=True)
     current_period_end = db.Column(db.DateTime(timezone=True), nullable=True)
+
+    # Per-user quota overrides written by super-admin. NULL means "use the
+    # plan default" — surfaced to other services via /admin endpoints so they
+    # can clamp RAG ingestion (max_chunks) and Ollama loads (max_vram_mb).
+    max_chunks = db.Column(db.Integer, nullable=True)
+    max_vram_mb = db.Column(db.Integer, nullable=True)
+
     created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
     updated_at = db.Column(
         db.DateTime(timezone=True),

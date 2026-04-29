@@ -98,6 +98,8 @@ export interface Pipeline {
   last_version_id: string | null;
   created_at: string;
   updated_at: string;
+  last_edited_by?: string;
+  last_edited_at?: string;
 }
 
 export interface StepNote {

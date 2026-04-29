@@ -33,6 +33,57 @@ def _serialize_doc(doc: dict) -> dict:
     return doc
 
 
+@dataset_bp.patch("/datasets/<dataset_id>")
+def rename_dataset(dataset_id):
+    """Rename / re-describe a dataset. Owner-only mutation, audit-stamped."""
+    user_id = request.headers.get("X-User-Id")
+    if not user_id:
+        return jsonify({"error": "missing_user_id"}), 401
+
+    body = request.get_json(silent=True) or {}
+    allowed = {"name", "description"}
+    updates = {k: v.strip() if isinstance(v, str) else v for k, v in body.items() if k in allowed}
+    if not updates:
+        return jsonify({"error": "no_updates"}), 400
+    if "name" in updates and (not updates["name"] or len(updates["name"]) > 255):
+        return jsonify({"error": "invalid_name"}), 400
+
+    from datetime import datetime, timezone
+
+    company_id = request.headers.get("X-Company-Id")
+    clauses = [{"user_id": user_id}]
+    if company_id:
+        clauses.append({"company_id": company_id})
+    now = datetime.now(timezone.utc)
+    updates["updated_at"] = now
+    updates["last_edited_by"] = user_id
+    updates["last_edited_at"] = now
+
+    result = mongo.get_collection("datasets").update_one(
+        {"dataset_id": dataset_id, "$or": clauses}, {"$set": updates}
+    )
+    if result.matched_count == 0:
+        return jsonify({"error": "not_found"}), 404
+    doc = mongo.get_collection("datasets").find_one({"dataset_id": dataset_id})
+    return jsonify(_serialize_doc(doc)), 200
+
+
+@dataset_bp.get("/admin/users/<target_user_id>/datasets")
+def admin_user_datasets(target_user_id):
+    """GDPR export: dump every dataset row owned by `target_user_id`.
+
+    Gated by the gateway's super-admin check; this handler trusts the
+    forwarded role header (same pattern as other admin proxy routes).
+    """
+    if request.headers.get("X-User-Role") != "super_admin":
+        return jsonify({"error": "forbidden"}), 403
+    cursor = mongo.get_collection("datasets").find({"user_id": target_user_id})
+    items = []
+    for doc in cursor:
+        items.append(_serialize_doc(doc))
+    return jsonify({"items": items, "total": len(items)}), 200
+
+
 @dataset_bp.get("/datasets")
 def list_datasets():
     user_id = _get_user_id()

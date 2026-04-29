@@ -3,7 +3,7 @@ from flask_jwt_extended import get_jwt, jwt_required
 from marshmallow import ValidationError
 
 from ..schemas.auth import LoginSchema, RegisterSchema
-from ..services import auth_service
+from ..services import admin_service, auth_service
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
@@ -50,6 +50,21 @@ def login():
 
     user = auth_service.authenticate_user(data["email"], data["password"])
     if not user:
+        # Audit failed logins so the admin dashboard can surface brute-force
+        # attempts. We log the email the attacker *tried* (no PII risk: it's
+        # provided in the request) and the source IP. Best-effort: never let
+        # an audit failure break a login response.
+        try:
+            admin_service.log_action(
+                action="auth.login_failed",
+                actor_id=None,
+                target_type="user",
+                target_id=None,
+                detail={"email": data["email"]},
+                ip_address=request.headers.get("X-Forwarded-For", request.remote_addr),
+            )
+        except Exception:
+            pass
         return (
             jsonify(
                 {"error": "invalid_credentials", "message": "Invalid email or password"}

@@ -122,9 +122,23 @@ def delete_company(company_id: str) -> None:
 # ── Subscription Override ─────────────────────────────────────────────────────
 
 
+_UNSET = object()
+
+
 def override_subscription(
-    user_id: str, plan: str, status: str = "active"
+    user_id: str,
+    plan: str,
+    status: str = "active",
+    max_chunks=_UNSET,
+    max_vram_mb=_UNSET,
 ) -> Subscription:
+    """Apply a super-admin override.
+
+    `max_chunks` / `max_vram_mb`:
+      - omitted (sentinel)  → leave existing value untouched
+      - explicit None       → clear the override
+      - integer             → store as the new ceiling
+    """
     from ..models.subscription import PLAN_TO_TIER
 
     user = User.query.get(uuid.UUID(user_id))
@@ -139,6 +153,11 @@ def override_subscription(
     else:
         sub = Subscription(user_id=user.id, plan=plan, status=status)
         db.session.add(sub)
+
+    if max_chunks is not _UNSET:
+        sub.max_chunks = max_chunks
+    if max_vram_mb is not _UNSET:
+        sub.max_vram_mb = max_vram_mb
 
     # Sync user tier
     user.tier = PLAN_TO_TIER.get(plan, "free")

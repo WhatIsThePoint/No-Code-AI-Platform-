@@ -24,12 +24,15 @@ import StorageIcon from "@mui/icons-material/StorageRounded";
 import RocketLaunchRoundedIcon from "@mui/icons-material/RocketLaunchRounded";
 import { useEffect, useRef, useState } from "react";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { datasetsApi } from "../api/datasets";
 import { useDatasets } from "../hooks/useDatasets";
 import { useTaskStatus } from "../hooks/useTaskStatus";
 import type { DatasetStatus } from "../types/dataset";
 import { UploadQuotaCard } from "../components/common/UploadQuotaCard";
 import { DemoDatasetButton } from "../components/common/DemoDatasetButton";
+import { EmptyStateHero } from "../components/common/EmptyStateHero";
+import { ConnectorWizard } from "../components/data/ConnectorWizard";
 
 const statusColor = (s: DatasetStatus) => {
   if (s === "ready" || s === "preprocessed") return "success";
@@ -194,6 +197,8 @@ function UploadRow({ onDone }: { onDone: () => void }) {
 export function DataPage() {
   const { datasets, refetch } = useDatasets();
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   return (
     <Box>
@@ -217,59 +222,74 @@ export function DataPage() {
 
       <UploadQuotaCard datasets={datasets} />
 
-      <UploadRow onDone={refetch} />
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1, flexWrap: "wrap" }}>
+        <UploadRow onDone={refetch} />
+        <Button
+          size="small"
+          variant="outlined"
+          onClick={() => setWizardOpen(true)}
+          startIcon={<StorageIcon fontSize="small" />}
+        >
+          Connect a database
+        </Button>
+      </Box>
+      <ConnectorWizard
+        open={wizardOpen}
+        onClose={() => setWizardOpen(false)}
+        onCreated={() => refetch()}
+      />
 
-      <Paper sx={{ overflow: "hidden" }}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Name</TableCell>
-              <TableCell>Type</TableCell>
-              <TableCell>Rows</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Created</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {datasets.map((d) => (
-              <TableRow
-                key={d.dataset_id}
-                hover
-                sx={{
-                  cursor: "pointer",
-                  transition: "all 0.15s ease",
-                  "&:hover": {
-                    bgcolor: `${alpha("#6366f1", 0.04)} !important`,
-                  },
-                }}
-                onClick={() => navigate(`/data/${d.dataset_id}`)}
-              >
-                <TableCell sx={{ fontWeight: 600 }}>{d.name}</TableCell>
-                <TableCell>
-                  <Chip label={d.source_type.toUpperCase()} size="small" variant="outlined" sx={{ fontSize: "0.7rem" }} />
-                </TableCell>
-                <TableCell>{d.row_count?.toLocaleString() ?? "—"}</TableCell>
-                <TableCell>
-                  <Chip label={d.status} color={statusColor(d.status)} size="small" />
-                </TableCell>
-                <TableCell sx={{ color: "text.secondary" }}>
-                  {new Date(d.created_at).toLocaleDateString()}
-                </TableCell>
-              </TableRow>
-            ))}
-            {datasets.length === 0 && (
+      {datasets.length === 0 ? (
+        <EmptyStateHero
+          icon={StorageIcon}
+          title={t("emptyStates.datasets.title")}
+          description={t("emptyStates.datasets.description")}
+          accent="#6366f1"
+          secondaryAction={<DemoDatasetButton onDone={refetch} />}
+        />
+      ) : (
+        <Paper sx={{ overflow: "hidden" }}>
+          <Table>
+            <TableHead>
               <TableRow>
-                <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
-                  <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
-                    No datasets yet. Upload a file or try the demo to get started.
-                  </Typography>
-                  <DemoDatasetButton onDone={refetch} />
-                </TableCell>
+                <TableCell>Name</TableCell>
+                <TableCell>Type</TableCell>
+                <TableCell>Rows</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Created</TableCell>
               </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </Paper>
+            </TableHead>
+            <TableBody>
+              {datasets.map((d) => (
+                <TableRow
+                  key={d.dataset_id}
+                  hover
+                  sx={{
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                    "&:hover": {
+                      bgcolor: `${alpha("#6366f1", 0.04)} !important`,
+                    },
+                  }}
+                  onClick={() => navigate(`/data/${d.dataset_id}`)}
+                >
+                  <TableCell sx={{ fontWeight: 600 }}>{d.name}</TableCell>
+                  <TableCell>
+                    <Chip label={d.source_type.toUpperCase()} size="small" variant="outlined" sx={{ fontSize: "0.7rem" }} />
+                  </TableCell>
+                  <TableCell>{d.row_count?.toLocaleString() ?? "—"}</TableCell>
+                  <TableCell>
+                    <Chip label={d.status} color={statusColor(d.status)} size="small" />
+                  </TableCell>
+                  <TableCell sx={{ color: "text.secondary" }}>
+                    {new Date(d.created_at).toLocaleDateString()}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Paper>
+      )}
     </Box>
   );
 }

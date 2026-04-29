@@ -1,19 +1,26 @@
 """
-Pipeline chat over SocketIO.
+Pipeline chat over SocketIO. Includes lightweight @mention extraction so the
+broadcast payload carries the resolved `mentioned_user_ids` array.
+
+@mentions are detected by scanning `@token` substrings in the message text
+and resolving them against active members of the sender's company. A token
+matches a user if it equals (case-insensitive) the email local-part, the
+full email, or the full_name with spaces collapsed.
 
 Flow:
-  connect         → verify JWT (from auth handshake payload), load user's
+  connect         -> verify JWT (from auth handshake payload), load user's
                     active company membership. Company tier only.
-  join_pipeline   → require that the pipeline's company matches the user's
+  join_pipeline   -> require that the pipeline's company matches the user's
                     (HTTP call to ml-training-service). Joins the room.
-  leave_pipeline  → leave the room.
-  send_message    → persist to pipeline_messages, emit('message', ...)
+  leave_pipeline  -> leave the room.
+  send_message    -> persist to pipeline_messages, emit('message', ...)
 
 All writes go through the shared SQLAlchemy session created in
-``app.extensions.init_db`` — the gateway shares the auth-service DB.
+``app.extensions.init_db`` -- the gateway shares the auth-service DB.
 """
 
 import os
+import re
 import uuid
 from datetime import datetime, timezone
 
@@ -108,6 +115,64 @@ def _pipeline_company_matches(pipeline_id: str, user_id: str, company_id: str) -
     doc_company = doc.get("company_id")
     doc_owner = doc.get("user_id")
     return doc_owner == user_id or (doc_company and doc_company == company_id)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Mention extraction
+# ─────────────────────────────────────────────────────────────────────────────
+
+_MENTION_RE = re.compile(r"@([\w.+\-]+(?:@[\w.\-]+)?)", re.UNICODE)
+
+
+def _extract_mentions(message: str, company_id: str) -> list[dict]:
+    """Resolve @tokens in `message` to active company members.
+
+    Returns a list of `{user_id, email, full_name}` rows. Empty list when
+    there's no plausible match — never raises, never blocks send.
+    """
+    if not message or not company_id:
+        return []
+    tokens = {m.group(1).lower() for m in _MENTION_RE.finditer(message)}
+    if not tokens:
+        return []
+    sess = get_session()
+    try:
+        rows = sess.execute(
+            text(
+                """
+                SELECT u.id::text AS user_id, u.email, u.full_name
+                FROM users u
+                JOIN memberships m ON m.user_id = u.id
+                WHERE m.company_id = :cid AND m.status = 'active'
+                """
+            ),
+            {"cid": company_id},
+        ).mappings().all()
+    finally:
+        sess.close()
+
+    matches: list[dict] = []
+    seen_ids: set[str] = set()
+    for row in rows:
+        email = (row.get("email") or "").lower()
+        full_name = (row.get("full_name") or "").lower()
+        local_part = email.split("@", 1)[0] if email else ""
+        # Collapse whitespace in full_name to match "@alice.martin" / "@alicemartin"
+        compact = re.sub(r"\s+", "", full_name)
+        candidates = {email, local_part, compact, full_name}
+        if any(tok in candidates for tok in tokens):
+            uid = row["user_id"]
+            if uid in seen_ids:
+                continue
+            seen_ids.add(uid)
+            matches.append(
+                {
+                    "user_id": uid,
+                    "email": row.get("email"),
+                    "full_name": row.get("full_name"),
+                }
+            )
+    return matches
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -235,6 +300,7 @@ def on_send_message(data):
     finally:
         db.close()
 
+    mentions = _extract_mentions(message, sess["company_id"])
     payload = {
         "id": msg_id,
         "pipeline_id": pipeline_id,
@@ -242,5 +308,7 @@ def on_send_message(data):
         "full_name": sess.get("full_name") or sess.get("email"),
         "message": message,
         "created_at": created_at.isoformat(),
+        "mentioned_user_ids": [m["user_id"] for m in mentions],
+        "mentions": mentions,
     }
     emit("message", payload, to=f"pipeline_{pipeline_id}")

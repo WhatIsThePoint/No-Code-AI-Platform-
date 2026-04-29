@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Avatar,
@@ -6,6 +6,11 @@ import {
   Drawer,
   IconButton,
   InputAdornment,
+  Popper,
+  Paper,
+  ClickAwayListener,
+  MenuList,
+  MenuItem,
   Stack,
   TextField,
   Tooltip,
@@ -18,7 +23,10 @@ import ChatBubbleIcon from "@mui/icons-material/ChatBubbleOutlineRounded";
 
 import { getSocket } from "../../api/socket";
 import { collabApi, type ChatMessage } from "../../api/collab";
+import { companiesApi, type CompanyMember } from "../../api/companies";
 import { useAuthStore } from "../../store/authSlice";
+import { useNotifications } from "../../store/notificationsSlice";
+import { useMyCompany } from "../../hooks/useMyCompany";
 
 interface Props {
   pipelineId: string;
@@ -44,10 +52,77 @@ function initialsOf(name: string | null, fallback: string): string {
 
 export function ChatDrawer({ pipelineId, open, onClose }: Props) {
   const me = useAuthStore((s) => s.user);
+  const { company } = useMyCompany();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [socketError, setSocketError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [members, setMembers] = useState<CompanyMember[]>([]);
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [mentionAnchor, setMentionAnchor] = useState<HTMLElement | null>(null);
+  const [mentionIdx, setMentionIdx] = useState(0);
+
+  // Lazy-load company roster the first time the drawer opens for completion.
+  useEffect(() => {
+    if (!open || !company || members.length > 0) return;
+    let cancelled = false;
+    companiesApi
+      .listMembers(company.company_id)
+      .then((r) => {
+        if (!cancelled) setMembers(r.data);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [open, company, members.length]);
+
+  const mentionMatches = useMemo<CompanyMember[]>(() => {
+    if (mentionQuery === null) return [];
+    const q = mentionQuery.toLowerCase();
+    return members
+      .filter((m) => m.user_id !== me?.id)
+      .filter((m) => {
+        if (q === "") return true;
+        const haystack = `${m.email ?? ""} ${m.full_name ?? ""}`.toLowerCase();
+        return haystack.includes(q);
+      })
+      .slice(0, 6);
+  }, [mentionQuery, members, me?.id]);
+
+  const updateMentionState = (text: string, caret: number) => {
+    // Only trigger when @ is at the start of a word so we don't open on
+    // every email address pasted into the box.
+    const before = text.slice(0, caret);
+    const match = before.match(/(?:^|\s)@([\w.+-]*)$/);
+    if (!match) {
+      setMentionQuery(null);
+      setMentionAnchor(null);
+      return;
+    }
+    setMentionQuery(match[1]);
+    setMentionAnchor(inputRef.current);
+    setMentionIdx(0);
+  };
+
+  const insertMention = (member: CompanyMember) => {
+    const input = inputRef.current;
+    if (!input) return;
+    const caret = input.selectionStart ?? draft.length;
+    const before = draft.slice(0, caret);
+    const after = draft.slice(caret);
+    const replaced = before.replace(/@([\w.+-]*)$/, `@${member.email} `);
+    const next = replaced + after;
+    setDraft(next);
+    setMentionQuery(null);
+    setMentionAnchor(null);
+    requestAnimationFrame(() => {
+      const newCaret = replaced.length;
+      input.focus();
+      input.setSelectionRange(newCaret, newCaret);
+    });
+  };
 
   // Load history + wire socket events whenever the drawer is open for a pipeline.
   useEffect(() => {
@@ -72,6 +147,21 @@ export function ChatDrawer({ pipelineId, open, onClose }: Props) {
       setMessages((prev) =>
         prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]
       );
+      // Skip self-echo and don't notify when the drawer is open in the
+      // foreground — the user is already seeing the message land.
+      if (msg.user_id === me?.id) return;
+      const mentioned = (msg.mentioned_user_ids ?? []).includes(me?.id ?? "");
+      const sender = msg.full_name || "A teammate";
+      useNotifications.getState().push({
+        kind: mentioned ? "mention" : "chat_message",
+        title: mentioned
+          ? `${sender} mentioned you`
+          : `New message from ${sender}`,
+        body: msg.message.length > 140 ? msg.message.slice(0, 137) + "…" : msg.message,
+        href: `/pipelines/${msg.pipeline_id}`,
+        ref_id: msg.pipeline_id,
+        id: msg.id, // dedup if the same message arrives twice
+      });
     };
     const onError = (payload: { error: string }) => {
       setSocketError(payload?.error ?? "socket_error");
@@ -105,7 +195,7 @@ export function ChatDrawer({ pipelineId, open, onClose }: Props) {
       socket.off("connect", joinRoom);
       socket.off("disconnect", onDisconnect);
     };
-  }, [pipelineId, open]);
+  }, [pipelineId, open, me?.id]);
 
   // Auto-scroll to bottom on new message
   useEffect(() => {
@@ -152,7 +242,7 @@ export function ChatDrawer({ pipelineId, open, onClose }: Props) {
           Team Chat
         </Typography>
         <Tooltip title="Close">
-          <IconButton size="small" onClick={onClose}>
+          <IconButton size="small" onClick={onClose} aria-label="Close team chat">
             <CloseIcon fontSize="small" />
           </IconButton>
         </Tooltip>
@@ -265,10 +355,40 @@ export function ChatDrawer({ pipelineId, open, onClose }: Props) {
         <TextField
           fullWidth
           size="small"
-          placeholder="Message the team…"
+          placeholder="Message the team… (@name to mention)"
           value={draft}
-          onChange={(e) => setDraft(e.target.value)}
+          inputRef={inputRef}
+          onChange={(e) => {
+            setDraft(e.target.value);
+            updateMentionState(e.target.value, e.target.selectionStart ?? e.target.value.length);
+          }}
           onKeyDown={(e) => {
+            // Mention navigation takes precedence when the popper is open.
+            if (mentionQuery !== null && mentionMatches.length > 0) {
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                setMentionIdx((i) => (i + 1) % mentionMatches.length);
+                return;
+              }
+              if (e.key === "ArrowUp") {
+                e.preventDefault();
+                setMentionIdx(
+                  (i) => (i - 1 + mentionMatches.length) % mentionMatches.length,
+                );
+                return;
+              }
+              if (e.key === "Enter" || e.key === "Tab") {
+                e.preventDefault();
+                insertMention(mentionMatches[mentionIdx]);
+                return;
+              }
+              if (e.key === "Escape") {
+                e.preventDefault();
+                setMentionQuery(null);
+                setMentionAnchor(null);
+                return;
+              }
+            }
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
               send();
@@ -281,6 +401,7 @@ export function ChatDrawer({ pipelineId, open, onClose }: Props) {
                   size="small"
                   disabled={!draft.trim()}
                   onClick={send}
+                  aria-label="Send team chat message"
                   sx={{ color: "#6366f1" }}
                 >
                   <SendIcon fontSize="small" />
@@ -289,6 +410,47 @@ export function ChatDrawer({ pipelineId, open, onClose }: Props) {
             ),
           }}
         />
+
+        <Popper
+          open={mentionQuery !== null && mentionMatches.length > 0}
+          anchorEl={mentionAnchor}
+          placement="top-start"
+          modifiers={[{ name: "offset", options: { offset: [0, 6] } }]}
+          style={{ zIndex: 1500 }}
+        >
+          <ClickAwayListener onClickAway={() => setMentionAnchor(null)}>
+            <Paper
+              elevation={6}
+              sx={{
+                width: 260,
+                border: 1,
+                borderColor: "divider",
+                borderRadius: 2,
+                overflow: "hidden",
+              }}
+            >
+              <MenuList dense sx={{ py: 0 }}>
+                {mentionMatches.map((m, i) => (
+                  <MenuItem
+                    key={m.user_id}
+                    selected={i === mentionIdx}
+                    onClick={() => insertMention(m)}
+                    sx={{ py: 0.75 }}
+                  >
+                    <Box sx={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
+                        {m.full_name || m.email}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: "text.secondary" }} noWrap>
+                        {m.email} · {m.role}
+                      </Typography>
+                    </Box>
+                  </MenuItem>
+                ))}
+              </MenuList>
+            </Paper>
+          </ClickAwayListener>
+        </Popper>
       </Box>
     </Drawer>
   );

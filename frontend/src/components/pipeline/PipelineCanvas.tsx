@@ -1,16 +1,18 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ReactFlow,
   Background,
   Controls,
   MiniMap,
   addEdge,
-  useEdgesState,
-  useNodesState,
+  useReactFlow,
+  ReactFlowProvider,
   type Connection,
   type Edge,
   type Node,
 } from "@xyflow/react";
+import { usePipelineHistory } from "./usePipelineHistory";
 import "@xyflow/react/dist/style.css";
 
 import {
@@ -19,10 +21,14 @@ import {
   Button,
   CircularProgress,
   Drawer,
+  IconButton,
   LinearProgress,
+  Menu,
+  MenuItem,
   Snackbar,
   ToggleButton,
   ToggleButtonGroup,
+  Tooltip,
   Typography,
   alpha,
 } from "@mui/material";
@@ -35,8 +41,16 @@ import ChatBubbleIcon from "@mui/icons-material/ChatBubbleOutlineRounded";
 import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
 import StorageRoundedIcon from "@mui/icons-material/StorageRounded";
 import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
+import AutoFixHighRoundedIcon from "@mui/icons-material/AutoFixHighRounded";
 import ScienceRoundedIcon from "@mui/icons-material/ScienceRounded";
 import SmartToyRoundedIcon from "@mui/icons-material/SmartToyRounded";
+import LibraryAddRoundedIcon from "@mui/icons-material/LibraryAddRounded";
+import MapRoundedIcon from "@mui/icons-material/MapRounded";
+import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
+import ArrowDropDownRoundedIcon from "@mui/icons-material/ArrowDropDownRounded";
+import UndoRoundedIcon from "@mui/icons-material/UndoRounded";
+import RedoRoundedIcon from "@mui/icons-material/RedoRounded";
+import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 
 import { DatasetNode } from "./nodes/DatasetNode";
 import { TrainNode } from "./nodes/TrainNode";
@@ -44,6 +58,10 @@ import { EvaluateNode } from "./nodes/EvaluateNode";
 import { DocumentNode } from "./nodes/DocumentNode";
 import { VectorStoreNode } from "./nodes/VectorStoreNode";
 import { RAGConfigNode } from "./nodes/RAGConfigNode";
+import { validateNode } from "./nodes/validation";
+import { autoLayoutNodes } from "../../lib/autoLayout";
+import { createIdMinter, presetsForMode, type PipelinePreset } from "../../lib/pipelinePresets";
+import { useNotifications } from "../../store/notificationsSlice";
 import { NodePanel } from "./NodePanel";
 import { PipelineStepper, derivePipelineStep } from "./PipelineStepper";
 import { PipelineTour } from "../onboarding/PipelineTour";
@@ -78,6 +96,13 @@ const NODE_TYPES = {
   rag_config: RAGConfigNode,
 };
 
+// Buckets used to lock the ML/RAG mode toggle once the user has committed to
+// one family. Switching modes mid-pipeline is intentionally blocked because
+// the runtime shapes of the two graphs are incompatible (training run vs.
+// vector index + chat) and a partial mix would be unrunnable.
+const ML_NODE_TYPES = new Set(["dataset", "train", "evaluate"]);
+const RAG_NODE_TYPES = new Set(["document", "vector_store", "rag_config"]);
+
 interface Props {
   pipeline: Pipeline;
   datasets: Dataset[];
@@ -102,9 +127,32 @@ function toFlowEdges(edges: Pipeline["edges"]): Edge[] {
   }));
 }
 
-export function PipelineCanvas({ pipeline, datasets, onSaved }: Props) {
-  const [nodes, setNodes, onNodesChange] = useNodesState(toFlowNodes(pipeline.nodes));
-  const [edges, setEdges, onEdgesChange] = useEdgesState(toFlowEdges(pipeline.edges));
+export function PipelineCanvas(props: Props) {
+  return (
+    <ReactFlowProvider>
+      <PipelineCanvasInner {...props} />
+    </ReactFlowProvider>
+  );
+}
+
+function PipelineCanvasInner({ pipeline, datasets, onSaved }: Props) {
+  const { t } = useTranslation();
+  const {
+    nodes,
+    edges,
+    setNodes,
+    setEdges,
+    onNodesChange,
+    onEdgesChange,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+  } = usePipelineHistory({
+    initialNodes: toFlowNodes(pipeline.nodes),
+    initialEdges: toFlowEdges(pipeline.edges),
+  });
+  const rf = useReactFlow();
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [trainTaskId, setTrainTaskId] = useState<string | null>(pipeline.last_run_task_id ?? null);
@@ -114,6 +162,8 @@ export function PipelineCanvas({ pipeline, datasets, onSaved }: Props) {
   });
   const [chatOpen, setChatOpen] = useState(false);
   const [canvasMode, setCanvasMode] = useState<PipelineType>(pipeline.type ?? "ml");
+  const [showMinimap, setShowMinimap] = useState(true);
+  const [presetMenuAnchor, setPresetMenuAnchor] = useState<null | HTMLElement>(null);
   const userTier = useAuthStore((s) => s.user?.tier);
   const isCompanyTier = userTier === "company" || userTier === "super_admin";
   const mergePipelineExtras = useCompanionStore((s) => s.mergePipelineExtras);
@@ -150,10 +200,26 @@ export function PipelineCanvas({ pipeline, datasets, onSaved }: Props) {
   useEffect(() => {
     if (canvasMode !== "rag") return;
     let cancelled = false;
+    // Track previously-seen statuses so we only notify on transitions
+    // (queued/running -> ready), not on every poll cycle.
+    const lastStatus = new Map<string, string>();
     const fetchDocs = async () => {
       try {
         const { data } = await ragApi.listDocuments(pipeline.pipeline_id);
         if (cancelled) return;
+        for (const item of data.items) {
+          const prev = lastStatus.get(item.document_id);
+          if (prev && prev !== "ready" && item.status === "ready") {
+            useNotifications.getState().push({
+              kind: "document_indexed",
+              title: "Document indexed",
+              body: `${item.source_name ?? "Document"} · ${item.chunk_count} chunks`,
+              href: `/pipelines/${pipeline.pipeline_id}`,
+              ref_id: pipeline.pipeline_id,
+            });
+          }
+          lastStatus.set(item.document_id, item.status);
+        }
         setNodes((prev) =>
           prev.map((n) => {
             if (n.type !== "document") return n;
@@ -240,9 +306,110 @@ export function PipelineCanvas({ pipeline, datasets, onSaved }: Props) {
     );
   }, [pipeline.pipeline_id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Inject live validation into each node's `data` so individual node
+  // components can render their own status badge without re-deriving the
+  // graph context. Position/type are preserved unchanged so React Flow's
+  // drag handling and node typing both still operate on the underlying
+  // state managed by `useNodesState`.
+  // Block tab switching once the canvas commits to a family — see ML_NODE_TYPES
+  // / RAG_NODE_TYPES. A mode is "locked-in" the moment any node of its family
+  // exists; until the user clears the canvas (or undoes back to empty) they
+  // cannot switch to the other family.
+  const hasMLNodes = useMemo(
+    () => nodes.some((n) => n.type !== undefined && ML_NODE_TYPES.has(n.type)),
+    [nodes],
+  );
+  const hasRAGNodes = useMemo(
+    () => nodes.some((n) => n.type !== undefined && RAG_NODE_TYPES.has(n.type)),
+    [nodes],
+  );
+  const lockMode = hasMLNodes || hasRAGNodes;
+
+  const decoratedNodes = useMemo<Node[]>(
+    () =>
+      nodes.map((n) => ({
+        ...n,
+        data: {
+          ...n.data,
+          __validation: validateNode(n, edges, nodes),
+        },
+      })),
+    [nodes, edges],
+  );
+
+  // Cmd/Ctrl+Z = undo, Cmd/Ctrl+Shift+Z (or Ctrl+Y) = redo. We listen on
+  // document because React Flow steals focus on canvas interactions and a
+  // ref-bound listener wouldn't catch the keystroke after a click.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      // Don't hijack typing in inputs/textareas/contenteditable surfaces.
+      if (target) {
+        const tag = target.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA" || target.isContentEditable) return;
+      }
+      const meta = e.metaKey || e.ctrlKey;
+      if (!meta) return;
+      const key = e.key.toLowerCase();
+      if (key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      } else if ((key === "z" && e.shiftKey) || key === "y") {
+        e.preventDefault();
+        redo();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [undo, redo]);
+
+  const handleAutoLayout = useCallback(() => {
+    if (nodes.length === 0) return;
+    const arranged = autoLayoutNodes(nodes, edges, { direction: "LR" });
+    setNodes(arranged);
+    // Defer fitView until React Flow has measured the new positions on the
+    // next frame; otherwise the viewport snaps to stale dimensions.
+    requestAnimationFrame(() => rf.fitView({ padding: 0.2, duration: 400 }));
+  }, [nodes, edges, setNodes, rf]);
+
+  const handleInsertPreset = useCallback(
+    (preset: PipelinePreset) => {
+      const mintId = createIdMinter();
+      const built = preset.build(mintId, {
+        pipelineId: pipeline.pipeline_id,
+        onIngestStart: handleDocumentIngestStart,
+      });
+      // Append (never overwrite) — combine with existing graph and let dagre
+      // sort the layout. Disconnected sub-graphs are stacked vertically by
+      // autoLayoutNodes, so the new preset lives below whatever is already
+      // on the canvas instead of overlapping it.
+      const mergedNodes = [...nodes, ...built.nodes];
+      const mergedEdges = [...edges, ...built.edges];
+      const arranged = autoLayoutNodes(mergedNodes, mergedEdges, { direction: "LR" });
+      setNodes(arranged);
+      setEdges(mergedEdges);
+      setPresetMenuAnchor(null);
+      requestAnimationFrame(() => rf.fitView({ padding: 0.2, duration: 400 }));
+      setSnack({ open: true, msg: t("pipelineCanvas.presets.inserted"), severity: "success" });
+    },
+    // handleDocumentIngestStart is stable for the canvas instance — `setNodes`
+    // and `setEdges` from useNodesState/useEdgesState are also stable.
+    [nodes, edges, pipeline.pipeline_id, setNodes, setEdges, rf, t], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
   const handleNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
     setSelectedNodeId(node.id);
   }, []);
+
+  // Toolbar delete button — drops the selected node and any incident edges.
+  // Goes through `setNodes`/`setEdges` so usePipelineHistory snapshots first,
+  // making the deletion undo-able.
+  const handleDeleteSelected = useCallback(() => {
+    if (!selectedNodeId) return;
+    setEdges((prev) => prev.filter((e) => e.source !== selectedNodeId && e.target !== selectedNodeId));
+    setNodes((prev) => prev.filter((n) => n.id !== selectedNodeId));
+    setSelectedNodeId(null);
+  }, [selectedNodeId, setNodes, setEdges]);
 
   const handlePaneClick = useCallback(() => setSelectedNodeId(null), []);
 
@@ -309,12 +476,19 @@ export function PipelineCanvas({ pipeline, datasets, onSaved }: Props) {
     setSaving(true);
     try {
       const pipelineNodes: PipelineNode[] = nodes.map((n) => {
-        // Strip runtime-only props (function callbacks, transient IDs) before
-        // persisting — they aren't serializable and would bloat the payload.
+        // Strip runtime-only props (function callbacks, transient IDs,
+        // derived validation) before persisting — they aren't serializable
+        // and would bloat the payload.
         const rawData = n.data as Record<string, unknown>;
-        const { pipelineId: _pid, onIngestStart: _ois, ...cleanData } = rawData;
+        const {
+          pipelineId: _pid,
+          onIngestStart: _ois,
+          __validation: _val,
+          ...cleanData
+        } = rawData;
         void _pid;
         void _ois;
+        void _val;
         return {
           node_id: n.id,
           type: n.type as PipelineNode["type"],
@@ -329,9 +503,9 @@ export function PipelineCanvas({ pipeline, datasets, onSaved }: Props) {
         type: canvasMode,
       });
       onSaved(data);
-      setSnack({ open: true, msg: "Pipeline saved", severity: "success" });
+      setSnack({ open: true, msg: t("pipelineCanvas.status.saved"), severity: "success" });
     } catch {
-      setSnack({ open: true, msg: "Save failed", severity: "error" });
+      setSnack({ open: true, msg: t("pipelineCanvas.status.saveFailed"), severity: "error" });
       pushCompanionError("Pipeline save failed");
     } finally {
       setSaving(false);
@@ -343,7 +517,7 @@ export function PipelineCanvas({ pipeline, datasets, onSaved }: Props) {
     const trainNode = nodes.find((n) => n.type === "train");
     const datasetNode = nodes.find((n) => n.type === "dataset");
     if (!trainNode || !datasetNode) {
-      setSnack({ open: true, msg: "Add both a Dataset and Train node first", severity: "error" });
+      setSnack({ open: true, msg: t("pipelineCanvas.status.missingNodes"), severity: "error" });
       pushCompanionError("Tried to Run without both a Dataset and a Train node");
       return;
     }
@@ -361,7 +535,7 @@ export function PipelineCanvas({ pipeline, datasets, onSaved }: Props) {
       });
       setTrainTaskId(data.task_id);
     } catch {
-      setSnack({ open: true, msg: "Failed to start training", severity: "error" });
+      setSnack({ open: true, msg: t("pipelineCanvas.status.runFailed"), severity: "error" });
       pushCompanionError("Training failed to start (backend rejected the request)");
     }
   };
@@ -403,23 +577,37 @@ export function PipelineCanvas({ pipeline, datasets, onSaved }: Props) {
           flexWrap: "wrap",
         }}
       >
-        <ToggleButtonGroup
-          size="small"
-          exclusive
-          value={canvasMode}
-          onChange={(_, v) => v && setCanvasMode(v as PipelineType)}
-          sx={{ mr: 1 }}
-          data-tour="canvas-mode"
+        <Tooltip
+          title={lockMode ? t("pipelineCanvas.mode.lockedHint") : ""}
+          arrow
+          disableHoverListener={!lockMode}
         >
-          <ToggleButton value="ml" sx={{ textTransform: "none", fontWeight: 600 }}>
-            <ScienceRoundedIcon sx={{ fontSize: 15, mr: 0.75 }} />
-            Traditional ML
-          </ToggleButton>
-          <ToggleButton value="rag" sx={{ textTransform: "none", fontWeight: 600 }}>
-            <SmartToyRoundedIcon sx={{ fontSize: 15, mr: 0.75 }} />
-            Generative AI
-          </ToggleButton>
-        </ToggleButtonGroup>
+          <ToggleButtonGroup
+            size="small"
+            exclusive
+            value={canvasMode}
+            onChange={(_, v) => v && setCanvasMode(v as PipelineType)}
+            sx={{ mr: 1 }}
+            data-tour="canvas-mode"
+          >
+            <ToggleButton
+              value="ml"
+              disabled={hasRAGNodes}
+              sx={{ textTransform: "none", fontWeight: 600 }}
+            >
+              <ScienceRoundedIcon sx={{ fontSize: 15, mr: 0.75 }} />
+              {t("pipelineCanvas.mode.ml")}
+            </ToggleButton>
+            <ToggleButton
+              value="rag"
+              disabled={hasMLNodes}
+              sx={{ textTransform: "none", fontWeight: 600 }}
+            >
+              <SmartToyRoundedIcon sx={{ fontSize: 15, mr: 0.75 }} />
+              {t("pipelineCanvas.mode.rag")}
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </Tooltip>
 
         {canvasMode === "ml" && (
           <>
@@ -431,7 +619,7 @@ export function PipelineCanvas({ pipeline, datasets, onSaved }: Props) {
               variant="outlined"
               sx={{ borderColor: alpha("#6366f1", 0.25), color: "#4f46e5", "&:hover": { borderColor: "#6366f1", bgcolor: alpha("#6366f1", 0.04) } }}
             >
-              Dataset
+              {t("pipelineCanvas.addNode.dataset")}
             </Button>
             <Button
               data-tour="add-train"
@@ -441,7 +629,7 @@ export function PipelineCanvas({ pipeline, datasets, onSaved }: Props) {
               variant="outlined"
               sx={{ borderColor: alpha("#8b5cf6", 0.25), color: "#7c3aed", "&:hover": { borderColor: "#8b5cf6", bgcolor: alpha("#8b5cf6", 0.04) } }}
             >
-              Train
+              {t("pipelineCanvas.addNode.train")}
             </Button>
             <Button
               data-tour="add-evaluate"
@@ -451,7 +639,7 @@ export function PipelineCanvas({ pipeline, datasets, onSaved }: Props) {
               variant="outlined"
               sx={{ borderColor: alpha("#10b981", 0.25), color: "#059669", "&:hover": { borderColor: "#10b981", bgcolor: alpha("#10b981", 0.04) } }}
             >
-              Evaluate
+              {t("pipelineCanvas.addNode.evaluate")}
             </Button>
           </>
         )}
@@ -466,7 +654,7 @@ export function PipelineCanvas({ pipeline, datasets, onSaved }: Props) {
               variant="outlined"
               sx={{ borderColor: alpha("#0ea5e9", 0.3), color: "#0284c7", "&:hover": { borderColor: "#0ea5e9", bgcolor: alpha("#0ea5e9", 0.04) } }}
             >
-              Document
+              {t("pipelineCanvas.addNode.document")}
             </Button>
             <Button
               data-tour="add-vector-store"
@@ -476,7 +664,7 @@ export function PipelineCanvas({ pipeline, datasets, onSaved }: Props) {
               variant="outlined"
               sx={{ borderColor: alpha("#a855f7", 0.3), color: "#7e22ce", "&:hover": { borderColor: "#a855f7", bgcolor: alpha("#a855f7", 0.04) } }}
             >
-              Vector Store
+              {t("pipelineCanvas.addNode.vectorStore")}
             </Button>
             <Button
               data-tour="add-rag-config"
@@ -486,10 +674,148 @@ export function PipelineCanvas({ pipeline, datasets, onSaved }: Props) {
               variant="outlined"
               sx={{ borderColor: alpha("#f59e0b", 0.3), color: "#d97706", "&:hover": { borderColor: "#f59e0b", bgcolor: alpha("#f59e0b", 0.04) } }}
             >
-              RAG Config
+              {t("pipelineCanvas.addNode.ragConfig")}
             </Button>
           </>
         )}
+
+        <Tooltip title={t("pipelineCanvas.actions.templatesAria")} arrow>
+          <Button
+            size="small"
+            startIcon={<LibraryAddRoundedIcon sx={{ fontSize: 15 }} />}
+            endIcon={<ArrowDropDownRoundedIcon sx={{ fontSize: 16 }} />}
+            onClick={(e) => setPresetMenuAnchor(e.currentTarget)}
+            aria-label={t("pipelineCanvas.actions.templatesAria")}
+            sx={{
+              color: "#0284c7",
+              borderColor: alpha("#0ea5e9", 0.3),
+              "&:hover": { bgcolor: alpha("#0ea5e9", 0.06) },
+            }}
+            variant="outlined"
+          >
+            {t("pipelineCanvas.actions.templates")}
+          </Button>
+        </Tooltip>
+
+        <Menu
+          anchorEl={presetMenuAnchor}
+          open={!!presetMenuAnchor}
+          onClose={() => setPresetMenuAnchor(null)}
+          slotProps={{ paper: { sx: { mt: 0.5, minWidth: 280 } } }}
+        >
+          {presetsForMode(canvasMode).map((preset) => (
+            <MenuItem
+              key={preset.id}
+              onClick={() => handleInsertPreset(preset)}
+              sx={{ py: 1.25, alignItems: "flex-start" }}
+            >
+              <Box>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  {t(`pipelineCanvas.presets.${preset.i18nKey}.label`)}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  sx={{ color: "text.secondary", display: "block", whiteSpace: "normal" }}
+                >
+                  {t(`pipelineCanvas.presets.${preset.i18nKey}.description`)}
+                </Typography>
+              </Box>
+            </MenuItem>
+          ))}
+        </Menu>
+
+        <Tooltip title={t("pipelineCanvas.actions.undo")} arrow>
+          <span>
+            <IconButton
+              size="small"
+              onClick={undo}
+              disabled={!canUndo}
+              aria-label={t("pipelineCanvas.actions.undo")}
+              sx={{ border: 1, borderColor: "divider", borderRadius: 1.5 }}
+            >
+              <UndoRoundedIcon sx={{ fontSize: 16 }} />
+            </IconButton>
+          </span>
+        </Tooltip>
+        <Tooltip title={t("pipelineCanvas.actions.redo")} arrow>
+          <span>
+            <IconButton
+              size="small"
+              onClick={redo}
+              disabled={!canRedo}
+              aria-label={t("pipelineCanvas.actions.redo")}
+              sx={{ border: 1, borderColor: "divider", borderRadius: 1.5 }}
+            >
+              <RedoRoundedIcon sx={{ fontSize: 16 }} />
+            </IconButton>
+          </span>
+        </Tooltip>
+        <Tooltip title={t("pipelineCanvas.actions.deleteNode")} arrow>
+          <span>
+            <IconButton
+              size="small"
+              onClick={handleDeleteSelected}
+              disabled={!selectedNodeId}
+              aria-label={t("pipelineCanvas.actions.deleteNode")}
+              sx={{
+                border: 1,
+                borderColor: "divider",
+                borderRadius: 1.5,
+                color: selectedNodeId ? "#dc2626" : undefined,
+              }}
+            >
+              <DeleteOutlineRoundedIcon sx={{ fontSize: 16 }} />
+            </IconButton>
+          </span>
+        </Tooltip>
+
+        <Tooltip title={t("pipelineCanvas.actions.autoLayoutTooltip")} arrow>
+          <span>
+            <Button
+              size="small"
+              startIcon={<AutoFixHighRoundedIcon sx={{ fontSize: 15 }} />}
+              onClick={handleAutoLayout}
+              disabled={nodes.length === 0}
+              aria-label={t("pipelineCanvas.actions.autoLayoutAria")}
+              sx={{
+                color: "#7c3aed",
+                borderColor: alpha("#8b5cf6", 0.25),
+                "&:hover": { bgcolor: alpha("#8b5cf6", 0.06) },
+              }}
+              variant="outlined"
+            >
+              {t("pipelineCanvas.actions.autoLayout")}
+            </Button>
+          </span>
+        </Tooltip>
+
+        <Tooltip
+          title={
+            showMinimap
+              ? t("pipelineCanvas.actions.minimapHide")
+              : t("pipelineCanvas.actions.minimapShow")
+          }
+          arrow
+        >
+          <IconButton
+            size="small"
+            onClick={() => setShowMinimap((v) => !v)}
+            aria-label={t("pipelineCanvas.actions.minimapAria")}
+            aria-pressed={showMinimap}
+            sx={{
+              color: showMinimap ? "#0f172a" : "text.secondary",
+              border: 1,
+              borderColor: "divider",
+              borderRadius: 1.5,
+            }}
+          >
+            {showMinimap ? (
+              <MapRoundedIcon sx={{ fontSize: 16 }} />
+            ) : (
+              <MapOutlinedIcon sx={{ fontSize: 16 }} />
+            )}
+          </IconButton>
+        </Tooltip>
 
         <Box sx={{ flex: 1 }} />
         {isCompanyTier ? (
@@ -508,7 +834,7 @@ export function PipelineCanvas({ pipeline, datasets, onSaved }: Props) {
                 },
               }}
             >
-              Chat
+              {t("pipelineCanvas.actions.chat")}
             </Button>
             <MeetingButton pipelineId={pipeline.pipeline_id} />
           </>
@@ -534,7 +860,7 @@ export function PipelineCanvas({ pipeline, datasets, onSaved }: Props) {
           disabled={saving}
           sx={{ color: "text.secondary" }}
         >
-          Save
+          {t("pipelineCanvas.actions.save")}
         </Button>
         {canvasMode === "ml" && (
           <Button
@@ -549,7 +875,7 @@ export function PipelineCanvas({ pipeline, datasets, onSaved }: Props) {
               "&:hover": { background: "linear-gradient(135deg, #059669, #047857)" },
             }}
           >
-            {isRunning ? "Running..." : "Run"}
+            {isRunning ? t("pipelineCanvas.actions.running") : t("pipelineCanvas.actions.run")}
           </Button>
         )}
       </Box>
@@ -557,7 +883,9 @@ export function PipelineCanvas({ pipeline, datasets, onSaved }: Props) {
       {/* Progress bar */}
       {canvasMode === "ml" && isRunning && (
         <Box sx={{ px: 2.5, py: 1 }}>
-          <Typography variant="caption" sx={{ fontWeight: 600, color: "#8b5cf6" }}>Training... {progress}%</Typography>
+          <Typography variant="caption" sx={{ fontWeight: 600, color: "#8b5cf6" }}>
+            {t("pipelineCanvas.progress.training", { pct: progress })}
+          </Typography>
           <LinearProgress
             variant="determinate"
             value={progress}
@@ -576,12 +904,12 @@ export function PipelineCanvas({ pipeline, datasets, onSaved }: Props) {
       )}
       {canvasMode === "ml" && taskResult?.status === "failure" && (
         <Alert severity="error" sx={{ mx: 2, my: 0.5 }}>
-          Training failed: {taskResult.error_message}
+          {t("pipelineCanvas.status.trainFailed", { error: taskResult.error_message })}
         </Alert>
       )}
       {canvasMode === "ml" && taskResult?.status === "success" && (
         <Alert severity="success" sx={{ mx: 2, my: 0.5 }}>
-          Training complete! Click the Evaluate node to see metrics.
+          {t("pipelineCanvas.status.trainSuccess")}
         </Alert>
       )}
 
@@ -596,7 +924,7 @@ export function PipelineCanvas({ pipeline, datasets, onSaved }: Props) {
       >
         <Box sx={{ flex: 1, minHeight: canvasMode === "rag" ? 280 : undefined }}>
           <ReactFlow
-            nodes={nodes}
+            nodes={decoratedNodes}
             edges={edges}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
@@ -604,11 +932,15 @@ export function PipelineCanvas({ pipeline, datasets, onSaved }: Props) {
             onNodeClick={handleNodeClick}
             onPaneClick={handlePaneClick}
             nodeTypes={NODE_TYPES}
+            // Accept both Delete (Windows/Linux) and Backspace (macOS muscle
+            // memory) so users can drop unwanted/duplicate nodes from the
+            // keyboard. React Flow already ignores these inside text inputs.
+            deleteKeyCode={["Delete", "Backspace"]}
             fitView
           >
             <Background />
             <Controls />
-            <MiniMap />
+            {showMinimap && <MiniMap />}
           </ReactFlow>
         </Box>
 

@@ -21,7 +21,7 @@ def _col():
 
 def _serialize(doc: dict) -> dict:
     doc.pop("_id", None)
-    for field in ("created_at", "updated_at"):
+    for field in ("created_at", "updated_at", "last_edited_at"):
         if field in doc and hasattr(doc[field], "isoformat"):
             doc[field] = doc[field].isoformat()
     return doc
@@ -64,6 +64,9 @@ def create_pipeline():
         "last_version_id": None,
         "created_at": now,
         "updated_at": now,
+        # Sprint 7 Module 5 — collaboration "last edited by" stamp.
+        "last_edited_by": user_id,
+        "last_edited_at": now,
     }
     _col().insert_one(doc)
     return jsonify(_serialize(doc)), 201
@@ -201,7 +204,13 @@ def update_pipeline(pipeline_id: str):
     updates = {k: v for k, v in body.items() if k in allowed}
     if "type" in updates and updates["type"] not in ("ml", "rag"):
         return jsonify({"error": "invalid_type"}), 400
-    updates["updated_at"] = datetime.now(timezone.utc)
+    now = datetime.now(timezone.utc)
+    updates["updated_at"] = now
+    # Stamp who actually saved this revision so the dashboard card can render
+    # "Last edited by …". For company projects this is the collaborator who
+    # clicked Save, not necessarily the original creator.
+    updates["last_edited_by"] = user_id
+    updates["last_edited_at"] = now
 
     _col().update_one({"pipeline_id": pipeline_id}, {"$set": updates})
     updated = _col().find_one({"pipeline_id": pipeline_id}, {"_id": 0})

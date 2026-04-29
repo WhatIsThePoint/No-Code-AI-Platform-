@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   Alert,
   Box,
@@ -8,7 +9,6 @@ import {
   CardActions,
   CardContent,
   Chip,
-  CircularProgress,
   Grid,
   IconButton,
   Snackbar,
@@ -42,19 +42,62 @@ import type { Dataset } from "../types/dataset";
 import type { Announcement } from "../types/billing";
 import { UploadQuotaCard } from "../components/common/UploadQuotaCard";
 import { DemoDatasetButton } from "../components/common/DemoDatasetButton";
+import { SetupChecklist } from "../components/common/SetupChecklist";
+import { formatRelativeTime } from "../lib/relativeTime";
+import { useUsersCache } from "../store/usersCacheSlice";
+import { RenameableTitle } from "../components/common/RenameableTitle";
+import { CardSkeletonGrid } from "../components/common/CardSkeletonGrid";
 
 const STAT_CARDS = [
-  { key: "datasets", label: "Datasets", icon: <StorageIcon />, gradient: "linear-gradient(135deg, #6366f1, #4f46e5)" },
-  { key: "ready", label: "Ready", icon: <CheckCircleIcon />, gradient: "linear-gradient(135deg, #10b981, #059669)" },
-  { key: "pipelines", label: "Pipelines", icon: <AccountTreeIcon />, gradient: "linear-gradient(135deg, #8b5cf6, #7c3aed)" },
-  { key: "trained", label: "Trained", icon: <ModelTrainingIcon />, gradient: "linear-gradient(135deg, #3b82f6, #2563eb)" },
+  { key: "datasets", i18nKey: "datasets", icon: <StorageIcon />, gradient: "linear-gradient(135deg, #6366f1, #4f46e5)" },
+  { key: "ready", i18nKey: "ready", icon: <CheckCircleIcon />, gradient: "linear-gradient(135deg, #10b981, #059669)" },
+  { key: "pipelines", i18nKey: "pipelines", icon: <AccountTreeIcon />, gradient: "linear-gradient(135deg, #8b5cf6, #7c3aed)" },
+  { key: "trained", i18nKey: "trained", icon: <ModelTrainingIcon />, gradient: "linear-gradient(135deg, #3b82f6, #2563eb)" },
 ] as const;
 
 export function DashboardPage() {
   const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
   const { datasets, refetch: refetchDatasets } = useDatasets();
   const { company } = useMyCompany();
+
+  const usersById = useUsersCache((s) => s.byId);
+  const resolveUser = useUsersCache((s) => s.resolve);
+
+  const renderEditStamp = (
+    last_edited_at: string | undefined,
+    last_edited_by: string | undefined,
+  ) => {
+    if (!last_edited_at) return null;
+    const when = formatRelativeTime(last_edited_at, i18n.resolvedLanguage ?? "en");
+    if (!when) return null;
+    const isYou = last_edited_by && user?.id && last_edited_by === user.id;
+    let label: string;
+    if (isYou) {
+      label = t("stamps.editedByYou", { when });
+    } else if (last_edited_by) {
+      const cached = usersById[last_edited_by];
+      const display = cached?.full_name || cached?.email || null;
+      if (display) {
+        label = `${t("common.editedBy", { name: display })} · ${when}`;
+      } else {
+        // Lazily fetch and let the next render pick it up.
+        if (cached === undefined) void resolveUser(last_edited_by);
+        label = t("stamps.editedByOther", { when });
+      }
+    } else {
+      label = t("stamps.editedByOther", { when });
+    }
+    return (
+      <Typography
+        variant="caption"
+        sx={{ color: "text.secondary", display: "block", mt: 0.25, fontSize: "0.68rem" }}
+      >
+        {label}
+      </Typography>
+    );
+  };
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [tab, setTab] = useState(0);
@@ -87,6 +130,16 @@ export function DashboardPage() {
     pipelines: pipelines.length,
     ready: datasets.filter((d) => d.status === "ready" || d.status === "preprocessed").length,
     trained: pipelines.filter((p) => p.status === "done").length,
+  };
+
+  const checklistState = {
+    hasDataset: stats.datasets > 0,
+    hasPipeline: stats.pipelines > 0,
+    hasTrainedModel: stats.trained > 0,
+    // Treat "teammate present" as: the user is in a company workspace and at
+    // least one company-scoped pipeline exists (cheap proxy — avoids a second
+    // fetch just to populate the checklist).
+    hasTeammate: !!company,
   };
 
   const handleDeleteDataset = async (id: string) => {
@@ -148,16 +201,19 @@ export function DashboardPage() {
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" sx={{ mb: 0.5 }}>
-          Welcome back, {user?.full_name ?? user?.email}
+          {t("dashboard.welcome", { name: user?.full_name ?? user?.email })}
         </Typography>
         <Typography variant="body2" sx={{ color: "text.secondary" }}>
-          Here's an overview of your workspace
+          {t("dashboard.overview")}
         </Typography>
       </Box>
 
+      {/* Setup checklist */}
+      <SetupChecklist state={checklistState} />
+
       {/* Stats */}
       <Grid container spacing={2.5} sx={{ mb: 4 }} className="stagger-children">
-        {STAT_CARDS.map(({ key, label, icon, gradient }) => (
+        {STAT_CARDS.map(({ key, i18nKey, icon, gradient }) => (
           <Grid item xs={6} sm={3} key={key}>
             <Card
               sx={{
@@ -172,7 +228,7 @@ export function DashboardPage() {
               <CardContent sx={{ pb: "16px !important" }}>
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1.5 }}>
                   <Typography variant="subtitle2" sx={{ color: "text.secondary", fontSize: "0.75rem" }}>
-                    {label}
+                    {t(`dashboard.stats.${i18nKey}`)}
                   </Typography>
                   <Box
                     sx={{
@@ -204,8 +260,8 @@ export function DashboardPage() {
 
       {/* Tabs */}
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 3 }}>
-        <Tab label={`Datasets (${datasets.length})`} />
-        <Tab label={`Pipelines (${visiblePipelineCount})`} />
+        <Tab label={t("dashboard.tabs.datasets", { count: datasets.length })} />
+        <Tab label={t("dashboard.tabs.pipelines", { count: visiblePipelineCount })} />
       </Tabs>
 
       {/* Datasets tab */}
@@ -217,7 +273,7 @@ export function DashboardPage() {
               size="small"
               onClick={() => navigate("/data")}
             >
-              + New Dataset
+              {t("dashboard.actions.newDataset")}
             </Button>
             {datasets.length === 0 && (
               <DemoDatasetButton size="small" onDone={refetchDatasets} />
@@ -229,9 +285,22 @@ export function DashboardPage() {
                 <Card>
                   <CardContent>
                     <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1 }}>
-                      <Typography variant="subtitle1" noWrap title={d.name} sx={{ flex: 1, mr: 1 }}>
-                        {d.name}
-                      </Typography>
+                      <RenameableTitle
+                        value={d.name}
+                        onSave={async (name) => {
+                          try {
+                            const { data } = await datasetsApi.rename(d.dataset_id, { name });
+                            // Optimistic local update via refetch — keeps the
+                            // card in sync with whatever the server normalized.
+                            void data;
+                            refetchDatasets();
+                            setSnack({ open: true, msg: t("rename.succeeded") });
+                          } catch {
+                            setSnack({ open: true, msg: t("rename.failed") });
+                            throw new Error("rename_failed");
+                          }
+                        }}
+                      />
                       <Chip
                         label={d.status}
                         size="small"
@@ -244,15 +313,24 @@ export function DashboardPage() {
                     <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 0.5 }}>
                       {new Date(d.created_at).toLocaleDateString()}
                     </Typography>
+                    {renderEditStamp(d.last_edited_at, d.last_edited_by)}
                   </CardContent>
                   <CardActions sx={{ pt: 0, px: 2, pb: 1.5 }}>
-                    <Tooltip title="Open">
-                      <IconButton size="small" onClick={() => navigate(`/data/${d.dataset_id}`)}>
+                    <Tooltip title={t("common.open")}>
+                      <IconButton
+                        size="small"
+                        onClick={() => navigate(`/data/${d.dataset_id}`)}
+                        aria-label={t("common.open")}
+                      >
                         <OpenInNewIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
-                    <Tooltip title="Delete">
-                      <IconButton size="small" onClick={() => handleDeleteDataset(d.dataset_id)}>
+                    <Tooltip title={t("common.delete")}>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleDeleteDataset(d.dataset_id)}
+                        aria-label={t("common.delete")}
+                      >
                         <DeleteIcon fontSize="small" color="error" />
                       </IconButton>
                     </Tooltip>
@@ -283,10 +361,10 @@ export function DashboardPage() {
               onChange={(_, v) => v && setWorkspaceFilter(v)}
             >
               <ToggleButton value="personal">
-                <PersonIcon fontSize="small" sx={{ mr: 0.5 }} /> Personal
+                <PersonIcon fontSize="small" sx={{ mr: 0.5 }} /> {t("dashboard.workspaceFilter.personal")}
               </ToggleButton>
               <ToggleButton value="company" disabled={!company}>
-                <GroupsIcon fontSize="small" sx={{ mr: 0.5 }} /> Company
+                <GroupsIcon fontSize="small" sx={{ mr: 0.5 }} /> {t("dashboard.workspaceFilter.company")}
                 {company ? ` — ${company.name}` : ""}
               </ToggleButton>
             </ToggleButtonGroup>
@@ -296,13 +374,11 @@ export function DashboardPage() {
               size="small"
               onClick={() => setCreateOpen(true)}
             >
-              + New Pipeline
+              {t("dashboard.actions.newPipeline")}
             </Button>
           </Box>
           {pipelineLoading ? (
-            <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-              <CircularProgress />
-            </Box>
+            <CardSkeletonGrid count={3} metaLines={2} />
           ) : (
             <Grid container spacing={2} className="stagger-children">
               {pipelines.map((p: Pipeline) => (
@@ -310,9 +386,21 @@ export function DashboardPage() {
                   <Card>
                     <CardContent>
                       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1 }}>
-                        <Typography variant="subtitle1" noWrap title={p.name} sx={{ flex: 1, mr: 1 }}>
-                          {p.name}
-                        </Typography>
+                        <RenameableTitle
+                          value={p.name}
+                          onSave={async (name) => {
+                            try {
+                              const { data } = await pipelinesApi.update(p.pipeline_id, { name });
+                              setPipelines((prev) =>
+                                prev.map((x) => (x.pipeline_id === p.pipeline_id ? data : x)),
+                              );
+                              setSnack({ open: true, msg: t("rename.succeeded") });
+                            } catch {
+                              setSnack({ open: true, msg: t("rename.failed") });
+                              throw new Error("rename_failed");
+                            }
+                          }}
+                        />
                         <Chip
                           label={p.status}
                           size="small"
@@ -320,25 +408,38 @@ export function DashboardPage() {
                         />
                       </Box>
                       <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                        {p.nodes.length} nodes
+                        {t("dashboard.pipelineCard.nodeCount", { count: p.nodes.length })}
                       </Typography>
                       <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 0.5 }}>
                         {new Date(p.updated_at).toLocaleDateString()}
                       </Typography>
+                      {renderEditStamp(p.last_edited_at, p.last_edited_by)}
                     </CardContent>
                     <CardActions sx={{ pt: 0, px: 2, pb: 1.5 }}>
-                      <Tooltip title="Open">
-                        <IconButton size="small" onClick={() => navigate(`/pipelines/${p.pipeline_id}`)}>
+                      <Tooltip title={t("common.open")}>
+                        <IconButton
+                          size="small"
+                          onClick={() => navigate(`/pipelines/${p.pipeline_id}`)}
+                          aria-label={t("common.open")}
+                        >
                           <OpenInNewIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Duplicate">
-                        <IconButton size="small" onClick={() => handleDuplicatePipeline(p)}>
+                      <Tooltip title={t("common.duplicate")}>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleDuplicatePipeline(p)}
+                          aria-label={t("common.duplicate")}
+                        >
                           <ContentCopyIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Delete">
-                        <IconButton size="small" onClick={() => handleDeletePipeline(p.pipeline_id)}>
+                      <Tooltip title={t("common.delete")}>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleDeletePipeline(p.pipeline_id)}
+                          aria-label={t("common.delete")}
+                        >
                           <DeleteIcon fontSize="small" color="error" />
                         </IconButton>
                       </Tooltip>

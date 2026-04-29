@@ -7,6 +7,10 @@ from .extensions import mail, mongo
 
 
 def create_app(config=None):
+    from .observability import init_sentry
+
+    init_sentry("ml-training-service")
+
     app = Flask(__name__)
 
     if config:

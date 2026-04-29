@@ -570,7 +570,7 @@ export function CompanyPage() {
                   {window.location.origin}/company?invite={lastInvite.token}
                 </Typography>
                 <Tooltip title="Copy link" arrow>
-                  <IconButton size="small" onClick={() => copyInviteLink(lastInvite.token)}>
+                  <IconButton size="small" onClick={() => copyInviteLink(lastInvite.token)} aria-label="Copy invite link">
                     <ContentCopyRoundedIcon sx={{ fontSize: 18 }} />
                   </IconButton>
                 </Tooltip>

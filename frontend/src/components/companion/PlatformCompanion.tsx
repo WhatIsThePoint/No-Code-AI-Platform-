@@ -166,7 +166,7 @@ export function PlatformCompanion() {
               Runs locally on your hardware
             </Typography>
           </Box>
-          <IconButton size="small" onClick={() => setOpen(false)}>
+          <IconButton size="small" onClick={() => setOpen(false)} aria-label="Close companion">
             <CloseIcon fontSize="small" />
           </IconButton>
         </Box>
@@ -325,6 +325,7 @@ export function PlatformCompanion() {
                     size="small"
                     onClick={() => send(question)}
                     disabled={loading || !question.trim()}
+                    aria-label="Send question to companion"
                     sx={{
                       bgcolor: alpha("#6366f1", 0.1),
                       "&:hover": { bgcolor: alpha("#6366f1", 0.18) },

@@ -227,6 +227,7 @@ export function ModelRegistryPanel() {
                 <Tooltip title="Delete model from disk" arrow>
                   <IconButton
                     size="small"
+                    aria-label="Delete model from disk"
                     onClick={() =>
                       setDel({
                         open: true,

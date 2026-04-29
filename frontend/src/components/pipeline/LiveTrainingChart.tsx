@@ -5,6 +5,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircleRounded";
 import ErrorIcon from "@mui/icons-material/ErrorOutlineRounded";
 import { Plot } from "../data/plotly";
 import { getTrainingSocket } from "../../api/socket";
+import { useNotifications } from "../../store/notificationsSlice";
 
 interface ProgressEvent {
   pipeline_id: string;
@@ -111,12 +112,28 @@ export function LiveTrainingChart({ pipelineId, height = 280 }: Props) {
       if (evt.pipeline_id !== pipelineId) return;
       setStage("complete");
       setCompleted(evt);
+      useNotifications.getState().push({
+        kind: "training_done",
+        title: "Training finished",
+        body: evt.duration_s
+          ? `Pipeline ${pipelineId.slice(0, 8)} completed in ${evt.duration_s}s.`
+          : `Pipeline ${pipelineId.slice(0, 8)} just produced a new model version.`,
+        href: `/pipelines/${pipelineId}`,
+        ref_id: pipelineId,
+      });
     };
 
     const onFailed = (evt: FailedEvent) => {
       if (evt.pipeline_id !== pipelineId) return;
       setStage("failed");
       setFailed(evt);
+      useNotifications.getState().push({
+        kind: "training_failed",
+        title: "Training failed",
+        body: `Pipeline ${pipelineId.slice(0, 8)} crashed during training.`,
+        href: `/pipelines/${pipelineId}`,
+        ref_id: pipelineId,
+      });
     };
 
     // Re-enter the room on every (re)connect. The server forgets rooms
@@ -146,6 +163,9 @@ export function LiveTrainingChart({ pipelineId, height = 280 }: Props) {
     : 0;
 
   const traces = useMemo(() => {
+    // Plotly trace shapes vary by type (scatter / scattergl / bar / …);
+    // typing them precisely just to push them into Plot is unnecessary churn.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const out: any[] = [];
     if (progressPoints.length > 0) {
       out.push({

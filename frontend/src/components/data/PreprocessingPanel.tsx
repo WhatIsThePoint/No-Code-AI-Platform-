@@ -3,14 +3,17 @@ import {
   Box,
   Button,
   Checkbox,
+  Chip,
   FormControl,
   FormControlLabel,
+  IconButton,
   InputLabel,
   LinearProgress,
   MenuItem,
   Paper,
   Select,
   Slider,
+  Stack,
   Step,
   StepLabel,
   Stepper,
@@ -19,11 +22,13 @@ import {
 } from "@mui/material";
 import LightbulbIcon from "@mui/icons-material/LightbulbRounded";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForwardRounded";
-import { useState } from "react";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { datasetsApi } from "../../api/datasets";
 import { useTaskStatus } from "../../hooks/useTaskStatus";
-import type { Dataset, PreprocessingConfig } from "../../types/dataset";
+import type { ColumnProfile, Dataset, PreprocessingConfig } from "../../types/dataset";
 
 const STEPS = ["Columns", "Strategies", "Split", "Run"];
 
@@ -46,6 +51,135 @@ const SCALING_HINTS: Record<string, string> = {
   robust: "Similar to standard but ignores outliers. Use when your data has extreme values.",
   none: "Keep original values. Fine for tree models (Random Forest, XGBoost) that don't need scaling.",
 };
+
+// ── Profiler-driven suggestions ──────────────────────────────────────────────
+// Thresholds calibrated against the sample datasets: 20% nulls is enough to
+// hurt mean imputation, |skew| > 1.5 is the classical "consider transform"
+// cutoff, and >50 unique values for a categorical column is where one-hot
+// starts to balloon (the OOM bug we hit earlier was 181k uniques).
+
+const NULL_THRESHOLD = 20; // pct
+const SKEW_THRESHOLD = 1.5;
+const HIGH_CARDINALITY = 50;
+
+interface Suggestion {
+  id: string;
+  kind: "missing" | "skew" | "log" | "cardinality";
+  column: string;
+  i18nKey: string;
+  values: Record<string, string | number>;
+}
+
+function buildSuggestions(columns: ColumnProfile[]): Suggestion[] {
+  const out: Suggestion[] = [];
+  for (const c of columns) {
+    if (c.missing_pct >= NULL_THRESHOLD) {
+      out.push({
+        id: `missing-${c.name}`,
+        kind: "missing",
+        column: c.name,
+        i18nKey: "preprocessingSuggestions.highMissing",
+        values: { column: c.name, pct: c.missing_pct.toFixed(1) },
+      });
+    }
+    if (c.needs_log_transform) {
+      out.push({
+        id: `log-${c.name}`,
+        kind: "log",
+        column: c.name,
+        i18nKey: "preprocessingSuggestions.needsLogTransform",
+        values: { column: c.name },
+      });
+    } else if (c.skewness !== undefined && Math.abs(c.skewness) >= SKEW_THRESHOLD) {
+      out.push({
+        id: `skew-${c.name}`,
+        kind: "skew",
+        column: c.name,
+        i18nKey: "preprocessingSuggestions.highSkew",
+        values: { column: c.name, value: c.skewness.toFixed(2) },
+      });
+    }
+    // Categorical / object columns with extreme cardinality ahead of one-hot.
+    const isCategorical = c.dtype === "object" || c.dtype === "string" || c.dtype === "category";
+    if (isCategorical && c.unique_count > HIGH_CARDINALITY) {
+      out.push({
+        id: `cardinality-${c.name}`,
+        kind: "cardinality",
+        column: c.name,
+        i18nKey: "preprocessingSuggestions.highCardinality",
+        values: { column: c.name, unique: c.unique_count },
+      });
+    }
+  }
+  // Cap to keep the chip strip readable on busy datasets.
+  return out.slice(0, 6);
+}
+
+function SuggestionsBar({ columns }: { columns: ColumnProfile[] }) {
+  const { t } = useTranslation();
+  const all = useMemo(() => buildSuggestions(columns), [columns]);
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const visible = all.filter((s) => !dismissed.has(s.id));
+  if (visible.length === 0) return null;
+
+  const palette: Record<Suggestion["kind"], { bg: string; border: string; ink: string }> = {
+    missing: { bg: alpha("#f59e0b", 0.08), border: alpha("#f59e0b", 0.45), ink: "#92400e" },
+    skew: { bg: alpha("#0ea5e9", 0.08), border: alpha("#0ea5e9", 0.45), ink: "#0369a1" },
+    log: { bg: alpha("#0ea5e9", 0.08), border: alpha("#0ea5e9", 0.45), ink: "#0369a1" },
+    cardinality: { bg: alpha("#ef4444", 0.08), border: alpha("#ef4444", 0.45), ink: "#991b1b" },
+  };
+
+  return (
+    <Box sx={{ mb: 2.5 }} role="region" aria-label={t("preprocessingSuggestions.title")}>
+      <Typography
+        variant="caption"
+        sx={{
+          fontWeight: 700,
+          letterSpacing: "0.06em",
+          textTransform: "uppercase",
+          color: "text.secondary",
+          display: "block",
+          mb: 1,
+        }}
+      >
+        💡 {t("preprocessingSuggestions.title")}
+      </Typography>
+      <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 1 }}>
+        {visible.map((s) => {
+          const c = palette[s.kind];
+          return (
+            <Chip
+              key={s.id}
+              label={t(s.i18nKey, s.values)}
+              onDelete={() => setDismissed((prev) => new Set(prev).add(s.id))}
+              deleteIcon={
+                <IconButton
+                  size="small"
+                  aria-label={t("preprocessingSuggestions.dismissAria")}
+                  sx={{ p: 0, color: "inherit" }}
+                >
+                  <CloseRoundedIcon sx={{ fontSize: 14 }} />
+                </IconButton>
+              }
+              sx={{
+                bgcolor: c.bg,
+                border: 1,
+                borderColor: c.border,
+                color: c.ink,
+                fontWeight: 500,
+                fontSize: "0.75rem",
+                height: "auto",
+                py: 0.5,
+                "& .MuiChip-label": { whiteSpace: "normal", lineHeight: 1.4, py: 0.25 },
+              }}
+            />
+          );
+        })}
+      </Stack>
+    </Box>
+  );
+}
+
 
 function StrategyHint({ text }: { text: string }) {
   return (
@@ -157,6 +291,7 @@ export function PreprocessingPanel({ dataset, onDone }: Props) {
       {/* Step 0: Column selection */}
       {step === 0 && (
         <Paper sx={{ p: 3, borderRadius: 4 }} className="animate-fade-in">
+          <SuggestionsBar columns={dataset.profiling_summary?.columns ?? []} />
           <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>Select Columns</Typography>
           <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
             Choose which columns feed into the model, and pick your <strong>target column</strong> —

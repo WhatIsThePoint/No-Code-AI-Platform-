@@ -97,5 +97,36 @@ def issue_2fa_session_token(user_id: str) -> str:
     )
 
 
+# Hard ceiling on impersonation: 5 minutes. No refresh path. The super-admin
+# explicitly re-impersonates if they need more time, generating a fresh audit
+# row each time.
+IMPERSONATION_TTL_SECONDS = 5 * 60
+
+
+def issue_impersonation_token(target: User, actor_id: str) -> tuple[str, int]:
+    """Mint a short-lived access token impersonating `target`.
+
+    The `imp_actor` claim makes the token recognizably impersonated to every
+    downstream service so audit logs can correlate the action back to the
+    super-admin. No refresh-token row is created — this is a one-shot,
+    non-renewable session.
+
+    Returns (access_token, expires_in_seconds).
+    """
+    from datetime import timedelta
+
+    delta = timedelta(seconds=IMPERSONATION_TTL_SECONDS)
+    token = create_access_token(
+        identity=str(target.id),
+        expires_delta=delta,
+        additional_claims={
+            "role": target.role,
+            "tier": target.tier,
+            "imp_actor": str(actor_id),
+        },
+    )
+    return token, IMPERSONATION_TTL_SECONDS
+
+
 def _hash_token(raw: str) -> str:
     return hashlib.sha256(raw.encode()).hexdigest()

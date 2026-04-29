@@ -26,6 +26,13 @@ def _rate_limit_key():
 
 
 def create_app(config=None):
+    # Sentry must be initialised before the app is constructed so the Flask
+    # integration can hook the right WSGI middleware. No-op when SENTRY_DSN
+    # is empty (dev default).
+    from .observability import init_sentry
+
+    init_sentry("api-gateway")
+
     app = Flask(__name__)
 
     if config:

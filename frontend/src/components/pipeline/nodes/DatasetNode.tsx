@@ -2,17 +2,21 @@ import { Handle, Position } from "@xyflow/react";
 import { Box, Typography, alpha } from "@mui/material";
 import StorageIcon from "@mui/icons-material/StorageRounded";
 import type { NodeProps } from "@xyflow/react";
+import { NodeBadge } from "./NodeBadge";
+import { getValidationBorderColor, type NodeValidation } from "./validation";
 
 export function DatasetNode({ data, selected }: NodeProps) {
-  const d = data as { dataset_name?: string; dataset_id?: string };
+  const d = data as { dataset_name?: string; dataset_id?: string; __validation?: NodeValidation };
+  const validationBorder = getValidationBorderColor(d.__validation, "");
   return (
     <Box
       sx={{
+        position: "relative",
         px: 2.5,
         py: 2,
         borderRadius: 3,
         border: 2,
-        borderColor: selected ? "#6366f1" : alpha("#6366f1", 0.2),
+        borderColor: validationBorder || (selected ? "#6366f1" : alpha("#6366f1", 0.2)),
         bgcolor: "#fff",
         minWidth: 180,
         boxShadow: selected
@@ -47,6 +51,7 @@ export function DatasetNode({ data, selected }: NodeProps) {
         {d.dataset_name || d.dataset_id || "Select a dataset"}
       </Typography>
       <Handle type="source" position={Position.Right} />
+      <NodeBadge validation={d.__validation} />
     </Box>
   );
 }

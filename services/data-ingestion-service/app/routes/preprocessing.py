@@ -63,5 +63,12 @@ def preprocess(dataset_id):
             "created_at": now,
         }
     )
+    # Refresh the "last edited by" stamp — kicking preprocessing is a real
+    # mutation from the user's perspective even though the dataset row
+    # otherwise stays the same until the worker reports back.
+    mongo.get_collection("datasets").update_one(
+        {"dataset_id": dataset_id},
+        {"$set": {"last_edited_by": user_id, "last_edited_at": now}},
+    )
 
     return jsonify({"task_id": task.id, "status": "preprocessing"}), 202

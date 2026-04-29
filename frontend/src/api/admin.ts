@@ -31,8 +31,21 @@ export const adminApi = {
   listSubscriptions: (params?: { page?: number; limit?: number }) =>
     api.get<Paginated<AdminSubscription>>("/admin/subscriptions", { params }),
 
-  overrideSubscription: (userId: string, plan: string, status?: string) =>
-    api.patch(`/admin/subscriptions/${userId}`, { plan, status }),
+  overrideSubscription: (
+    userId: string,
+    plan: string,
+    status?: string,
+    quota?: { max_chunks?: number | null; max_vram_mb?: number | null },
+  ) => {
+    const body: Record<string, unknown> = { plan, status };
+    if (quota && Object.prototype.hasOwnProperty.call(quota, "max_chunks")) {
+      body.max_chunks = quota.max_chunks;
+    }
+    if (quota && Object.prototype.hasOwnProperty.call(quota, "max_vram_mb")) {
+      body.max_vram_mb = quota.max_vram_mb;
+    }
+    return api.patch(`/admin/subscriptions/${userId}`, body);
+  },
 
   // Logs
   listLogs: (params?: { action?: string; page?: number; limit?: number }) =>
@@ -54,12 +67,86 @@ export const adminApi = {
 
   // ── Ops Console (live telemetry) ─────────────────────────────────────────
   getQueueDepths: () => api.get<QueueSnapshot>("/admin/system/queues"),
+  getSystemHealth: () => api.get<SystemHealthSnapshot>("/admin/system/health"),
+
+  getMigrationDrift: () =>
+    api.get<MigrationDriftReport>("/admin/system/migration-drift"),
+
+  getFailedLogins: (hours?: number) =>
+    api.get<FailedLoginsReport>("/admin/security/failed-logins", {
+      params: hours ? { hours } : undefined,
+    }),
+
+  exportUser: (userId: string) =>
+    api.get(`/admin/users/${userId}/export.zip`, { responseType: "blob" }),
+
+  impersonateUser: (userId: string) =>
+    api.post<ImpersonationResponse>(`/admin/users/${userId}/impersonate`),
+
+  endImpersonation: (userId: string) =>
+    api.post<{ ok: boolean }>(`/admin/users/${userId}/impersonate/end`),
   listOllamaModels: () => api.get<OllamaModelList>("/admin/ollama/models"),
   deleteOllamaModel: (modelName: string) =>
     api.delete<{ deleted: string }>(
       `/admin/ollama/models/${encodeURIComponent(modelName)}`
     ),
 };
+
+export interface SystemHealthService {
+  service: string;
+  status: "up" | "down";
+  latency_ms: number;
+  message?: string;
+}
+
+export interface SystemHealthSnapshot {
+  checked_at: number;
+  all_up: boolean;
+  up_count: number;
+  total: number;
+  services: SystemHealthService[];
+}
+
+export interface FailedLoginAttempt {
+  id: string;
+  ip_address: string | null;
+  email: string | null;
+  created_at: string;
+}
+
+export interface FailedLoginsReport {
+  window_hours: number;
+  since: string;
+  total: number;
+  top_ips: { ip_address: string; attempts: number }[];
+  recent: FailedLoginAttempt[];
+}
+
+export interface ImpersonationResponse {
+  access_token: string;
+  expires_in: number;
+  target: {
+    user_id: string;
+    email: string;
+    full_name: string | null;
+    role: "data_scientist" | "engineer" | "analyst" | "super_admin";
+    tier: "free" | "solo" | "company" | "super_admin";
+  };
+}
+
+export interface MigrationDriftReport {
+  status: "ok" | "drift" | "unavailable";
+  message?: string;
+  tables_only_in_init_sql?: string[];
+  tables_only_in_live_db?: string[];
+  column_diffs?: {
+    table: string;
+    only_in_init_sql: string[];
+    only_in_live_db: string[];
+  }[];
+  alembic_only_allowlist?: string[];
+  init_sql_source?: string;
+}
 
 export interface QueueSnapshot {
   redis_ok: boolean;

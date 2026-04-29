@@ -9,6 +9,10 @@ from .extensions import bcrypt, db, jwt, ma, migrate
 
 
 def create_app(config=None):
+    from .observability import init_sentry
+
+    init_sentry("auth-service")
+
     app = Flask(__name__)
 
     # Load config

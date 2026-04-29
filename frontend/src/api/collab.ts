@@ -1,5 +1,11 @@
 import api from "./axios";
 
+export interface ChatMention {
+  user_id: string;
+  email: string | null;
+  full_name: string | null;
+}
+
 export interface ChatMessage {
   id: string;
   pipeline_id: string;
@@ -7,6 +13,9 @@ export interface ChatMessage {
   full_name: string | null;
   message: string;
   created_at: string;
+  /** Sprint 7 Module 6 — server-resolved mentions extracted from message text. */
+  mentioned_user_ids?: string[];
+  mentions?: ChatMention[];
 }
 
 export type ExternalMeetingProvider =

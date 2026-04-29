@@ -2,6 +2,8 @@ import { Handle, Position } from "@xyflow/react";
 import { Box, Chip, Typography, alpha } from "@mui/material";
 import ModelTrainingIcon from "@mui/icons-material/ModelTrainingRounded";
 import type { NodeProps } from "@xyflow/react";
+import { NodeBadge } from "./NodeBadge";
+import { getValidationBorderColor, type NodeValidation } from "./validation";
 
 const ALGO_LABELS: Record<string, string> = {
   xgboost: "XGBoost",
@@ -15,15 +17,17 @@ const ALGO_LABELS: Record<string, string> = {
 };
 
 export function TrainNode({ data, selected }: NodeProps) {
-  const d = data as { algorithm?: string; task_type?: string };
+  const d = data as { algorithm?: string; task_type?: string; __validation?: NodeValidation };
+  const validationBorder = getValidationBorderColor(d.__validation, "");
   return (
     <Box
       sx={{
+        position: "relative",
         px: 2.5,
         py: 2,
         borderRadius: 3,
         border: 2,
-        borderColor: selected ? "#8b5cf6" : alpha("#8b5cf6", 0.2),
+        borderColor: validationBorder || (selected ? "#8b5cf6" : alpha("#8b5cf6", 0.2)),
         bgcolor: "#fff",
         minWidth: 180,
         boxShadow: selected
@@ -62,6 +66,7 @@ export function TrainNode({ data, selected }: NodeProps) {
       )}
       <Handle type="target" position={Position.Left} />
       <Handle type="source" position={Position.Right} />
+      <NodeBadge validation={d.__validation} />
     </Box>
   );
 }

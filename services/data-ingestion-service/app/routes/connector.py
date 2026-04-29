@@ -1,3 +1,4 @@
+import time
 import uuid
 from datetime import datetime, timezone
 
@@ -9,6 +10,158 @@ from ..services.storage_service import encrypt_value
 from ..tasks.sql_import import import_from_sql
 
 connector_bp = Blueprint("connector", __name__)
+
+
+def _build_sql_connection_string(payload: dict) -> str | None:
+    """Build a SQLAlchemy URL string from a connector payload, or None for unknown db_type."""
+    db_type = payload.get("db_type")
+    if db_type == "postgres":
+        return (
+            f"postgresql://{payload['username']}:{payload['password']}"
+            f"@{payload['host']}:{payload['port']}/{payload['database']}"
+        )
+    if db_type == "mysql":
+        return (
+            f"mysql+pymysql://{payload['username']}:{payload['password']}"
+            f"@{payload['host']}:{payload['port']}/{payload['database']}"
+        )
+    return None
+
+
+@connector_bp.post("/datasets/sql-test")
+def sql_test():
+    """Probe-only sibling of /datasets/sql-connect.
+
+    Opens a short-lived connection, runs `SELECT 1`, and lists up to 5 tables
+    from the target schema so the wizard can preview what's available.
+    Never persists credentials or creates a dataset row.
+    """
+    user_id = request.headers.get("X-User-Id")
+    if not user_id:
+        return jsonify({"error": "missing_user_id"}), 401
+
+    data = request.get_json(silent=True) or {}
+    required = ["db_type", "host", "port", "database", "username", "password"]
+    for field in required:
+        if field not in data:
+            return (
+                jsonify({"error": "validation_error", "detail": f"Missing field: {field}"}),
+                400,
+            )
+
+    conn_str = _build_sql_connection_string(data)
+    if conn_str is None:
+        return jsonify({"error": "unsupported_db_type"}), 400
+
+    started = time.perf_counter()
+    try:
+        engine = create_engine(conn_str, connect_args={"connect_timeout": 5})
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+            # Different dialects, different system tables. Try the standard
+            # information_schema first; fall back to a lighter query if that
+            # fails (some MySQL setups restrict access).
+            try:
+                rows = conn.execute(
+                    text(
+                        "SELECT table_name FROM information_schema.tables "
+                        "WHERE table_schema = :schema "
+                        "ORDER BY table_name LIMIT 5"
+                    ),
+                    {"schema": data["database"] if data["db_type"] == "mysql" else "public"},
+                ).fetchall()
+            except Exception:
+                rows = []
+        engine.dispose()
+        latency_ms = round((time.perf_counter() - started) * 1000, 1)
+    except Exception as exc:
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": "connection_failed",
+                    "detail": str(exc)[:300],
+                    "latency_ms": round((time.perf_counter() - started) * 1000, 1),
+                }
+            ),
+            200,
+        )
+
+    return (
+        jsonify(
+            {
+                "ok": True,
+                "latency_ms": latency_ms,
+                "samples": [r[0] for r in rows],
+            }
+        ),
+        200,
+    )
+
+
+@connector_bp.post("/datasets/s3-test")
+def s3_test():
+    """Probe an S3 bucket — `boto3` HEAD on the bucket then list a few keys."""
+    user_id = request.headers.get("X-User-Id")
+    if not user_id:
+        return jsonify({"error": "missing_user_id"}), 401
+
+    data = request.get_json(silent=True) or {}
+    required = ["bucket", "region", "access_key_id", "secret_access_key"]
+    for field in required:
+        if field not in data:
+            return (
+                jsonify({"error": "validation_error", "detail": f"Missing field: {field}"}),
+                400,
+            )
+
+    started = time.perf_counter()
+    try:
+        import boto3
+        from botocore.config import Config as BotoConfig
+    except ImportError:
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": "boto3_missing",
+                    "detail": "Install boto3 in the data-ingestion service to enable S3 connectors.",
+                    "latency_ms": 0.0,
+                }
+            ),
+            200,
+        )
+
+    try:
+        s3 = boto3.client(
+            "s3",
+            region_name=data["region"],
+            aws_access_key_id=data["access_key_id"],
+            aws_secret_access_key=data["secret_access_key"],
+            config=BotoConfig(connect_timeout=5, read_timeout=5, retries={"max_attempts": 1}),
+        )
+        s3.head_bucket(Bucket=data["bucket"])
+        listing = s3.list_objects_v2(
+            Bucket=data["bucket"],
+            Prefix=data.get("prefix") or "",
+            MaxKeys=5,
+        )
+        keys = [obj["Key"] for obj in listing.get("Contents", [])][:5]
+        latency_ms = round((time.perf_counter() - started) * 1000, 1)
+    except Exception as exc:
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": "connection_failed",
+                    "detail": str(exc)[:300],
+                    "latency_ms": round((time.perf_counter() - started) * 1000, 1),
+                }
+            ),
+            200,
+        )
+
+    return jsonify({"ok": True, "latency_ms": latency_ms, "samples": keys}), 200
 
 
 @connector_bp.post("/datasets/sql-connect")

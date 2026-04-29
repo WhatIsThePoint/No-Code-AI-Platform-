@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { authApi } from "../api/auth";
+import { adminApi } from "../api/admin";
 import { useAuthStore } from "../store/authSlice";
 
 export function useAuth() {
@@ -24,6 +25,21 @@ export function useAuth() {
   );
 
   const logout = useCallback(async () => {
+    // If the active session is an impersonation, "logout" should drop us back
+    // into the super-admin's own session — not destroy it. Without this, an
+    // admin who clicks Logout while viewing-as a user has no way back to the
+    // admin dashboard short of signing in again.
+    const imp = useAuthStore.getState().impersonation;
+    if (imp) {
+      useAuthStore.getState().endImpersonation();
+      try {
+        await adminApi.endImpersonation(imp.targetUserId);
+      } catch {
+        // Best-effort audit; original session is already restored client-side.
+      }
+      navigate("/admin");
+      return;
+    }
     try {
       await authApi.logout();
     } finally {

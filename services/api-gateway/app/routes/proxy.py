@@ -101,6 +101,26 @@ def proxy_pipeline_documents(pipeline_id: str):
 
 
 @proxy_bp.route(
+    "/pipelines/<pipeline_id>/documents/<document_id>/chunks",
+    methods=["GET"],
+    endpoint="proxy_pipeline_document_chunks",
+)
+@require_project_access("read")
+def proxy_pipeline_document_chunks(pipeline_id: str, document_id: str):
+    """Per-document chunk preview — also on data-ingestion (pgvector reads).
+
+    Registered BEFORE the catch-all /pipelines/<id>/<subpath> route so it
+    short-circuits there and we don't route chunk requests to ml-training.
+    """
+    upstream = current_app.config["DATA_SERVICE_URL"]
+    return _forward(
+        upstream,
+        f"/pipelines/{pipeline_id}/documents/{document_id}/chunks",
+        require_auth=False,
+    )
+
+
+@proxy_bp.route(
     "/pipelines/<pipeline_id>/chat",
     methods=["POST"],
     endpoint="proxy_pipeline_chat",
@@ -190,6 +210,34 @@ def proxy_pipeline_chat_history(pipeline_id: str):
     upstream = current_app.config["ML_SERVICE_URL"]
     return _forward(
         upstream, f"/pipelines/{pipeline_id}/chat/history", require_auth=False
+    )
+
+
+@proxy_bp.route(
+    "/pipelines/<pipeline_id>/chat/threads",
+    methods=["GET", "POST"],
+    endpoint="proxy_pipeline_chat_threads",
+)
+@require_project_access("read")
+def proxy_pipeline_chat_threads(pipeline_id: str):
+    upstream = current_app.config["ML_SERVICE_URL"]
+    return _forward(
+        upstream, f"/pipelines/{pipeline_id}/chat/threads", require_auth=False
+    )
+
+
+@proxy_bp.route(
+    "/pipelines/<pipeline_id>/chat/threads/<thread_id>",
+    methods=["GET", "DELETE"],
+    endpoint="proxy_pipeline_chat_thread_detail",
+)
+@require_project_access("read")
+def proxy_pipeline_chat_thread_detail(pipeline_id: str, thread_id: str):
+    upstream = current_app.config["ML_SERVICE_URL"]
+    return _forward(
+        upstream,
+        f"/pipelines/{pipeline_id}/chat/threads/{thread_id}",
+        require_auth=False,
     )
 
 

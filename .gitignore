@@ -48,3 +48,7 @@ uploads/
 # Logs
 *.log
 logs/
+
+# Claude Code session metadata + local scratch notes
+.claude/
+PFE Imp

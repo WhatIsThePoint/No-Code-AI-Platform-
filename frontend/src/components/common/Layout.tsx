@@ -1,5 +1,6 @@
 import { Box, AppBar, Toolbar, Typography, Button, Drawer, List, ListItemButton, ListItemIcon, ListItemText, Divider, Avatar, Chip } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../hooks/useAuth";
 import DashboardIcon from "@mui/icons-material/DashboardRounded";
 import StorageIcon from "@mui/icons-material/StorageRounded";
@@ -11,29 +12,36 @@ import PersonIcon from "@mui/icons-material/PersonRounded";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettingsRounded";
 import LogoutIcon from "@mui/icons-material/LogoutRounded";
 import { PlatformCompanion } from "../companion/PlatformCompanion";
+import { LanguageToggle } from "./LanguageToggle";
+import { ContrastToggle } from "./ContrastToggle";
+import { NotificationBell } from "./NotificationBell";
+import { ImpersonationBanner } from "./ImpersonationBanner";
 
 const DRAWER_WIDTH = 260;
 
-const navItems = [
-  { label: "Dashboard", path: "/dashboard", icon: <DashboardIcon /> },
-  { label: "Datasets", path: "/data", icon: <StorageIcon /> },
-  { label: "Pipelines", path: "/pipelines", icon: <AccountTreeIcon /> },
-  { label: "Model Registry", path: "/models", icon: <ModelTrainingIcon /> },
-  { label: "Collaborator", path: "/company", icon: <BusinessIcon /> },
-  { label: "Billing", path: "/billing", icon: <PaymentIcon /> },
-  { label: "Profile", path: "/profile", icon: <PersonIcon /> },
-];
+const navItemDefs = [
+  { i18nKey: "dashboard", path: "/dashboard", icon: <DashboardIcon /> },
+  { i18nKey: "datasets", path: "/data", icon: <StorageIcon /> },
+  { i18nKey: "pipelines", path: "/pipelines", icon: <AccountTreeIcon /> },
+  { i18nKey: "modelRegistry", path: "/models", icon: <ModelTrainingIcon /> },
+  { i18nKey: "collaborator", path: "/company", icon: <BusinessIcon /> },
+  { i18nKey: "billing", path: "/billing", icon: <PaymentIcon /> },
+  { i18nKey: "profile", path: "/profile", icon: <PersonIcon /> },
+] as const;
 
-const adminItems = [
-  { label: "Admin Panel", path: "/admin", icon: <AdminPanelSettingsIcon /> },
-];
+const adminItemDefs = [
+  { i18nKey: "adminPanel", path: "/admin", icon: <AdminPanelSettingsIcon /> },
+] as const;
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
   const isAdmin = user?.role === "super_admin";
-  const visibleNavItems = isAdmin ? [] : navItems;
+  // Admins see the same tenant-facing links so they can demo / spot-check the
+  // user surfaces; the dedicated Admin section is rendered separately below.
+  const visibleNavItems = navItemDefs;
 
   const initials = user?.full_name
     ? user.full_name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
@@ -78,6 +86,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
           <Box sx={{ flexGrow: 1 }} />
 
+          <LanguageToggle />
+          <ContrastToggle />
+          <NotificationBell />
+
           {/* User info */}
           <Chip
             label={(user?.tier === "company" ? "collaborator" : user?.tier) ?? "free"}
@@ -107,7 +119,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             variant="outlined"
             sx={{ ml: 1 }}
           >
-            Logout
+            {t("nav.logout")}
           </Button>
         </Toolbar>
       </AppBar>
@@ -156,7 +168,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   >
                     {item.icon}
                   </ListItemIcon>
-                  <ListItemText primary={item.label} />
+                  <ListItemText primary={t(`nav.${item.i18nKey}`)} />
                 </ListItemButton>
               );
             })}
@@ -166,7 +178,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <>
               {visibleNavItems.length > 0 && <Divider sx={{ mx: 2, my: 1 }} />}
               <List sx={{ px: 0.5 }}>
-                {adminItems.map((item) => {
+                {adminItemDefs.map((item) => {
                   const isActive = location.pathname === item.path;
                   return (
                     <ListItemButton
@@ -192,7 +204,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                         {item.icon}
                       </ListItemIcon>
                       <ListItemText
-                        primary={item.label}
+                        primary={t(`nav.${item.i18nKey}`)}
                         primaryTypographyProps={{ fontWeight: isActive ? 700 : 500 }}
                       />
                     </ListItemButton>
@@ -230,6 +242,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </Box>
 
       <PlatformCompanion />
+      <ImpersonationBanner />
     </Box>
   );
 }

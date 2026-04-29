@@ -14,7 +14,7 @@ from ..schemas.admin import (
     UserSearchSchema,
 )
 from ..schemas.billing import SubscriptionOverrideSchema
-from ..services import admin_service
+from ..services import admin_service, auth_service
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -91,6 +91,7 @@ def get_user(user_id):
     user = admin_service.get_user(user_id)
     if not user:
         return jsonify({"error": "not_found"}), 404
+    sub = getattr(user, "subscription", None)
     return (
         jsonify(
             {
@@ -102,6 +103,16 @@ def get_user(user_id):
                 "is_active": user.is_active,
                 "totp_enabled": user.totp_enabled,
                 "created_at": user.created_at.isoformat(),
+                "subscription": (
+                    {
+                        "plan": sub.plan,
+                        "status": sub.status,
+                        "max_chunks": sub.max_chunks,
+                        "max_vram_mb": sub.max_vram_mb,
+                    }
+                    if sub
+                    else None
+                ),
             }
         ),
         200,
@@ -148,6 +159,165 @@ def update_user(user_id):
         ),
         200,
     )
+
+
+@admin_bp.get("/users/<user_id>/export")
+@jwt_required()
+def export_user(user_id):
+    """GDPR-style data export — user profile + audit log + subscription.
+
+    The gateway aggregator stitches this together with dumps from the other
+    services (datasets in data-ingestion, pipelines/chat in ml-training) into
+    a single zip the super-admin can hand to the user. Returns JSON here so
+    the gateway can compose without re-zipping.
+    """
+    if not _require_admin():
+        return jsonify({"error": "forbidden"}), 403
+    user = admin_service.get_user(user_id)
+    if not user:
+        return jsonify({"error": "not_found"}), 404
+
+    from ..models.subscription import AuditLog, Subscription
+
+    sub = Subscription.query.filter_by(user_id=user.id).first()
+    actor_logs = (
+        AuditLog.query.filter(AuditLog.actor_id == user.id)
+        .order_by(AuditLog.created_at.desc())
+        .limit(500)
+        .all()
+    )
+    target_logs = (
+        AuditLog.query.filter(AuditLog.target_id == str(user.id))
+        .order_by(AuditLog.created_at.desc())
+        .limit(500)
+        .all()
+    )
+
+    return (
+        jsonify(
+            {
+                "user": {
+                    "user_id": str(user.id),
+                    "email": user.email,
+                    "full_name": user.full_name,
+                    "role": user.role,
+                    "tier": user.tier,
+                    "is_active": user.is_active,
+                    "totp_enabled": user.totp_enabled,
+                    "created_at": user.created_at.isoformat(),
+                },
+                "subscription": (
+                    {
+                        "plan": sub.plan,
+                        "status": sub.status,
+                        "trial_end": sub.trial_end.isoformat() if sub.trial_end else None,
+                        "current_period_end": (
+                            sub.current_period_end.isoformat()
+                            if sub.current_period_end
+                            else None
+                        ),
+                        "max_chunks": sub.max_chunks,
+                        "max_vram_mb": sub.max_vram_mb,
+                    }
+                    if sub
+                    else None
+                ),
+                "audit_logs_as_actor": [
+                    {
+                        "action": log.action,
+                        "target_type": log.target_type,
+                        "target_id": log.target_id,
+                        "ip_address": log.ip_address,
+                        "created_at": log.created_at.isoformat(),
+                        "detail": log.detail,
+                    }
+                    for log in actor_logs
+                ],
+                "audit_logs_as_target": [
+                    {
+                        "action": log.action,
+                        "actor_id": str(log.actor_id) if log.actor_id else None,
+                        "ip_address": log.ip_address,
+                        "created_at": log.created_at.isoformat(),
+                        "detail": log.detail,
+                    }
+                    for log in target_logs
+                ],
+            }
+        ),
+        200,
+    )
+
+
+@admin_bp.post("/users/<user_id>/impersonate")
+@jwt_required()
+def impersonate_user(user_id):
+    """Mint a 5-minute access token impersonating `user_id`.
+
+    Super-admin only. No refresh-token row is created — this is a one-shot
+    session. Both start and (best-effort) end are audit-logged. The minted
+    token carries an `imp_actor` claim so downstream events can be correlated
+    back to the actual operator.
+    """
+    actor_id = _require_admin()
+    if not actor_id:
+        return jsonify({"error": "forbidden"}), 403
+    user = admin_service.get_user(user_id)
+    if not user:
+        return jsonify({"error": "not_found"}), 404
+    if not user.is_active:
+        return jsonify({"error": "user_inactive"}), 409
+    if str(user.id) == str(actor_id):
+        return jsonify({"error": "cannot_impersonate_self"}), 400
+
+    token, ttl = auth_service.issue_impersonation_token(user, actor_id)
+
+    admin_service.log_action(
+        action="admin.impersonate_start",
+        actor_id=actor_id,
+        target_type="user",
+        target_id=user_id,
+        detail={"ttl_seconds": ttl, "target_email": user.email},
+        ip_address=_ip(),
+    )
+    return (
+        jsonify(
+            {
+                "access_token": token,
+                "expires_in": ttl,
+                "target": {
+                    "user_id": str(user.id),
+                    "email": user.email,
+                    "full_name": user.full_name,
+                    "role": user.role,
+                    "tier": user.tier,
+                },
+            }
+        ),
+        200,
+    )
+
+
+@admin_bp.post("/users/<user_id>/impersonate/end")
+@jwt_required()
+def impersonate_end(user_id):
+    """Audit-log the end of an impersonation session.
+
+    Best-effort: if the super-admin closes the tab without firing this, the
+    token expires naturally and we lose the explicit end stamp — the start
+    audit row + 5min TTL still bound the session.
+    """
+    actor_id = _require_admin()
+    if not actor_id:
+        return jsonify({"error": "forbidden"}), 403
+    admin_service.log_action(
+        action="admin.impersonate_end",
+        actor_id=actor_id,
+        target_type="user",
+        target_id=user_id,
+        ip_address=_ip(),
+    )
+    return jsonify({"ok": True}), 200
 
 
 @admin_bp.delete("/users/<user_id>")
@@ -243,6 +413,8 @@ def list_subscriptions():
             "current_period_end": (
                 s.current_period_end.isoformat() if s.current_period_end else None
             ),
+            "max_chunks": s.max_chunks,
+            "max_vram_mb": s.max_vram_mb,
         }
         for s in subs
     ]
@@ -259,9 +431,22 @@ def override_subscription(user_id):
         data = _sub_override.load(request.get_json() or {})
     except ValidationError as e:
         return jsonify({"error": "validation_error", "detail": e.messages}), 400
+    # Marshmallow load_default=None makes both quota fields *always* present
+    # in `data`. Forward them only when the request actually included them so
+    # the service-level sentinel (`_UNSET`) can leave the existing value
+    # untouched on plan-only edits.
+    payload_keys = set((request.get_json(silent=True) or {}).keys())
+    kwargs = {}
+    if "max_chunks" in payload_keys:
+        kwargs["max_chunks"] = data.get("max_chunks")
+    if "max_vram_mb" in payload_keys:
+        kwargs["max_vram_mb"] = data.get("max_vram_mb")
     try:
         sub = admin_service.override_subscription(
-            user_id, data["plan"], data.get("status", "active")
+            user_id,
+            data["plan"],
+            data.get("status", "active"),
+            **kwargs,
         )
     except ValueError:
         return jsonify({"error": "not_found"}), 404
@@ -273,7 +458,18 @@ def override_subscription(user_id):
         detail=data,
         ip_address=_ip(),
     )
-    return jsonify({"user_id": user_id, "plan": sub.plan, "status": sub.status}), 200
+    return (
+        jsonify(
+            {
+                "user_id": user_id,
+                "plan": sub.plan,
+                "status": sub.status,
+                "max_chunks": sub.max_chunks,
+                "max_vram_mb": sub.max_vram_mb,
+            }
+        ),
+        200,
+    )
 
 
 # ── Audit Logs ────────────────────────────────────────────────────────────────
@@ -315,6 +511,74 @@ def list_logs():
                 "total": total,
                 "page": params["page"],
                 "limit": params["limit"],
+            }
+        ),
+        200,
+    )
+
+
+# ── Failed-login audit ───────────────────────────────────────────────────────
+
+
+@admin_bp.get("/security/failed-logins")
+@jwt_required()
+def failed_logins():
+    """Top offending IPs + recent failed-login attempts over the last N hours.
+
+    Driven entirely off `audit_logs` — `auth.login_failed` rows are appended
+    by the login route on every credential mismatch, so this endpoint is a
+    pure read with no extra schema.
+    """
+    if not _require_admin():
+        return jsonify({"error": "forbidden"}), 403
+
+    from datetime import datetime, timedelta, timezone
+    from sqlalchemy import func
+
+    from ..models.subscription import AuditLog
+
+    hours = max(1, min(int(request.args.get("hours", 24)), 24 * 30))
+    since = datetime.now(timezone.utc) - timedelta(hours=hours)
+
+    base = AuditLog.query.filter(
+        AuditLog.action == "auth.login_failed", AuditLog.created_at >= since
+    )
+
+    total = base.count()
+
+    top_ips = (
+        base.with_entities(
+            AuditLog.ip_address, func.count(AuditLog.id).label("attempts")
+        )
+        .group_by(AuditLog.ip_address)
+        .order_by(func.count(AuditLog.id).desc())
+        .limit(10)
+        .all()
+    )
+
+    recent = (
+        base.order_by(AuditLog.created_at.desc()).limit(50).all()
+    )
+
+    return (
+        jsonify(
+            {
+                "window_hours": hours,
+                "since": since.isoformat(),
+                "total": total,
+                "top_ips": [
+                    {"ip_address": ip or "unknown", "attempts": int(attempts)}
+                    for ip, attempts in top_ips
+                ],
+                "recent": [
+                    {
+                        "id": str(log.id),
+                        "ip_address": log.ip_address,
+                        "email": (log.detail or {}).get("email"),
+                        "created_at": log.created_at.isoformat(),
+                    }
+                    for log in recent
+                ],
             }
         ),
         200,

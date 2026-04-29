@@ -46,3 +46,32 @@ def update_profile():
 
     db.session.commit()
     return jsonify(_user_schema.dump(user)), 200
+
+
+@profile_bp.get("/public/<user_id>")
+@jwt_required()
+def public_user(user_id):
+    """Minimal public-safe lookup: full_name + email only.
+
+    Used by collaboration UIs (e.g. "Edited by Alice Martin · 2h ago") to
+    resolve a user_id stamp without exposing role, tier, or audit fields.
+    Any authenticated caller can hit this — no super-admin gate — since the
+    information here is already visible in pipeline messages and project
+    member lists.
+    """
+    try:
+        user = User.query.get(user_id)
+    except Exception:
+        return jsonify({"error": "invalid_id"}), 400
+    if not user:
+        return jsonify({"error": "not_found"}), 404
+    return (
+        jsonify(
+            {
+                "user_id": str(user.id),
+                "full_name": user.full_name,
+                "email": user.email,
+            }
+        ),
+        200,
+    )

@@ -82,6 +82,28 @@ def preprocess_dataset(
     if not transformers:
         raise ValueError("No features to preprocess")
 
+    # Guard: one-hot on a high-cardinality column produces a dense matrix of
+    # `n_rows × sum(unique_values)`. A single ID-like column with 100k+ uniques
+    # silently asks numpy for tens of GiB and OOM-crashes the worker (which
+    # then leaves the task unacked, wedging the queue for everything behind
+    # it). Refuse cleanly before we get there so the user sees a real error.
+    if encoding == "onehot" and cat_cols:
+        MAX_OHE_OUTPUT_COLS = 2000
+        per_col_unique = {c: int(df_features[c].nunique(dropna=True)) for c in cat_cols}
+        total_ohe_cols = sum(per_col_unique.values())
+        if total_ohe_cols > MAX_OHE_OUTPUT_COLS:
+            offenders = sorted(
+                ((c, n) for c, n in per_col_unique.items() if n > 50),
+                key=lambda kv: -kv[1],
+            )[:5]
+            offender_str = ", ".join(f"{c}={n}" for c, n in offenders) or "(none)"
+            raise ValueError(
+                "onehot_too_wide: total one-hot output would be "
+                f"{total_ohe_cols} columns (max {MAX_OHE_OUTPUT_COLS}). "
+                "Drop or label-encode the high-cardinality columns first. "
+                f"Top offenders: {offender_str}."
+            )
+
     ct = ColumnTransformer(transformers=transformers, remainder="drop")
 
     # Update progress

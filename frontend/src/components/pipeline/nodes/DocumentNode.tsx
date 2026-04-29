@@ -1,26 +1,34 @@
 import { Handle, Position, type NodeProps } from "@xyflow/react";
-import { Box, Chip, CircularProgress, Typography, alpha } from "@mui/material";
+import { Box, Chip, CircularProgress, IconButton, Tooltip, Typography, alpha } from "@mui/material";
 import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import ErrorRoundedIcon from "@mui/icons-material/ErrorRounded";
 import CloudUploadRoundedIcon from "@mui/icons-material/CloudUploadRounded";
+import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ragApi } from "../../../api/rag";
 import type { DocumentNodeData } from "../../../types/pipeline";
+import { NodeBadge } from "./NodeBadge";
+import { getValidationBorderColor, type NodeValidation } from "./validation";
+import { DocumentPreviewDialog } from "../DocumentPreviewDialog";
 
 interface ExtraProps {
   pipelineId?: string;
   onIngestStart?: (nodeId: string, taskId: string, documentId: string, sourceName: string) => void;
+  __validation?: NodeValidation;
 }
 
 const ALLOWED_EXT = /\.(pdf|txt|md)$/i;
 
 export function DocumentNode({ id, data, selected }: NodeProps) {
+  const { t } = useTranslation();
   const d = data as DocumentNodeData & ExtraProps;
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const status = d.status;
 
   const processFile = async (file: File) => {
@@ -90,14 +98,16 @@ export function DocumentNode({ id, data, selected }: NodeProps) {
       <CircularProgress size={12} sx={{ color: "#f59e0b" }} />
     ) : null;
 
+  const validationBorder = getValidationBorderColor(d.__validation, "");
   return (
     <Box
       sx={{
+        position: "relative",
         px: 2.5,
         py: 2,
         borderRadius: 3,
         border: 2,
-        borderColor: selected ? "#0ea5e9" : alpha("#0ea5e9", 0.25),
+        borderColor: validationBorder || (selected ? "#0ea5e9" : alpha("#0ea5e9", 0.25)),
         bgcolor: "#fff",
         minWidth: 200,
         boxShadow: selected
@@ -190,7 +200,38 @@ export function DocumentNode({ id, data, selected }: NodeProps) {
             variant="outlined"
             sx={{ fontSize: "0.65rem", height: 20 }}
           />
+          {status === "ready" && d.document_id && d.pipelineId && (
+            <Tooltip title={t("documentPreview.open")} arrow>
+              <IconButton
+                size="small"
+                aria-label={t("documentPreview.open")}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPreviewOpen(true);
+                }}
+                className="nodrag"
+                sx={{
+                  ml: "auto",
+                  p: 0.25,
+                  color: "#0284c7",
+                  "&:hover": { bgcolor: alpha("#0ea5e9", 0.1) },
+                }}
+              >
+                <VisibilityRoundedIcon sx={{ fontSize: 14 }} />
+              </IconButton>
+            </Tooltip>
+          )}
         </Box>
+      )}
+
+      {d.document_id && d.pipelineId && (
+        <DocumentPreviewDialog
+          open={previewOpen}
+          onClose={() => setPreviewOpen(false)}
+          pipelineId={d.pipelineId}
+          documentId={d.document_id}
+          sourceName={d.source_name}
+        />
       )}
 
       {localError && (
@@ -218,6 +259,7 @@ export function DocumentNode({ id, data, selected }: NodeProps) {
       />
 
       <Handle type="source" position={Position.Right} />
+      <NodeBadge validation={d.__validation} />
     </Box>
   );
 }

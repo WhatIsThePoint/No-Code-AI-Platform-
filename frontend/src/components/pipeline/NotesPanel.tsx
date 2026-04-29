@@ -85,10 +85,10 @@ export function NotesPanel({ pipelineId, nodeId }: Props) {
                     multiline
                     maxRows={3}
                   />
-                  <IconButton size="small" onClick={() => handleEdit(note.note_id)} sx={{ color: "#6366f1" }}>
+                  <IconButton size="small" onClick={() => handleEdit(note.note_id)} aria-label="Save note edit" sx={{ color: "#6366f1" }}>
                     <CheckIcon fontSize="small" />
                   </IconButton>
-                  <IconButton size="small" onClick={() => setEditingId(null)}>
+                  <IconButton size="small" onClick={() => setEditingId(null)} aria-label="Cancel note edit">
                     <CloseIcon fontSize="small" />
                   </IconButton>
                 </Box>
@@ -114,12 +114,12 @@ export function NotesPanel({ pipelineId, nodeId }: Props) {
                   {note.user_id === userId && (
                     <Box sx={{ ml: 1, display: "flex", gap: 0.25 }}>
                       <Tooltip title="Edit">
-                        <IconButton size="small" onClick={() => { setEditingId(note.note_id); setEditContent(note.content); }}>
+                        <IconButton size="small" aria-label="Edit note" onClick={() => { setEditingId(note.note_id); setEditContent(note.content); }}>
                           <EditIcon sx={{ fontSize: 14 }} />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Delete">
-                        <IconButton size="small" onClick={() => handleDelete(note.note_id)} sx={{ color: "#ef4444" }}>
+                        <IconButton size="small" aria-label="Delete note" onClick={() => handleDelete(note.note_id)} sx={{ color: "#ef4444" }}>
                           <DeleteIcon sx={{ fontSize: 14 }} />
                         </IconButton>
                       </Tooltip>

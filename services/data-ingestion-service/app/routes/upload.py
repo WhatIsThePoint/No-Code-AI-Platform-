@@ -79,6 +79,9 @@ def upload_file():
         "task_id": None,
         "created_at": now,
         "updated_at": now,
+        # Sprint 7 Module 5 — collaboration "last edited by" stamp.
+        "last_edited_by": user_id,
+        "last_edited_at": now,
     }
     mongo.get_collection("datasets").insert_one(doc)
 

@@ -114,6 +114,7 @@ export function PipelineEditorPage() {
           <IconButton
             size="small"
             onClick={() => navigate("/pipelines")}
+            aria-label="Back to pipelines"
             sx={{
               bgcolor: alpha("#6366f1", 0.08),
               "&:hover": { bgcolor: alpha("#6366f1", 0.15) },
@@ -211,7 +212,7 @@ export function PipelineEditorPage() {
         <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1, pb: 1 }}>
           <CloudDownloadIcon sx={{ color: pipeline.type === "rag" ? "#7c3aed" : "#059669" }} />
           <Box sx={{ flex: 1, fontWeight: 700 }}>Export pipeline</Box>
-          <IconButton size="small" onClick={() => setExportOpen(false)}>
+          <IconButton size="small" onClick={() => setExportOpen(false)} aria-label="Close export dialog">
             <CloseIcon fontSize="small" />
           </IconButton>
         </DialogTitle>

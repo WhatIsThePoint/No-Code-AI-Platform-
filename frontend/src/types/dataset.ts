@@ -107,4 +107,6 @@ export interface Dataset {
   task_id?: string;
   created_at: string;
   updated_at: string;
+  last_edited_by?: string;
+  last_edited_at?: string;
 }

@@ -24,7 +24,11 @@ import DeleteIcon from "@mui/icons-material/DeleteOutlineRounded";
 import AddIcon from "@mui/icons-material/AddRounded";
 import RefreshIcon from "@mui/icons-material/RefreshRounded";
 import PaymentIcon from "@mui/icons-material/PaymentRounded";
+import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
+import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
+import { useNavigate } from "react-router-dom";
 import { adminApi } from "../api/admin";
+import type { User } from "../types/auth";
 import type {
   AdminUser,
   AuditLog,
@@ -36,6 +40,10 @@ import { useAuthStore } from "../store/authSlice";
 import { QueueMonitorPanel } from "../components/admin/QueueMonitorPanel";
 import { LiveHardwarePanel } from "../components/admin/LiveHardwarePanel";
 import { ModelRegistryPanel } from "../components/admin/ModelRegistryPanel";
+import { HealthcheckPanel } from "../components/admin/HealthcheckPanel";
+import { FailedLoginsPanel } from "../components/admin/FailedLoginsPanel";
+import { MigrationDriftPanel } from "../components/admin/MigrationDriftPanel";
+import { ConfirmDialog } from "../components/common/ConfirmDialog";
 
 // ────────────────────────────────────────────────────────────
 // Parity design tokens — editorial paper/ink palette.
@@ -252,6 +260,7 @@ const parityTextField = {
 
 export function AdminPage() {
   const user = useAuthStore((s) => s.user);
+  const navigate = useNavigate();
   const [tab, setTab] = useState(0);
 
   const [stats, setStats] = useState<PlatformStats | null>(null);
@@ -281,7 +290,54 @@ export function AdminPage() {
     userId: string | null;
     plan: PlanId;
     status: SubscriptionStatus;
-  }>({ open: false, userId: null, plan: "free", status: "active" });
+    // Quota overrides — empty string means "clear the override".
+    maxChunks: string;
+    maxVramMb: string;
+    // Snapshot of the values originally loaded so we only PATCH dirty fields.
+    initialMaxChunks: string;
+    initialMaxVramMb: string;
+  }>({
+    open: false,
+    userId: null,
+    plan: "free",
+    status: "active",
+    maxChunks: "",
+    maxVramMb: "",
+    initialMaxChunks: "",
+    initialMaxVramMb: "",
+  });
+
+  // Single confirm-dialog slot driven by whichever destructive action armed
+  // it last. The action's actual work lives on `onConfirm`, which we run
+  // through a busy flag so a slow API call can't be re-clicked into a
+  // double-mutation.
+  const [confirm, setConfirm] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    confirmText?: string;
+    confirmLabel?: string;
+    busy: boolean;
+    onConfirm: () => Promise<void>;
+  }>({
+    open: false,
+    title: "",
+    description: "",
+    busy: false,
+    onConfirm: async () => undefined,
+  });
+
+  const closeConfirm = () =>
+    setConfirm((prev) => (prev.busy ? prev : { ...prev, open: false }));
+
+  const runConfirm = async () => {
+    setConfirm((prev) => ({ ...prev, busy: true }));
+    try {
+      await confirm.onConfirm();
+    } finally {
+      setConfirm((prev) => ({ ...prev, open: false, busy: false }));
+    }
+  };
 
   const showSnack = (msg: string, tone: "success" | "error" = "success") =>
     setSnack({ open: true, msg, tone });
@@ -359,47 +415,157 @@ export function AdminPage() {
     }
   };
 
-  const handleDeleteUser = async (userId: string) => {
-    if (!confirm("Delete this user permanently?")) return;
+  const handleDeleteUser = (userId: string) => {
+    const target = users.find((u) => u.user_id === userId);
+    const email = target?.email ?? userId;
+    setConfirm({
+      open: true,
+      title: "Delete user",
+      description: `This permanently removes ${email} and all of their datasets, pipelines, and trained models. This cannot be undone.`,
+      // Typed-confirmation gate: the user has to retype the email so a
+      // mis-clicked Delete on a row two below the intended one can't go through.
+      confirmText: email,
+      confirmLabel: "Delete user",
+      busy: false,
+      onConfirm: async () => {
+        try {
+          await adminApi.deleteUser(userId);
+          setUsers((prev) => prev.filter((u) => u.user_id !== userId));
+          showSnack("User deleted");
+        } catch {
+          showSnack("Delete failed", "error");
+        }
+      },
+    });
+  };
+
+  const handleImpersonate = async (u: AdminUser) => {
     try {
-      await adminApi.deleteUser(userId);
-      setUsers((prev) => prev.filter((u) => u.user_id !== userId));
-      showSnack("User deleted");
+      const { data } = await adminApi.impersonateUser(u.user_id);
+      const targetUser: User = {
+        id: data.target.user_id,
+        email: data.target.email,
+        full_name: data.target.full_name,
+        role: data.target.role,
+        tier: data.target.tier,
+        totp_enabled: false,
+        created_at: new Date().toISOString(),
+      };
+      useAuthStore.getState().startImpersonation(
+        targetUser,
+        data.access_token,
+        data.expires_in,
+      );
+      showSnack("Now viewing as " + u.email);
+      navigate("/dashboard");
     } catch {
-      showSnack("Delete failed", "error");
+      showSnack("Could not start the impersonation session", "error");
     }
   };
 
-  const openSubDialog = (u: AdminUser) => {
+  const handleExportUser = async (u: AdminUser) => {
+    try {
+      const res = await adminApi.exportUser(u.user_id);
+      const blob =
+        res.data instanceof Blob
+          ? res.data
+          : new Blob([res.data as BlobPart], { type: "application/zip" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const safeEmail = u.email.replace(/[^a-zA-Z0-9._-]+/g, "_");
+      a.href = url;
+      a.download = `user_${safeEmail}_export.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showSnack("Export downloaded");
+    } catch {
+      showSnack("Export failed", "error");
+    }
+  };
+
+  const closeSubDialog = () =>
+    setSubDialog({
+      open: false,
+      userId: null,
+      plan: "free",
+      status: "active",
+      maxChunks: "",
+      maxVramMb: "",
+      initialMaxChunks: "",
+      initialMaxVramMb: "",
+    });
+
+  const openSubDialog = async (u: AdminUser) => {
     const guessPlan: PlanId =
       u.tier === "company"
         ? "company_monthly"
         : u.tier === "solo"
         ? "solo_monthly"
         : "free";
+    // Hydrate quota fields from the user's current subscription so the
+    // dialog shows what's already been overridden, not blanks.
+    let chunks = "";
+    let vram = "";
+    try {
+      const { data } = await adminApi.getUser(u.user_id);
+      const sub = (data as unknown as { subscription?: { max_chunks: number | null; max_vram_mb: number | null } }).subscription;
+      if (sub?.max_chunks != null) chunks = String(sub.max_chunks);
+      if (sub?.max_vram_mb != null) vram = String(sub.max_vram_mb);
+    } catch {
+      /* fall back to blank — admin can still set fresh values */
+    }
     setSubDialog({
       open: true,
       userId: u.user_id,
       plan: guessPlan,
       status: "active",
+      maxChunks: chunks,
+      maxVramMb: vram,
+      initialMaxChunks: chunks,
+      initialMaxVramMb: vram,
     });
+  };
+
+  const parseQuota = (raw: string): { provided: boolean; value: number | null; valid: boolean } => {
+    const trimmed = raw.trim();
+    if (trimmed === "") return { provided: true, value: null, valid: true };
+    const n = Number(trimmed);
+    if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0) {
+      return { provided: true, value: null, valid: false };
+    }
+    return { provided: true, value: n, valid: true };
   };
 
   const submitSubOverride = async () => {
     if (!subDialog.userId) return;
+    const quota: { max_chunks?: number | null; max_vram_mb?: number | null } = {};
+    if (subDialog.maxChunks !== subDialog.initialMaxChunks) {
+      const parsed = parseQuota(subDialog.maxChunks);
+      if (!parsed.valid) {
+        showSnack("Max chunks must be a non-negative integer", "error");
+        return;
+      }
+      quota.max_chunks = parsed.value;
+    }
+    if (subDialog.maxVramMb !== subDialog.initialMaxVramMb) {
+      const parsed = parseQuota(subDialog.maxVramMb);
+      if (!parsed.valid) {
+        showSnack("Max VRAM (MB) must be a non-negative integer", "error");
+        return;
+      }
+      quota.max_vram_mb = parsed.value;
+    }
     try {
       await adminApi.overrideSubscription(
         subDialog.userId,
         subDialog.plan,
-        subDialog.status
+        subDialog.status,
+        quota,
       );
       showSnack("Subscription overridden");
-      setSubDialog({
-        open: false,
-        userId: null,
-        plan: "free",
-        status: "active",
-      });
+      closeSubDialog();
       const r = await adminApi.listUsers({ q: userSearch });
       setUsers(r.data.items);
     } catch {
@@ -418,15 +584,25 @@ export function AdminPage() {
     }
   };
 
-  const handleDeleteAnnouncement = async (id: string) => {
-    if (!confirm("Delete this announcement?")) return;
-    try {
-      await adminApi.deleteAnnouncement(id);
-      setAnnouncements((prev) => prev.filter((a) => a.id !== id));
-      showSnack("Announcement deleted");
-    } catch {
-      showSnack("Delete failed", "error");
-    }
+  const handleDeleteAnnouncement = (id: string) => {
+    const target = announcements.find((a) => a.id === id);
+    const titleSnippet = target?.title?.trim() || "this announcement";
+    setConfirm({
+      open: true,
+      title: "Delete announcement",
+      description: `Remove "${titleSnippet}"? Users currently seeing this banner will stop seeing it on their next page load.`,
+      confirmLabel: "Delete",
+      busy: false,
+      onConfirm: async () => {
+        try {
+          await adminApi.deleteAnnouncement(id);
+          setAnnouncements((prev) => prev.filter((a) => a.id !== id));
+          showSnack("Announcement deleted");
+        } catch {
+          showSnack("Delete failed", "error");
+        }
+      },
+    });
   };
 
   const handleCreateAnn = async () => {
@@ -567,6 +743,15 @@ export function AdminPage() {
         >
           <LiveHardwarePanel />
           <QueueMonitorPanel />
+          <Box sx={{ gridColumn: { xs: "1", md: "1 / -1" } }}>
+            <HealthcheckPanel />
+          </Box>
+          <Box sx={{ gridColumn: { xs: "1", md: "1 / -1" } }}>
+            <FailedLoginsPanel />
+          </Box>
+          <Box sx={{ gridColumn: { xs: "1", md: "1 / -1" } }}>
+            <MigrationDriftPanel />
+          </Box>
           <Box sx={{ gridColumn: { xs: "1", md: "1 / -1" } }}>
             <ModelRegistryPanel />
           </Box>
@@ -863,6 +1048,7 @@ export function AdminPage() {
                         <IconButton
                           size="small"
                           onClick={() => handleSuspend(u.user_id, u.is_active)}
+                          aria-label={u.is_active ? "Suspend user" : "Reactivate user"}
                           sx={{
                             borderRadius: "2px",
                             color: u.is_active ? P.bad : P.ok,
@@ -879,15 +1065,38 @@ export function AdminPage() {
                         <IconButton
                           size="small"
                           onClick={() => openSubDialog(u)}
+                          aria-label="Override subscription"
                           sx={{ borderRadius: "2px", color: P.accentInk }}
                         >
                           <PaymentIcon sx={{ fontSize: 16 }} />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="View as user" arrow>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleImpersonate(u)}
+                          aria-label="View as user"
+                          disabled={u.user_id === user?.id || !u.is_active}
+                          sx={{ borderRadius: "2px", color: P.accentInk }}
+                        >
+                          <VisibilityRoundedIcon sx={{ fontSize: 16 }} />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Export user data (GDPR)" arrow>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleExportUser(u)}
+                          aria-label="Export user data"
+                          sx={{ borderRadius: "2px", color: P.ink2 }}
+                        >
+                          <DownloadRoundedIcon sx={{ fontSize: 16 }} />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Delete" arrow>
                         <IconButton
                           size="small"
                           onClick={() => handleDeleteUser(u.user_id)}
+                          aria-label="Delete user"
                           sx={{ borderRadius: "2px", color: P.bad }}
                         >
                           <DeleteIcon sx={{ fontSize: 16 }} />
@@ -1018,6 +1227,7 @@ export function AdminPage() {
                     <IconButton
                       size="small"
                       onClick={() => handleDeleteAnnouncement(a.id)}
+                      aria-label="Delete announcement"
                       sx={{ borderRadius: "2px", color: P.bad }}
                     >
                       <DeleteIcon sx={{ fontSize: 16 }} />
@@ -1103,14 +1313,7 @@ export function AdminPage() {
       {/* ─── Subscription override dialog ─── */}
       <Dialog
         open={subDialog.open}
-        onClose={() =>
-          setSubDialog({
-            open: false,
-            userId: null,
-            plan: "free",
-            status: "active",
-          })
-        }
+        onClose={closeSubDialog}
         fullWidth
         maxWidth="xs"
         PaperProps={{
@@ -1174,7 +1377,7 @@ export function AdminPage() {
                 status: e.target.value as SubscriptionStatus,
               }))
             }
-            sx={parityTextField}
+            sx={{ ...parityTextField, mb: 2 }}
           >
             {STATUS_OPTIONS.map((s) => (
               <MenuItem key={s.value} value={s.value}>
@@ -1182,6 +1385,57 @@ export function AdminPage() {
               </MenuItem>
             ))}
           </TextField>
+
+          <Typography
+            sx={{
+              fontFamily: MONO,
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+              color: P.muted,
+              mt: 0.5,
+              mb: 1,
+            }}
+          >
+            Quota overrides
+          </Typography>
+          <Typography
+            sx={{
+              fontFamily: MONO,
+              fontSize: 10,
+              color: P.muted2,
+              mb: 1.5,
+            }}
+          >
+            Leave blank to clear the override and fall back to the plan default.
+          </Typography>
+          <TextField
+            label="Max chunks"
+            type="number"
+            fullWidth
+            value={subDialog.maxChunks}
+            onChange={(e) =>
+              setSubDialog((s) => ({ ...s, maxChunks: e.target.value }))
+            }
+            placeholder="e.g. 5000"
+            inputProps={{ min: 0, max: 50000, "aria-label": "Max chunks override" }}
+            helperText="Per-user ceiling for indexed RAG chunks (0 – 50 000)."
+            sx={{ ...parityTextField, mb: 2 }}
+          />
+          <TextField
+            label="Max VRAM (MB)"
+            type="number"
+            fullWidth
+            value={subDialog.maxVramMb}
+            onChange={(e) =>
+              setSubDialog((s) => ({ ...s, maxVramMb: e.target.value }))
+            }
+            placeholder="e.g. 4096"
+            inputProps={{ min: 0, max: 16384, "aria-label": "Max VRAM in megabytes" }}
+            helperText="Hard ceiling on Ollama model size for this user (0 – 16 384 MB)."
+            sx={parityTextField}
+          />
         </DialogContent>
         <DialogActions
           sx={{
@@ -1191,17 +1445,7 @@ export function AdminPage() {
             gap: 1,
           }}
         >
-          <Button
-            onClick={() =>
-              setSubDialog({
-                open: false,
-                userId: null,
-                plan: "free",
-                status: "active",
-              })
-            }
-            sx={parityButton("ghost")}
-          >
+          <Button onClick={closeSubDialog} sx={parityButton("ghost")}>
             Cancel
           </Button>
           <Button onClick={submitSubOverride} sx={parityButton("primary")}>
@@ -1232,6 +1476,17 @@ export function AdminPage() {
           {snack.msg}
         </Alert>
       </Snackbar>
+
+      <ConfirmDialog
+        open={confirm.open}
+        title={confirm.title}
+        description={confirm.description}
+        confirmText={confirm.confirmText}
+        confirmLabel={confirm.confirmLabel}
+        busy={confirm.busy}
+        onCancel={closeConfirm}
+        onConfirm={runConfirm}
+      />
     </Box>
   );
 }

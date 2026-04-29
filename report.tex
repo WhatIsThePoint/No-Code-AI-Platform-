@@ -1,0 +1,499 @@
+\documentclass[12pt, a4paper]{report}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{a4paper, margin=1in}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{titlesec}
+
+% Setup for code listings
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+\lstset{style=mystyle}
+
+\title{End-of-Studies Project (PFE)\\ \Large Privacy-First No-Code AI Platform}
+\author{Engineering Student}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\newpage
+
+\chapter{General Context of the Project}
+
+\section{Project Overview and Context}
+\subsection{The Domain of No-Code Machine Learning}
+Machine learning has historically been the domain of specialized engineers and data scientists. Building, tuning, and deploying models requires deep expertise in Python, statistics, and DevOps. While platforms like DataRobot and Azure ML Studio have abstracted these complexities into drag-and-drop interfaces, they universally demand that users ship their proprietary data to third-party cloud infrastructure. 
+
+\subsection{Project Description – Privacy-First No-Code AI Platform}
+This End-of-Studies project (PFE) introduces a No-Code AI platform designed from the ground up for strict data privacy. It delivers the complete MLOps and Generative AI experience—from data ingestion and statistical profiling to training, model explainability, and Retrieval-Augmented Generation (RAG) chat—running entirely locally on commodity hardware.
+
+\section{Requirements Specification}
+\subsection{Functional Requirements}
+The platform must allow non-technical users to:
+\begin{itemize}
+    \item Upload structured data (CSV/XLSX) or connect to SQL databases.
+    \item Visually build Machine Learning pipelines via an intuitive DAG (Directed Acyclic Graph) editor.
+    \item Train supervised and unsupervised models automatically. Supported ML tasks include:
+    \begin{itemize}
+        \item \textbf{Classification:} XGBoost, Random Forest, GBM, Logistic Regression, LightGBM, CatBoost.
+        \item \textbf{Regression:} XGBoost Regressor, Random Forest Regressor, GBM Regressor, Ridge, LightGBM Regressor, CatBoost Regressor.
+        \item \textbf{Clustering:} K-Means (with Elbow curve).
+        \item \textbf{Forecasting:} Prophet (time-series).
+    \end{itemize}
+    \item Interact with an AI companion capable of querying internal documents using RAG.
+\end{itemize}
+
+\subsection{Multi-Tenancy Model}
+The platform supports two operational modes:
+\begin{itemize}
+    \item \textbf{Individual:} Personal workspaces with private datasets and pipelines.
+    \item \textbf{Company:} Shared workspaces with role-based access control (Owner, PM, Data Scientist, Analyst, Viewer).
+\end{itemize}
+
+\subsection{Non-Functional Requirements}
+\begin{itemize}
+    \item \textbf{Data Sovereignty:} Zero outbound network calls; all computation and models must run locally.
+    \item \textbf{Modularity:} The system must employ a microservices architecture to isolate CPU-intensive ML tasks from standard I/O API routing.
+    \item \textbf{Scalability:} Background tasks must be orchestrated asynchronously.
+\end{itemize}
+
+\section{Technical Architecture}
+\subsection{Technology Stack}
+The platform leverages a robust, modern stack:
+\begin{itemize}
+    \item \textbf{Frontend:} React 18, Vite, Zustand, and React Flow.
+    \item \textbf{Backend Microservices:} Flask, Celery, and Flask-SocketIO.
+    \item \textbf{Data Stores:} PostgreSQL (with pgvector), MongoDB, and Redis.
+    \item \textbf{Local AI:} Ollama (\texttt{llama3.2:3b}), sentence-transformers, scikit-learn.
+\end{itemize}
+
+\subsection{Technical Constraints}
+The primary hurdle was orchestrating resource-heavy ML algorithms and large language models (LLMs) on constrained local hardware (e.g., 8GB RAM laptops) without causing memory exhaustion or blocking the event loops.
+
+\section{Conclusion}
+This chapter established the ambitious scope of the project: delivering enterprise-grade ML capabilities to domain experts without compromising on data sovereignty. 
+
+\chapter{Preliminary Study}
+
+\section{Current Situation}
+The current market is dominated by managed Cloud AI services (e.g., AWS SageMaker, Vertex AI). While highly scalable, they present insurmountable hurdles for regulated domains such as healthcare, finance, and the public sector. 
+
+\section{Observed Problems}
+\subsection{Data Privacy and Security Risks in the Cloud}
+Organizations dealing with PII (Personally Identifiable Information) or sensitive intellectual property cannot legally or safely transfer their datasets to vendor-controlled S3 buckets.
+\subsection{High Barrier to Entry}
+Open-source alternatives like Jupyter Notebooks and scikit-learn demand extensive programming knowledge, alienating business analysts and domain experts.
+\subsection{High Cost of Managed AI}
+Relying on proprietary LLM APIs (like OpenAI) incurs unpredictable per-token costs and risks vendor lock-in.
+
+\section{Objectives of the New System}
+To address these flaws, the proposed platform bridges the gap by providing:
+\begin{enumerate}
+    \item \textbf{Local Execution:} Ensuring true air-gapped capability.
+    \item \textbf{Intuitive UX:} A visually driven, no-code pipeline builder.
+    \item \textbf{End-to-End Workflow:} Unifying data preparation, training, and deployment under one local roof.
+\end{enumerate}
+
+\section{Conclusion}
+By diagnosing the friction points of cloud-based ML, the necessity of a local, microservices-driven architecture became undeniably clear, paving the way for the chosen methodology.
+
+\chapter{Methodology and Work Environment}
+
+\section{Technology Choices \& Rationale}
+Selecting the right technology stack was crucial for balancing performance and maintainability:
+\begin{itemize}
+    \item \textbf{Backend Framework (Flask):} Chosen over Django or FastAPI for its microservice-friendly minimalist approach and robust extensions (Flask-JWT-Extended, Flask-PyMongo).
+    \item \textbf{Databases:} PostgreSQL provides ACID transactions necessary for auth data, while MongoDB offers the flexible schema required for arbitrary dataset profiles and pipeline configurations. Redis handles sub-millisecond lookups for token blacklists and rate limiting.
+    \item \textbf{Async Processing (Celery + Redis):} Since Pandas profiling and ML training are CPU-bound, \texttt{asyncio} would block the event loop. Celery utilizes independent worker processes to bypass the Python GIL safely.
+\end{itemize}
+
+\section{CI/CD Pipeline}
+A rigorous Continuous Integration/Continuous Deployment (CI/CD) pipeline was implemented via GitHub Actions:
+\begin{itemize}
+    \item \textbf{Code Quality Enforcement:} Backend code must pass \texttt{black} (formatting), \texttt{isort} (import ordering), and \texttt{flake8} (linting). Frontend code must pass strict \texttt{ESLint} checks and TypeScript compilation (\texttt{tsc --noEmit}).
+    \item \textbf{Automated Testing:} A matrix of tests spins up PostgreSQL, MongoDB, and Redis to execute \texttt{pytest} across all microservices, while \texttt{vitest} runs frontend coverage.
+\end{itemize}
+
+\section{Comparison of Project Management Methodologies}
+Traditional Waterfall methodologies are too rigid for the iterative nature of software engineering, specifically when dealing with the unpredictable resource consumption of ML algorithms. 
+
+\section{The Choice of Agile Methodology}
+Agile was selected because it accommodates continuous integration, allows for pivoting based on hardware constraints, and prioritizes working software over comprehensive documentation.
+
+\section{Scrum Methodology}
+The project was divided into logical Sprints, each culminating in a deployable, tangible module. 
+\begin{itemize}
+    \item \textbf{Roles:} Handled autonomously, acting as Product Owner, Scrum Master, and Lead Developer.
+    \item \textbf{Artifacts:} Product Backlog, Sprint Backlog, and increments (demonstrated in the E2E testing).
+\end{itemize}
+
+\section{System Architecture: The Gateway Pattern}
+To manage the complexity of ML tasks, a \textbf{Microservices Architecture} was designed. Instead of a monolithic codebase, the system is split into:
+\begin{itemize}
+    \item \texttt{api-gateway}: Centralized authentication and routing.
+    \item \texttt{auth-service}: JWT lifecycle and RBAC.
+    \item \texttt{data-ingestion-service}: Pandas profiling and chunking.
+    \item \texttt{ml-training-service}: Celery workers for XGBoost/Prophet.
+\end{itemize}
+This isolation prevents a heavy XGBoost training loop from starving the authentication service.
+
+\chapter{Sprint 1: Account Management and Gateway Security}
+
+\section{Sprint Backlog}
+The goal of Sprint 1 was to lay the foundation: a secure, stateless authentication mechanism, Role-Based Access Control (RBAC), and a unified API Gateway to proxy requests to internal microservices safely.
+
+\section{Design}
+\subsection{Use Case Diagram Description}
+The Use Case diagram features the \textit{User} interacting with the platform to "Register", "Login", and "Manage Workspaces". It branches into two roles: \textit{Individual User} (managing personal data) and \textit{Company Admin} (inviting team members, managing roles like PM or Data Scientist).
+\subsection{Sequence Diagram Description}
+The JWT Sequence diagram illustrates a user logging in. The \texttt{auth-service} validates credentials and issues a short-lived Access Token (JWT) alongside a long-lived Refresh Token (HttpOnly cookie). On subsequent requests, the \texttt{api-gateway} intercepts the call, cryptographically verifies the JWT, checks a Redis blacklist, and injects authoritative \texttt{X-User-Id} headers before proxying.
+\subsection{Class Diagram Description}
+The Class Diagram models PostgreSQL tables: \texttt{User} (1-to-N) \texttt{RefreshTokens}, \texttt{Company} (1-to-N) \texttt{Memberships}, and \texttt{Invitations}.
+
+\section{Implementation}
+
+\subsection{Role-Based Access Control (RBAC) and Gateway Routing}
+One of the most complex technical hurdles was ensuring zero-trust communication between the microservices without introducing network latency. By utilizing a "Decode-Only" Gateway, the gateway cryptographically verifies the JWT using a shared \texttt{JWT\_SECRET\_KEY} without executing a round-trip to the \texttt{auth-service}.
+
+Below is the implementation of the \texttt{\_forward} method in the API Gateway that handles proxying and header injection:
+
+\begin{lstlisting}[language=Python, caption=API Gateway Proxy and Header Injection]
+def _forward(
+    upstream_base: str,
+    path: str,
+    require_auth: bool = True,
+    timeout: int = 30,
+) -> Response:
+    """Forward the current request to an upstream service."""
+    if require_auth:
+        try:
+            verify_jwt_in_request()
+            claims = get_jwt()
+            g.user_id = get_jwt_identity()
+            g.user_role = claims.get("role", "")
+        except Exception as e:
+            return jsonify({"error": "unauthorized", "message": str(e)}), 401
+
+    # Build upstream URL
+    url = f"{upstream_base.rstrip('/')}{path}"
+    
+    # Strip client-supplied X-User-* headers to prevent spoofing
+    _STRIP_PREFIXES = ("x-user-", "x-company-", "x-project-")
+    headers = {
+        k: v for k, v in request.headers
+        if k.lower() not in _HOP_BY_HOP
+        and k.lower() != "host"
+        and not k.lower().startswith(_STRIP_PREFIXES)
+    }
+    
+    # Inject authoritative headers trusted by downstream microservices
+    if require_auth or hasattr(g, "user_id"):
+        headers.update(get_forwarded_headers())
+
+    resp = requests.request(
+        method=request.method,
+        url=url,
+        headers=headers,
+        data=request.get_data(),
+        stream=True,
+    )
+    # Return streamed response...
+\end{lstlisting}
+
+\section{Security Design}
+\subsection{JWT and Password Security}
+The authentication system employs several layers of security:
+\begin{itemize}
+    \item \textbf{Token Lifecycle:} Short-lived access tokens (15 min) limit the window of misuse, while refresh tokens are rotated on every use and stored strictly as HttpOnly cookies to prevent XSS attacks.
+    \item \textbf{Blacklist Architecture:} A Redis-backed JWT ID (JTI) blacklist ensures that upon logout, tokens are instantly invalidated for the remainder of their natural TTL.
+    \item \textbf{Password Hashing:} User passwords are encrypted using bcrypt with a high cost factor. Only SHA-256 hashes of refresh tokens are stored in the database.
+\end{itemize}
+\subsection{Rate Limiting and CORS}
+The API gateway enforces per-user rate limits (defaulting to 600 requests/minute to accommodate React Strict Mode in development). Cross-Origin Resource Sharing (CORS) is strictly configured at the gateway level.
+
+\section{Conclusion}
+Sprint 1 successfully established a fortress of security. The API Gateway effectively insulates the internal microservices, ensuring that they only ever process requests accompanied by verified, un-spoofable HTTP headers.
+
+\chapter{Sprint 2: Data Ingestion and Automated Profiling}
+
+\section{Sprint Backlog}
+Sprint 2 introduced the \texttt{data-ingestion-service}. The primary objectives were to handle asynchronous file uploads (CSV/XLSX), securely ingest SQL databases, and automatically compute a statistical profile (missing values, correlations, skewness) to guide the non-technical user in their data preparation.
+
+\section{Design}
+\subsection{Class Diagram Description}
+The database schema uses MongoDB due to the dynamic nature of dataset schemas. The \texttt{Dataset} document stores metadata (row count, target column) and a \texttt{profiling\_summary} sub-document. A separate \texttt{TaskResults} collection acts as a state machine for Celery tasks, storing \texttt{progress\_pct} and \texttt{status}.
+\subsection{Sequence Diagram Description}
+The Asynchronous Upload sequence demonstrates the API Gateway forwarding a multipart form data request. The ingestion service saves the file to a shared Docker volume, inserts a "pending" document in MongoDB, and dispatches a message to Redis. A Celery worker picks up the task, processes the DataFrame using Pandas, and updates MongoDB with the results while the frontend polls for completion.
+
+\section{Implementation}
+
+\subsection{SQL Connector and Fernet Encryption}
+To allow users to ingest data directly from SQL databases, credentials must be stored to run scheduled imports. To secure this, symmetric AES-128-CBC encryption (Fernet) was implemented. The encryption key resides in the environment variables, meaning a breach of the MongoDB instance alone does not expose user database credentials. Furthermore, all dynamic SQL queries are executed via SQLAlchemy's parameterized text queries to prevent SQL Injection attacks.
+
+\subsection{Data Storage Strategy: Parquet Files}
+The preprocessing service splits uploaded data into train/val/test splits and saves them as Parquet files rather than CSVs. This design ensures identical data splits between training attempts and provides up to 10x faster I/O performance for columnar ML operations.
+
+\subsection{Automated Profiling Logic}
+A core feature is the automatic generation of statistical metrics. The logic is handled inside a Celery background worker to prevent HTTP timeout errors on massive datasets.
+
+\begin{lstlisting}[language=Python, caption=Celery Task for Data Profiling]
+@celery.task(name="app.tasks.profiling.profile_dataset", bind=True)
+def profile_dataset(self, dataset_id: str):
+    client = MongoClient(os.environ["MONGO_URL"])
+    datasets = client[os.environ.get("MONGO_DB", "nocode_ingestion")]["datasets"]
+    
+    # Mark task as running
+    task_results.update_one(
+        {"task_id": self.request.id},
+        {"$set": {"status": "running", "progress_pct": 0}},
+        upsert=True,
+    )
+    
+    doc = datasets.find_one({"dataset_id": dataset_id})
+    df = load_dataframe(doc["file_path"])
+    
+    # Target-aware profiling (Sprint 7 Module 2)
+    target_column = doc.get("target_column")
+    summary = compute_profile_summary(df, target_column=target_column)
+
+    # Persist summary
+    datasets.update_one(
+        {"dataset_id": dataset_id},
+        {
+            "$set": {
+                "status": "ready",
+                "profiling_summary": summary,
+                "row_count": len(df),
+            }
+        },
+    )
+    task_results.update_one(
+        {"task_id": self.request.id},
+        {"$set": {"status": "success", "progress_pct": 100}},
+    )
+\end{lstlisting}
+
+\section{Conclusion}
+By decoupling the heavy data-processing pipeline into Celery workers and utilizing MongoDB for schemaless storage, Sprint 2 laid the groundwork for robust, scalable data preparation capable of handling complex outlier and skewness detection safely.
+
+\chapter{Sprint 3: Visual Pipeline Editor and ML Training Orchestration}
+
+\section{Sprint Backlog}
+Sprint 3 is the engine room of the platform. The goal was to build an intuitive, drag-and-drop web interface (DAG) that maps directly to a dynamic machine learning pipeline capable of orchestrating 14 distinct algorithms.
+
+\section{Design}
+\subsection{Use Case Diagram Description}
+Users visually construct a pipeline by dragging three node types onto a canvas: \texttt{DatasetNode}, \texttt{TrainNode}, and \texttt{EvaluateNode}. They connect the edges to define data flow.
+\subsection{Class Diagram Description}
+A \texttt{Pipeline} document contains an array of \texttt{nodes} and \texttt{edges} (storing \texttt{x, y} coordinates for the canvas). A 1-to-N relationship links pipelines to \texttt{ModelVersions}, preserving a historical record of all training executions.
+
+\section{Implementation}
+
+\subsection{React Flow DAG Management}
+The frontend leverages \texttt{React Flow} (XYFlow). The canvas state is serialized into a JSON configuration object. When the user clicks "Run", the UI traverses the graph from the \texttt{EvaluateNode} up to the \texttt{DatasetNode} to validate connections before submitting the configuration to the backend.
+
+\subsection{Data Flow: File to Trained Model}
+The orchestrated data lifecycle follows this sequence:
+\begin{enumerate}
+    \item \textbf{Upload \& Profiling:} CSV upload triggers a Celery task that runs \texttt{pandas} metrics.
+    \item \textbf{Preprocessing:} User configures imputation and encoding; the task fits a \texttt{ColumnTransformer} and saves \texttt{.parquet} files.
+    \item \textbf{Training Configuration:} User connects nodes on the XYFlow canvas and selects one of the 14 algorithms.
+    \item \textbf{Execution:} The ML Celery worker loads the parquet data, dynamically instantiates the chosen algorithm via the \texttt{BaseMLModel} registry, fits the model, and serializes the estimator.
+\end{enumerate}
+
+\subsection{The BaseMLModel Abstraction}
+To accommodate diverse algorithms (from scikit-learn's Random Forest to Meta's Prophet) under a single orchestrator, the \texttt{BaseMLModel} abstract base class was engineered. This polymorphic design ensures that the training worker code remains identical regardless of the chosen algorithm.
+
+\begin{lstlisting}[language=Python, caption=Abstract BaseMLModel Interface]
+from abc import ABC, abstractmethod
+import pandas as pd
+from typing import Any
+
+class BaseMLModel(ABC):
+    """
+    Unified interface for all supported algorithms.
+    Subclasses receive hyperparams as a dict at construction time.
+    """
+    def __init__(self, hyperparams: dict[str, Any]):
+        self.hyperparams = hyperparams
+        self._estimator = None
+
+    @abstractmethod
+    def train(self, X_train: pd.DataFrame, y_train: pd.Series | None = None) -> None:
+        """Fit the model. y_train is None for unsupervised tasks."""
+
+    @abstractmethod
+    def predict(self, X: pd.DataFrame) -> Any:
+        """Return predictions for X."""
+
+    @abstractmethod
+    def evaluate(self, X_test: pd.DataFrame, y_test: pd.Series | None = None) -> dict[str, Any]:
+        """Compute and return a metrics dict."""
+
+    @property
+    def estimator(self):
+        return self._estimator
+\end{lstlisting}
+
+\section{Conclusion}
+Sprint 3 successfully bridged the gap between a visual React-based canvas and complex Python machine learning orchestrations. The \texttt{BaseMLModel} pattern provides ultimate flexibility, making it trivial to add new algorithms in the future without refactoring the Celery tasks.
+
+\chapter{Sprint 4: MLOps, Explainability, and Export}
+
+\section{Sprint Backlog}
+With model training operational, Sprint 4 focused on model interpretability (Explainable AI), performance evaluation, and unlocking vendor lock-in by providing portable model exports.
+
+\section{Design}
+\subsection{Sequence Diagram Description}
+During the evaluation phase of the Celery worker, if the task is a supervised learning model, the worker calculates SHAP (SHapley Additive exPlanations) values to determine feature importance. It then serializes the model using \texttt{joblib} and saves it to a persistent Docker volume.
+
+\section{Implementation}
+
+\subsection{Model Export and Portability}
+To guarantee that users are never locked into the platform, a one-click export feature was implemented. It packages the trained \texttt{.joblib} artifact along with a pre-configured \texttt{FastAPI} inference script. This allows users to deploy the exact model trained visually directly onto Kubernetes clusters or Edge devices instantly.
+
+\subsection{Why Joblib for Serialization?}
+For Python-based ML models, \texttt{joblib} was specifically chosen over the standard \texttt{pickle} library because it is heavily optimized for objects containing large NumPy arrays (which all scikit-learn estimators use internally), and it employs memory-mapping to drastically accelerate loading times.
+
+\section{Conclusion}
+By focusing on MLOps best practices (version control, SHAP feature importance, and portability), Sprint 4 elevated the platform from a simple educational tool into an enterprise-ready ML workspace.
+
+\chapter{Sprint 5: Local GenAI, RAG, and AI Companion}
+
+\section{Sprint Backlog}
+Sprint 5 represents the technological climax of the PFE: implementing a 100\% air-gapped Generative AI capability. The objective was to provide an AI copilot that acts as a Data Scientist assistant, utilizing Retrieval-Augmented Generation (RAG) over the user's proprietary datasets without relying on OpenAI.
+
+\section{Design}
+\subsection{Architecture of the RAG System}
+The RAG pipeline relies on an orchestrated dance between three components:
+\begin{enumerate}
+    \item \textbf{Embeddings:} \texttt{sentence-transformers/all-MiniLM-L6-v2} generating dense vector embeddings.
+    \item \textbf{Vector Store:} PostgreSQL augmented with the \texttt{pgvector} extension.
+    \item \textbf{LLM Engine:} Ollama running \texttt{llama3.2:3b} directly alongside the backend.
+\end{enumerate}
+\subsection{Sequence Diagram Description}
+When a document is uploaded, Langchain splitters chunk the text. Vectors are computed and batched into \texttt{pgvector}. Upon receiving a chat query, the ML service embeds the prompt, queries \texttt{pgvector} for the top-k chunks via cosine similarity, and streams the prompt and context into the local Ollama runtime.
+
+\section{Implementation}
+
+\subsection{Local Document Ingestion Logic}
+Below is the precise implementation of the asynchronous ingestion task that parses, chunks, and embeds documents locally.
+
+\begin{lstlisting}[language=Python, caption=Local RAG Document Ingestion]
+@celery.task(name="app.tasks.rag_ingest.process_rag_document", bind=True)
+def process_rag_document(self, document_id: str, pipeline_id: str, file_path: str):
+    # 1. Chunking using Langchain
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
+    from langchain_community.document_loaders import PyPDFLoader
+
+    docs = PyPDFLoader(file_path).load()
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=500, chunk_overlap=50, length_function=len
+    )
+    split_docs = splitter.split_documents(docs)
+    chunk_texts = [d.page_content for d in split_docs if d.page_content.strip()]
+
+    # 2. Local Embedding via sentence-transformers
+    vectors = embed_texts(chunk_texts)
+
+    # 3. Insert into pgvector
+    inserted = insert_chunks(
+        pipeline_id=pipeline_id,
+        document_id=document_id,
+        chunks=chunk_texts,
+        embeddings=vectors,
+    )
+\end{lstlisting}
+
+\section{Conclusion}
+Sprint 5 successfully demonstrated that a highly capable, context-aware AI companion can be executed securely on a standalone machine, protecting organizational data sovereignty.
+
+\chapter{Test and Deployment}
+
+\section{Backend and Frontend Testing}
+A comprehensive \texttt{pytest} suite was implemented across all Python microservices, ensuring logic isolated in the API Gateway and Celery tasks functions properly under load. The frontend relies on \texttt{Vitest} and rigorous TypeScript type definitions matching backend schemas.
+
+\section{Deployment Architecture}
+The system orchestration relies entirely on a single-host \texttt{docker-compose.yml} configuration deploying 12 intertwined containers. 
+
+\subsection{Volume and Network Management}
+The greatest challenge in deployment was managing shared state. \texttt{uploaded\_files} and \texttt{model\_artifacts} are defined as Docker Named Volumes, mounted concurrently across the API container and Celery Worker containers. This ensures the asynchronous worker can write the \texttt{.joblib} file directly where the API expects it for serving user downloads.
+
+Furthermore, \texttt{depends\_on} with \texttt{healthcheck} directives was mandated to ensure that PostgreSQL (and pgvector) was fully instantiated before the auth and ML services attempted Alembic schema migrations upon startup.
+
+\section{Deployment Hurdles and Debugging}
+Throughout the deployment process, several critical bugs were encountered and successfully mitigated:
+\begin{itemize}
+    \item \textbf{Prophet Missing CmdStan:} During initial training tests, the Prophet algorithm failed because it requires \texttt{CmdStan} (a standalone C++ binary) to execute probabilistic programs. The fix involved modifying the Dockerfile to compile CmdStan from source during the image build phase using \texttt{install\_cmdstan()}.
+    \item \textbf{Flask DB CLI Path Resolution:} Executing \texttt{make migrate} for Alembic migrations failed inside isolated Docker containers. This was resolved by explicitly injecting the \texttt{-e FLASK\_APP=app.main} environment variable into the transient container execution command.
+    \item \textbf{React Strict Mode Rate Limiting:} The frontend immediately triggered HTTP 429 Rate Limit errors because React 18 Strict Mode intentionally double-invokes \texttt{useEffect} hooks in development. The Redis rate limit was elevated to gracefully handle this development quirk.
+\end{itemize}
+
+\section{Conclusion}
+The encapsulated Docker workflow guarantees that the platform can be deployed reliably on any compliant machine using a simple \texttt{make up} command, sealing the promise of an isolated, secure, and accessible machine learning ecosystem.
+
+\chapter*{General Conclusion}
+\addcontentsline{toc}{chapter}{General Conclusion}
+
+This End-of-Studies Project achieved its ambitious goal: democratizing machine learning through an intuitive drag-and-drop interface while staunchly defending data sovereignty. By architecting a robust microservices backend, integrating a dynamic React Flow frontend, and leveraging cutting-edge local LLMs via Ollama, the platform rivals commercial cloud offerings without compromising privacy. 
+
+The successful implementation of local RAG, automated statistical profiling, and a scalable algorithm abstraction layer proves that enterprise-grade MLOps can indeed be executed securely on commodity hardware.
+
+\section*{Key Deliverables and Performance Metrics}
+Over the course of this project, a comprehensive platform was built from scratch, resulting in:
+\begin{itemize}
+    \item \textbf{12 Orchestrated Docker Containers} managing 4 Python microservices, 5 databases/caches, 2 Celery worker processes, and a MailHog server.
+    \item \textbf{Backend Infrastructure:} 4 independent Flask microservices comprising approximately 4,500 lines of Python code, featuring JWT validation, dynamic scikit-learn preprocessing, and 14 ML algorithms.
+    \item \textbf{Frontend Application:} A React + TypeScript Single Page Application (SPA) of over 3,500 lines of code, offering a rich drag-and-drop XYFlow pipeline editor and interactive Recharts metrics.
+    \item \textbf{Quality Assurance:} A full CI/CD pipeline on GitHub Actions, successfully mitigating over 23 tracked deployment and architectural bugs.
+    \item \textbf{Proven Efficacy:} The platform successfully trained and evaluated a Random Forest Regression model on a large-scale 250,000-row salary dataset, achieving an $R^2$ score of $0.9785$ locally.
+\end{itemize}
+
+Ultimately, this project stands as a testament to the viability of localized, privacy-first AI tools. It abstracts away the daunting complexities of MLOps while providing a collaborative, visual workspace tailored for the next generation of data-driven professionals.
+
+\begin{thebibliography}{9}
+
+\bibitem{scikit-learn}
+Pedregosa et al., \textit{Scikit-learn: Machine Learning in Python}, JMLR 12, pp. 2825-2830, 2011.
+
+\bibitem{react-flow}
+Webkid, \textit{React Flow (XYFlow) Documentation}, \url{https://reactflow.dev/}, 2024.
+
+\bibitem{ollama}
+Ollama, \textit{Get up and running with large language models locally}, \url{https://ollama.com/}, 2024.
+
+\bibitem{pgvector}
+pgvector, \textit{Open-source vector similarity search for Postgres}, \url{https://github.com/pgvector/pgvector}, 2024.
+
+\end{thebibliography}
+
+\end{document}

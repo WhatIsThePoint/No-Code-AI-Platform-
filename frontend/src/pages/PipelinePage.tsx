@@ -14,15 +14,17 @@ import {
   Fab,
   TextField,
   Typography,
-  alpha,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AccountTreeIcon from "@mui/icons-material/AccountTreeRounded";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { pipelinesApi } from "../api/pipelines";
 import type { Pipeline } from "../types/pipeline";
+import { EmptyStateHero } from "../components/common/EmptyStateHero";
+import { CardSkeletonGrid } from "../components/common/CardSkeletonGrid";
 
 const STATUS_COLOR: Record<string, "default" | "warning" | "success" | "error"> = {
   draft: "default",
@@ -33,6 +35,7 @@ const STATUS_COLOR: Record<string, "default" | "warning" | "success" | "error"> 
 
 export function PipelinePage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -98,28 +101,16 @@ export function PipelinePage() {
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       {loading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", mt: 8 }}>
-          <CircularProgress />
-        </Box>
+        <CardSkeletonGrid count={6} />
       ) : pipelines.length === 0 ? (
-        <Box
-          sx={{
-            textAlign: "center",
-            mt: 8,
-            py: 6,
-            px: 3,
-            borderRadius: 4,
-            border: "2px dashed",
-            borderColor: "divider",
-            bgcolor: alpha("#f8fafc", 0.5),
-          }}
-        >
-          <AccountTreeIcon sx={{ fontSize: 48, color: "text.secondary", mb: 1, opacity: 0.4 }} />
-          <Typography variant="h6" sx={{ color: "text.secondary", mb: 0.5 }}>No pipelines yet</Typography>
-          <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            Create your first pipeline to start training models.
-          </Typography>
-        </Box>
+        <EmptyStateHero
+          icon={AccountTreeIcon}
+          title={t("emptyStates.pipelines.title")}
+          description={t("emptyStates.pipelines.description")}
+          actionLabel={t("emptyStates.pipelines.action")}
+          onAction={() => setCreateOpen(true)}
+          accent="#8b5cf6"
+        />
       ) : (
         <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 2.5 }} className="stagger-children">
           {pipelines.map((p) => (

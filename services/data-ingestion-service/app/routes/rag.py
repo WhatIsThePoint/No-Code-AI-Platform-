@@ -145,3 +145,82 @@ def list_rag_documents(pipeline_id: str):
             }
         )
     return jsonify({"items": items, "total": len(items)}), 200
+
+
+@rag_bp.get("/pipelines/<pipeline_id>/documents/<document_id>/chunks")
+def list_document_chunks(pipeline_id: str, document_id: str):
+    """Stream a document's indexed chunks back to the UI for transparency.
+
+    Used by the "preview indexed content" affordance on DocumentNode so the
+    user can see exactly what the LLM is grounded on. Lightweight pagination
+    via `?page=` and `?page_size=` to avoid blowing up the wire on big PDFs.
+    """
+    user_id = request.headers.get("X-User-Id")
+    if not user_id:
+        return jsonify({"error": "missing_user_id"}), 401
+
+    # Sanity-check that the document is actually scoped to this pipeline so
+    # one user can't peek at another pipeline's chunks by guessing IDs.
+    doc = mongo.get_collection("rag_documents").find_one(
+        {"document_id": document_id, "pipeline_id": pipeline_id}
+    )
+    if not doc:
+        return jsonify({"error": "not_found"}), 404
+
+    page = max(1, int(request.args.get("page", 1)))
+    page_size = max(1, min(int(request.args.get("page_size", 25)), 200))
+    offset = (page - 1) * page_size
+
+    from ..services.rag_service import get_pg_connection
+
+    items: list[dict] = []
+    total = 0
+    try:
+        conn = get_pg_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT COUNT(*) FROM document_chunks WHERE document_id = %s",
+                    (document_id,),
+                )
+                total = int(cur.fetchone()[0])
+                cur.execute(
+                    """
+                    SELECT chunk_index, text_content, length(text_content) AS chars
+                    FROM document_chunks
+                    WHERE document_id = %s
+                    ORDER BY chunk_index ASC
+                    LIMIT %s OFFSET %s
+                    """,
+                    (document_id, page_size, offset),
+                )
+                for chunk_index, text_content, chars in cur.fetchall():
+                    items.append(
+                        {
+                            "chunk_index": int(chunk_index),
+                            "text": text_content,
+                            "chars": int(chars),
+                        }
+                    )
+        finally:
+            conn.close()
+    except Exception as exc:
+        current_app.logger.warning("chunk preview failed: %s", exc)
+        return (
+            jsonify({"error": "pgvector_unavailable", "detail": str(exc)[:200]}),
+            503,
+        )
+
+    return (
+        jsonify(
+            {
+                "document_id": document_id,
+                "source_name": doc.get("source_name"),
+                "page": page,
+                "page_size": page_size,
+                "total": total,
+                "items": items,
+            }
+        ),
+        200,
+    )

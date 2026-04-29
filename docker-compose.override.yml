@@ -9,6 +9,9 @@ services:
   api-gateway:
     volumes:
       - ./services/api-gateway:/app
+      # Read-only mount so the runtime migration-drift endpoint can diff
+      # init.sql against the live schema without leaving the container.
+      - ./infra:/app/infra:ro
     environment:
       # Declare host GPU so /system/hardware reports accurately even though
       # the gateway container has no nvidia runtime mounted. Override per host.

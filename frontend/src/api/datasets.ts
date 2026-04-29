@@ -46,4 +46,32 @@ export const datasetsApi = {
     api.post<{ task_id: string; status: string }>(`/datasets/${id}/preprocess`, config),
 
   delete: (id: string) => api.delete(`/datasets/${id}`),
+
+  rename: (id: string, payload: { name?: string; description?: string }) =>
+    api.patch<Dataset>(`/datasets/${id}`, payload),
+
+  sqlTest: (payload: {
+    db_type: "postgres" | "mysql";
+    host: string;
+    port: number;
+    database: string;
+    username: string;
+    password: string;
+  }) =>
+    api.post<{ ok: boolean; latency_ms: number; samples: string[]; error?: string; detail?: string }>(
+      "/datasets/sql-test",
+      payload,
+    ),
+
+  s3Test: (payload: {
+    bucket: string;
+    region: string;
+    access_key_id: string;
+    secret_access_key: string;
+    prefix?: string;
+  }) =>
+    api.post<{ ok: boolean; latency_ms: number; samples: string[]; error?: string; detail?: string }>(
+      "/datasets/s3-test",
+      payload,
+    ),
 };

@@ -16,13 +16,19 @@ import DownloadIcon from "@mui/icons-material/Download";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ModelTrainingIcon from "@mui/icons-material/ModelTrainingRounded";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { modelsApi } from "../api/models";
 import { pipelinesApi } from "../api/pipelines";
 import { MetricsChart } from "../components/pipeline/MetricsChart";
 import type { ModelVersion } from "../types/model";
 import type { Pipeline } from "../types/pipeline";
+import { EmptyStateHero } from "../components/common/EmptyStateHero";
+import { CardSkeletonGrid } from "../components/common/CardSkeletonGrid";
 
 export function ModelRegistryPage() {
+  const navigate = useNavigate();
+  const { t } = useTranslation();
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [versions, setVersions] = useState<Record<string, ModelVersion[]>>({});
   const [activePipeline, setActivePipeline] = useState<string | null>(null);
@@ -79,26 +85,16 @@ export function ModelRegistryPage() {
       </Box>
 
       {loading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", mt: 8 }}><CircularProgress /></Box>
+        <CardSkeletonGrid count={3} metaLines={2} />
       ) : pipelines.length === 0 ? (
-        <Box
-          sx={{
-            textAlign: "center",
-            mt: 8,
-            py: 6,
-            px: 3,
-            borderRadius: 4,
-            border: "2px dashed",
-            borderColor: "divider",
-            bgcolor: alpha("#f8fafc", 0.5),
-          }}
-        >
-          <ModelTrainingIcon sx={{ fontSize: 48, color: "text.secondary", mb: 1, opacity: 0.4 }} />
-          <Typography variant="h6" sx={{ color: "text.secondary", mb: 0.5 }}>No trained models yet</Typography>
-          <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            Run a pipeline to create model versions.
-          </Typography>
-        </Box>
+        <EmptyStateHero
+          icon={ModelTrainingIcon}
+          title={t("emptyStates.models.title")}
+          description={t("emptyStates.models.description")}
+          actionLabel={t("emptyStates.models.action")}
+          onAction={() => navigate("/pipelines")}
+          accent="#8b5cf6"
+        />
       ) : (
         <>
           <Tabs

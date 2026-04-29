@@ -7,6 +7,8 @@ import { useEffect, useState } from "react";
 import { useReactFlow } from "@xyflow/react";
 import type { RAGConfigNodeData, RAGLlmEngine } from "../../../types/pipeline";
 import { fetchHardwareOnce, type HardwareSnapshot } from "../../../api/system";
+import { NodeBadge } from "./NodeBadge";
+import { getValidationBorderColor, type NodeValidation } from "./validation";
 
 const DEFAULT_TOP_K = 8;
 const FALLBACK_MAX_K = 10; // used until hardware probe completes
@@ -69,7 +71,8 @@ function describeHardware(hw: HardwareSnapshot | null): string {
 }
 
 export function RAGConfigNode({ id, data, selected }: NodeProps) {
-  const d = data as RAGConfigNodeData;
+  const d = data as RAGConfigNodeData & { __validation?: NodeValidation };
+  const validationBorder = getValidationBorderColor(d.__validation, "");
   const { setNodes } = useReactFlow();
   const [hw, setHw] = useState<HardwareSnapshot | null>(null);
   const [hwError, setHwError] = useState(false);
@@ -130,19 +133,21 @@ export function RAGConfigNode({ id, data, selected }: NodeProps) {
   return (
     <Box
       sx={{
+        position: "relative",
         px: 2,
         py: 1.75,
         borderRadius: "2px",
         border: 1,
-        borderColor: selected ? ACCENT : RULE,
+        borderColor: validationBorder || (selected ? ACCENT : RULE),
         bgcolor: "#fafaf7",
         minWidth: 240,
         boxShadow: "none",
         transition: "border-color 0.15s ease",
-        "&:hover": { borderColor: selected ? ACCENT : INK },
+        "&:hover": { borderColor: validationBorder || (selected ? ACCENT : INK) },
       }}
     >
       <Handle type="target" position={Position.Left} />
+      <NodeBadge validation={d.__validation} />
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
         <Box
           sx={{

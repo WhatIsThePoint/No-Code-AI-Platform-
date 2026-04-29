@@ -1,11 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
-  Alert,
   Avatar,
   Box,
+  Button,
   Chip,
   CircularProgress,
   IconButton,
@@ -13,6 +14,7 @@ import {
   Popover,
   Stack,
   TextField,
+  Tooltip,
   Typography,
   alpha,
 } from "@mui/material";
@@ -21,7 +23,17 @@ import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import SmartToyRoundedIcon from "@mui/icons-material/SmartToyRounded";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
-import { ragApi, type ChatSource } from "../../api/rag";
+import AddCommentRoundedIcon from "@mui/icons-material/AddCommentRounded";
+import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
+import HistoryRoundedIcon from "@mui/icons-material/HistoryRounded";
+import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
+import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
+import ThumbUpAltRoundedIcon from "@mui/icons-material/ThumbUpAltRounded";
+import ThumbUpOffAltRoundedIcon from "@mui/icons-material/ThumbUpOffAltRounded";
+import ThumbDownAltRoundedIcon from "@mui/icons-material/ThumbDownAltRounded";
+import ThumbDownOffAltRoundedIcon from "@mui/icons-material/ThumbDownOffAltRounded";
+import { ragApi, type ChatSource, type ChatThread, type ChatTurn } from "../../api/rag";
+import { EmptyStateHero } from "../common/EmptyStateHero";
 
 interface Props {
   pipelineId: string;
@@ -33,29 +45,94 @@ interface Message {
   sources?: ChatSource[];
   error?: boolean;
   streaming?: boolean;
+  /** Server-assigned id for persisted assistant turns. Streaming bubbles
+   *  start without one and get re-loaded with the turn_id once persisted. */
+  turnId?: string;
+  /** -1 / 0 / 1 — null/undefined = no feedback yet. */
+  feedback?: number | null;
 }
 
+function turnsToMessages(turns: ChatTurn[]): Message[] {
+  const out: Message[] = [];
+  for (const turn of turns) {
+    if (turn.message) out.push({ role: "user", content: turn.message });
+    if (turn.answer) {
+      out.push({
+        role: "assistant",
+        content: turn.answer,
+        turnId: turn.turn_id ?? undefined,
+        feedback: turn.feedback ?? null,
+      });
+    }
+  }
+  return out;
+}
+
+
 export function ChatInterface({ pipelineId }: Props) {
+  const { t } = useTranslation();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
+  const [threads, setThreads] = useState<ChatThread[]>([]);
+  const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
+  // A "draft" thread is one the user just created via the New Chat button —
+  // it lives only in client state until the first message is sent and the
+  // backend confirms it. We render it in the sidebar so the click feels
+  // immediate even though no row exists yet.
+  const [draftThreadId, setDraftThreadId] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  // Hydrate prior turns once.
-  useEffect(() => {
-    ragApi
-      .chatHistory(pipelineId)
-      .then(({ data }) => {
-        const hydrated: Message[] = [];
-        for (const t of data.items) {
-          if (t.message) hydrated.push({ role: "user", content: t.message });
-          if (t.answer) hydrated.push({ role: "assistant", content: t.answer });
-        }
-        if (hydrated.length) setMessages(hydrated);
-      })
-      .catch(() => {});
+  const refreshThreads = useCallback(async (): Promise<ChatThread[]> => {
+    try {
+      const { data } = await ragApi.listThreads(pipelineId);
+      setThreads(data.items);
+      return data.items;
+    } catch {
+      setThreads([]);
+      return [];
+    }
   }, [pipelineId]);
+
+  const loadThread = useCallback(
+    async (threadId: string | null) => {
+      if (!threadId) {
+        setMessages([]);
+        return;
+      }
+      try {
+        const { data } = await ragApi.getThread(pipelineId, threadId);
+        setMessages(turnsToMessages(data.items));
+      } catch {
+        setMessages([]);
+      }
+    },
+    [pipelineId],
+  );
+
+  // Initial hydration: load thread list, pick the most recent as active.
+  // If none exist yet (fresh pipeline), leave activeThreadId null and show
+  // the empty state — the first message minted by the backend will populate.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const list = await refreshThreads();
+      if (cancelled) return;
+      const first = list[0];
+      if (first) {
+        setActiveThreadId(first.thread_id);
+        await loadThread(first.thread_id);
+      } else {
+        setActiveThreadId(null);
+        setMessages([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [pipelineId, refreshThreads, loadThread]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({
@@ -70,6 +147,52 @@ export function ChatInterface({ pipelineId }: Props) {
       abortRef.current?.abort();
     };
   }, [pipelineId]);
+
+  const handleSelectThread = async (threadId: string) => {
+    if (threadId === activeThreadId || pending) return;
+    abortRef.current?.abort();
+    setActiveThreadId(threadId);
+    // If the user clicks on the draft thread, leave the empty canvas as-is.
+    if (threadId === draftThreadId) {
+      setMessages([]);
+      return;
+    }
+    await loadThread(threadId);
+  };
+
+  const handleNewThread = async () => {
+    if (pending) return;
+    abortRef.current?.abort();
+    try {
+      const { data } = await ragApi.createThread(pipelineId);
+      setDraftThreadId(data.thread_id);
+      setActiveThreadId(data.thread_id);
+      setThreads((prev) => [data, ...prev.filter((t) => t.thread_id !== data.thread_id)]);
+      setMessages([]);
+    } catch {
+      // Fall back to a client-only ephemeral thread — the backend will mint
+      // its own id on the first send anyway.
+      setActiveThreadId(null);
+      setMessages([]);
+    }
+  };
+
+  const handleDeleteThread = async (threadId: string) => {
+    if (pending) return;
+    if (!confirm("Delete this conversation thread? This cannot be undone.")) return;
+    try {
+      await ragApi.deleteThread(pipelineId, threadId);
+    } catch {
+      /* ignore — refresh anyway, server may have already 404'd a draft */
+    }
+    if (draftThreadId === threadId) setDraftThreadId(null);
+    const list = await refreshThreads();
+    if (activeThreadId === threadId) {
+      const next = list[0]?.thread_id ?? null;
+      setActiveThreadId(next);
+      await loadThread(next);
+    }
+  };
 
   const handleSend = async () => {
     const trimmed = input.trim();
@@ -98,11 +221,20 @@ export function ChatInterface({ pipelineId }: Props) {
       });
     };
 
+    let confirmedThreadId: string | null = activeThreadId;
+
     try {
       await ragApi.chatStream(
         pipelineId,
         trimmed,
         {
+          onThread: (threadId) => {
+            confirmedThreadId = threadId;
+            // Pin the active id to whatever the backend assigned. If we sent
+            // up a draft id the backend echoes it back; if we sent nothing,
+            // we now know the new thread id.
+            setActiveThreadId(threadId);
+          },
           onSources: (sources) =>
             updateLast((msg) => ({ ...msg, sources })),
           onToken: (chunk) =>
@@ -130,7 +262,8 @@ export function ChatInterface({ pipelineId }: Props) {
             }));
           },
         },
-        controller.signal
+        controller.signal,
+        activeThreadId ?? undefined,
       );
     } catch (err: unknown) {
       // Network / abort. Don't overwrite a useful message we already wrote.
@@ -147,6 +280,16 @@ export function ChatInterface({ pipelineId }: Props) {
     } finally {
       setPending(false);
       abortRef.current = null;
+      // Once a turn lands the draft is no longer purely client-side.
+      if (confirmedThreadId && draftThreadId === confirmedThreadId) {
+        setDraftThreadId(null);
+      }
+      // Refresh the sidebar so titles + last-activity stamps reflect the
+      // turn we just persisted. Best-effort — failures are tolerable.
+      void refreshThreads();
+      // Re-hydrate the active thread so the just-persisted assistant bubble
+      // picks up its server turn_id and feedback can attach to it.
+      if (confirmedThreadId) void loadThread(confirmedThreadId);
     }
   };
 
@@ -155,7 +298,7 @@ export function ChatInterface({ pipelineId }: Props) {
       data-tour="rag-chat"
       sx={{
         display: "flex",
-        flexDirection: "column",
+        flexDirection: "row",
         height: "100%",
         minHeight: 480,
         bgcolor: alpha("#f8fafc", 0.5),
@@ -165,6 +308,25 @@ export function ChatInterface({ pipelineId }: Props) {
         borderColor: "divider",
       }}
     >
+      <ThreadSidebar
+        open={sidebarOpen}
+        onToggle={() => setSidebarOpen((o) => !o)}
+        threads={threads}
+        activeThreadId={activeThreadId}
+        draftThreadId={draftThreadId}
+        onNew={handleNewThread}
+        onSelect={handleSelectThread}
+        onDelete={handleDeleteThread}
+        disabled={pending}
+      />
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          flex: 1,
+          minWidth: 0,
+        }}
+      >
       <Box
         sx={{
           px: 3,
@@ -192,10 +354,10 @@ export function ChatInterface({ pipelineId }: Props) {
         </Box>
         <Box>
           <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-            RAG Chat
+            {t("chat.title")}
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            Local LLM + your documents · streamed token-by-token
+            {t("chat.subtitle")}
           </Typography>
         </Box>
       </Box>
@@ -213,14 +375,28 @@ export function ChatInterface({ pipelineId }: Props) {
         }}
       >
         {messages.length === 0 && !pending && (
-          <Alert severity="info" variant="outlined" sx={{ alignSelf: "center" }}>
-            Ask a question about the documents you've ingested. The model will only
-            answer from your indexed context.
-          </Alert>
+          <Box sx={{ alignSelf: "center", maxWidth: 540, width: "100%" }}>
+            <EmptyStateHero
+              icon={SmartToyRoundedIcon}
+              title={t("emptyStates.chat.title")}
+              description={t("emptyStates.chat.description")}
+              accent="#f59e0b"
+              dense
+            />
+          </Box>
         )}
 
         {messages.map((m, i) => (
-          <MessageBubble key={i} message={m} />
+          <MessageBubble
+            key={i}
+            message={m}
+            pipelineId={pipelineId}
+            onFeedback={(value) =>
+              setMessages((prev) =>
+                prev.map((msg, idx) => (idx === i ? { ...msg, feedback: value } : msg)),
+              )
+            }
+          />
         ))}
       </Box>
 
@@ -242,7 +418,7 @@ export function ChatInterface({ pipelineId }: Props) {
           size="small"
           multiline
           maxRows={4}
-          placeholder="Ask a question about your documents…"
+          placeholder={t("chat.placeholder")}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {
@@ -252,10 +428,12 @@ export function ChatInterface({ pipelineId }: Props) {
             }
           }}
           disabled={pending}
+          inputProps={{ "aria-label": t("chat.placeholder") }}
         />
         <IconButton
           onClick={handleSend}
           disabled={pending || !input.trim()}
+          aria-label={t("chat.sendAria")}
           sx={{
             bgcolor: "#f59e0b",
             color: "#fff",
@@ -266,15 +444,245 @@ export function ChatInterface({ pipelineId }: Props) {
           <SendRoundedIcon />
         </IconButton>
       </Paper>
+      </Box>
     </Box>
   );
 }
 
-function MessageBubble({ message }: { message: Message }) {
+interface ThreadSidebarProps {
+  open: boolean;
+  onToggle: () => void;
+  threads: ChatThread[];
+  activeThreadId: string | null;
+  draftThreadId: string | null;
+  onNew: () => void;
+  onSelect: (threadId: string) => void;
+  onDelete: (threadId: string) => void;
+  disabled: boolean;
+}
+
+function formatThreadTimestamp(iso: string | null): string {
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function ThreadSidebar({
+  open,
+  onToggle,
+  threads,
+  activeThreadId,
+  draftThreadId,
+  onNew,
+  onSelect,
+  onDelete,
+  disabled,
+}: ThreadSidebarProps) {
+  const { t } = useTranslation();
+  const collapsedWidth = 36;
+  const expandedWidth = 240;
+  return (
+    <Box
+      sx={{
+        width: open ? expandedWidth : collapsedWidth,
+        flexShrink: 0,
+        borderRight: 1,
+        borderColor: "divider",
+        bgcolor: "#fff",
+        display: "flex",
+        flexDirection: "column",
+        transition: "width 0.18s ease",
+        overflow: "hidden",
+      }}
+    >
+      {open ? (
+        <>
+          <Box
+            sx={{
+              px: 1.5,
+              py: 1,
+              borderBottom: 1,
+              borderColor: "divider",
+              display: "flex",
+              alignItems: "center",
+              gap: 0.5,
+            }}
+          >
+            <HistoryRoundedIcon sx={{ fontSize: 16, color: "text.secondary" }} />
+            <Typography
+              variant="caption"
+              sx={{ fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase" }}
+            >
+              {t("chat.threads.title")}
+            </Typography>
+            <Box sx={{ flex: 1 }} />
+            <Tooltip title={t("chat.threads.collapseAria")} arrow>
+              <IconButton
+                size="small"
+                onClick={onToggle}
+                aria-label={t("chat.threads.collapseAria")}
+                sx={{ p: 0.25 }}
+              >
+                <ChevronLeftRoundedIcon sx={{ fontSize: 16 }} />
+              </IconButton>
+            </Tooltip>
+          </Box>
+
+          <Box sx={{ px: 1, py: 1 }}>
+            <Button
+              fullWidth
+              size="small"
+              variant="outlined"
+              disabled={disabled}
+              onClick={onNew}
+              startIcon={<AddCommentRoundedIcon sx={{ fontSize: 16 }} />}
+              sx={{
+                justifyContent: "flex-start",
+                fontWeight: 600,
+                borderColor: alpha("#f59e0b", 0.4),
+                color: "#b45309",
+                "&:hover": { borderColor: "#d97706", bgcolor: alpha("#f59e0b", 0.08) },
+              }}
+            >
+              {t("chat.threads.newButton")}
+            </Button>
+          </Box>
+
+          <Box sx={{ flex: 1, overflowY: "auto", px: 1, pb: 1 }}>
+            {threads.length === 0 ? (
+              <Typography
+                variant="caption"
+                sx={{ color: "text.secondary", display: "block", px: 1, py: 1 }}
+              >
+                {t("chat.threads.empty")}
+              </Typography>
+            ) : (
+              <Stack spacing={0.5}>
+                {threads.map((thread) => {
+                  const isActive = thread.thread_id === activeThreadId;
+                  const isDraft = thread.thread_id === draftThreadId;
+                  return (
+                    <Box
+                      key={thread.thread_id}
+                      onClick={() => onSelect(thread.thread_id)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          onSelect(thread.thread_id);
+                        }
+                      }}
+                      sx={{
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: 0.5,
+                        p: 1,
+                        borderRadius: 1.5,
+                        cursor: "pointer",
+                        bgcolor: isActive ? alpha("#f59e0b", 0.12) : "transparent",
+                        border: 1,
+                        borderColor: isActive ? alpha("#f59e0b", 0.4) : "transparent",
+                        "&:hover": {
+                          bgcolor: isActive
+                            ? alpha("#f59e0b", 0.16)
+                            : alpha("#0f172a", 0.04),
+                        },
+                      }}
+                    >
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography
+                          variant="body2"
+                          noWrap
+                          sx={{ fontWeight: 600, fontSize: "0.78rem" }}
+                          title={thread.title}
+                        >
+                          {isDraft && thread.turn_count === 0
+                            ? t("chat.threads.draftLabel")
+                            : thread.title}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{ color: "text.secondary", fontSize: "0.65rem" }}
+                        >
+                          {formatThreadTimestamp(thread.last_message_at)}
+                          {thread.turn_count
+                            ? ` · ${t("chat.threads.turnCount", {
+                                count: thread.turn_count,
+                              })}`
+                            : ""}
+                        </Typography>
+                      </Box>
+                      <Tooltip title={t("chat.threads.deleteAria")} arrow>
+                        <IconButton
+                          size="small"
+                          aria-label={t("chat.threads.deleteAria")}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDelete(thread.thread_id);
+                          }}
+                          sx={{ p: 0.25, color: "text.secondary" }}
+                        >
+                          <DeleteOutlineRoundedIcon sx={{ fontSize: 14 }} />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  );
+                })}
+              </Stack>
+            )}
+          </Box>
+        </>
+      ) : (
+        <Box sx={{ display: "flex", justifyContent: "center", pt: 1 }}>
+          <Tooltip title={t("chat.threads.expandAria")} arrow placement="right">
+            <IconButton
+              size="small"
+              onClick={onToggle}
+              aria-label={t("chat.threads.expandAria")}
+            >
+              <ChevronRightRoundedIcon sx={{ fontSize: 18 }} />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      )}
+    </Box>
+  );
+}
+
+interface MessageBubbleProps {
+  message: Message;
+  pipelineId: string;
+  onFeedback: (value: number | null) => void;
+}
+
+function MessageBubble({ message, pipelineId, onFeedback }: MessageBubbleProps) {
+  const { t } = useTranslation();
   const isUser = message.role === "user";
   const sources = message.sources ?? [];
   const isWaitingForFirstToken =
     message.streaming && message.content.length === 0;
+  const showFeedback =
+    !isUser && !message.error && !message.streaming && !!message.turnId;
+  const currentFeedback = message.feedback ?? 0;
+
+  const sendFeedback = async (value: -1 | 1) => {
+    if (!message.turnId) return;
+    // Click again to clear; otherwise toggle to the new value.
+    const next: -1 | 0 | 1 = currentFeedback === value ? 0 : value;
+    // Optimistic update so the click feels instant.
+    onFeedback(next === 0 ? null : next);
+    try {
+      await ragApi.rateTurn(pipelineId, message.turnId, next);
+    } catch {
+      // Roll back on failure.
+      onFeedback(message.feedback ?? null);
+    }
+  };
 
   return (
     <Box sx={{ display: "flex", gap: 1.5, alignItems: "flex-start" }}>
@@ -309,7 +717,7 @@ function MessageBubble({ message }: { message: Message }) {
           {isWaitingForFirstToken ? (
             <Stack direction="row" spacing={1.25} alignItems="center" sx={{ color: "text.secondary" }}>
               <CircularProgress size={12} thickness={5} />
-              <Typography variant="caption">Thinking locally…</Typography>
+              <Typography variant="caption">{t("chat.thinking")}</Typography>
             </Stack>
           ) : isUser || message.error || sources.length === 0 ? (
             <Typography
@@ -331,6 +739,49 @@ function MessageBubble({ message }: { message: Message }) {
           )}
         </Paper>
 
+        {showFeedback && (
+          <Stack direction="row" spacing={0.5} sx={{ mt: 0.5, ml: 0.5 }}>
+            <Tooltip title={t("feedback.helpful")} arrow>
+              <IconButton
+                size="small"
+                onClick={() => sendFeedback(1)}
+                aria-label={t("feedback.helpful")}
+                aria-pressed={currentFeedback === 1}
+                sx={{
+                  p: 0.5,
+                  color: currentFeedback === 1 ? "#10b981" : "text.disabled",
+                  "&:hover": { color: "#10b981", bgcolor: alpha("#10b981", 0.08) },
+                }}
+              >
+                {currentFeedback === 1 ? (
+                  <ThumbUpAltRoundedIcon sx={{ fontSize: 14 }} />
+                ) : (
+                  <ThumbUpOffAltRoundedIcon sx={{ fontSize: 14 }} />
+                )}
+              </IconButton>
+            </Tooltip>
+            <Tooltip title={t("feedback.notHelpful")} arrow>
+              <IconButton
+                size="small"
+                onClick={() => sendFeedback(-1)}
+                aria-label={t("feedback.notHelpful")}
+                aria-pressed={currentFeedback === -1}
+                sx={{
+                  p: 0.5,
+                  color: currentFeedback === -1 ? "#ef4444" : "text.disabled",
+                  "&:hover": { color: "#ef4444", bgcolor: alpha("#ef4444", 0.08) },
+                }}
+              >
+                {currentFeedback === -1 ? (
+                  <ThumbDownAltRoundedIcon sx={{ fontSize: 14 }} />
+                ) : (
+                  <ThumbDownOffAltRoundedIcon sx={{ fontSize: 14 }} />
+                )}
+              </IconButton>
+            </Tooltip>
+          </Stack>
+        )}
+
         {message.sources && message.sources.length > 0 && (
           <Accordion
             disableGutters
@@ -350,7 +801,7 @@ function MessageBubble({ message }: { message: Message }) {
               <Stack direction="row" spacing={1} alignItems="center">
                 <MenuBookRoundedIcon sx={{ fontSize: 16, color: "text.secondary" }} />
                 <Typography variant="caption" sx={{ fontWeight: 600 }}>
-                  {message.sources.length} source{message.sources.length === 1 ? "" : "s"} used
+                  {t("chat.sources", { count: message.sources.length })}
                 </Typography>
               </Stack>
             </AccordionSummary>
@@ -385,10 +836,10 @@ function MessageBubble({ message }: { message: Message }) {
                         }}
                       />
                       <Typography variant="caption" sx={{ fontWeight: 600 }}>
-                        {s.source_name ?? "document"}
+                        {s.source_name ?? t("chat.documentFallback")}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        chunk #{s.chunk_index} · score {s.score.toFixed(3)}
+                        {t("chat.chunkScore", { index: s.chunk_index, score: s.score.toFixed(3) })}
                       </Typography>
                     </Stack>
                     <Typography
@@ -463,6 +914,7 @@ function CitationText({ text, sources, streaming }: CitationTextProps) {
 }
 
 function CitationChip({ rank, source }: { rank: number; source: ChatSource }) {
+  const { t } = useTranslation();
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const open = Boolean(anchor);
 
@@ -523,10 +975,10 @@ function CitationChip({ rank, source }: { rank: number; source: ChatSource }) {
             }}
           />
           <Typography variant="caption" sx={{ fontWeight: 700 }}>
-            {source.source_name ?? "document"}
+            {source.source_name ?? t("chat.documentFallback")}
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            chunk #{source.chunk_index} · score {source.score.toFixed(3)}
+            {t("chat.chunkScore", { index: source.chunk_index, score: source.score.toFixed(3) })}
           </Typography>
         </Stack>
         <Typography

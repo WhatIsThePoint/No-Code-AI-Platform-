@@ -248,7 +248,7 @@ export function ManageAccessTab({ pipeline }: Props) {
                   </Select>
                 </TableCell>
                 <TableCell align="right">
-                  <IconButton size="small" onClick={() => handleRemove(m.user_id)}>
+                  <IconButton size="small" onClick={() => handleRemove(m.user_id)} aria-label="Remove member">
                     <DeleteOutlineIcon fontSize="small" color="error" />
                   </IconButton>
                 </TableCell>

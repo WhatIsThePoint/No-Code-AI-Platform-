@@ -2,17 +2,21 @@ import { Handle, Position } from "@xyflow/react";
 import { Box, Typography, alpha } from "@mui/material";
 import AssessmentIcon from "@mui/icons-material/AssessmentRounded";
 import type { NodeProps } from "@xyflow/react";
+import { NodeBadge } from "./NodeBadge";
+import { getValidationBorderColor, type NodeValidation } from "./validation";
 
 export function EvaluateNode({ data, selected }: NodeProps) {
-  const d = data as { version_id?: string };
+  const d = data as { version_id?: string; __validation?: NodeValidation };
+  const validationBorder = getValidationBorderColor(d.__validation, "");
   return (
     <Box
       sx={{
+        position: "relative",
         px: 2.5,
         py: 2,
         borderRadius: 3,
         border: 2,
-        borderColor: selected ? "#10b981" : alpha("#10b981", 0.2),
+        borderColor: validationBorder || (selected ? "#10b981" : alpha("#10b981", 0.2)),
         bgcolor: "#fff",
         minWidth: 180,
         boxShadow: selected
@@ -47,6 +51,7 @@ export function EvaluateNode({ data, selected }: NodeProps) {
         {d.version_id ? `v: ${d.version_id.slice(0, 8)}` : "Results appear here"}
       </Typography>
       <Handle type="target" position={Position.Left} />
+      <NodeBadge validation={d.__validation} />
     </Box>
   );
 }

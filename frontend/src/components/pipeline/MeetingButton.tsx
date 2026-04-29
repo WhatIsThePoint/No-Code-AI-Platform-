@@ -27,6 +27,7 @@ import {
   type Meeting,
 } from "../../api/collab";
 import { getSocket } from "../../api/socket";
+import { useNotifications } from "../../store/notificationsSlice";
 
 interface Props {
   pipelineId: string;
@@ -81,6 +82,15 @@ export function MeetingButton({ pipelineId, disabled = false }: Props) {
         open: true,
         link: m.hangout_link,
         createdBy: m.created_by_name,
+      });
+      useNotifications.getState().push({
+        kind: "meeting_started",
+        title: m.created_by_name
+          ? `${m.created_by_name} started a meeting`
+          : "A teammate started a meeting",
+        body: m.hangout_link,
+        href: `/pipelines/${pipelineId}`,
+        ref_id: pipelineId,
       });
     };
     socket.on("meeting_created", onCreated);
@@ -219,6 +229,7 @@ export function MeetingButton({ pipelineId, disabled = false }: Props) {
               size="small"
               disabled={disabled}
               onClick={() => setPasteOpen(true)}
+              aria-label="Paste an external meeting link"
               sx={{
                 border: 1,
                 borderLeft: 0,

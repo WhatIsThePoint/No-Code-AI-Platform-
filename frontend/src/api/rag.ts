@@ -26,10 +26,21 @@ export interface ChatResponse {
 }
 
 export interface ChatTurn {
+  turn_id?: string;
   message: string;
   answer: string;
   source_count: number;
+  thread_id?: string;
+  feedback?: number | null;
   created_at: string | null;
+}
+
+export interface ChatThread {
+  thread_id: string;
+  title: string;
+  turn_count: number;
+  created_at: string | null;
+  last_message_at: string | null;
 }
 
 export const ragApi = {
@@ -48,11 +59,53 @@ export const ragApi = {
       `/pipelines/${pipelineId}/documents`
     ),
 
-  chat: (pipelineId: string, message: string) =>
-    api.post<ChatResponse>(`/pipelines/${pipelineId}/chat`, { message }),
+  chat: (pipelineId: string, message: string, threadId?: string) =>
+    api.post<ChatResponse & { thread_id?: string }>(
+      `/pipelines/${pipelineId}/chat`,
+      { message, ...(threadId ? { thread_id: threadId } : {}) },
+    ),
 
-  chatHistory: (pipelineId: string) =>
-    api.get<{ items: ChatTurn[] }>(`/pipelines/${pipelineId}/chat/history`),
+  chatHistory: (pipelineId: string, threadId?: string) =>
+    api.get<{ items: ChatTurn[] }>(
+      `/pipelines/${pipelineId}/chat/history`,
+      threadId ? { params: { thread_id: threadId } } : undefined,
+    ),
+
+  listThreads: (pipelineId: string) =>
+    api.get<{ items: ChatThread[] }>(`/pipelines/${pipelineId}/chat/threads`),
+
+  createThread: (pipelineId: string) =>
+    api.post<ChatThread>(`/pipelines/${pipelineId}/chat/threads`),
+
+  getThread: (pipelineId: string, threadId: string) =>
+    api.get<{ thread_id: string; items: ChatTurn[] }>(
+      `/pipelines/${pipelineId}/chat/threads/${threadId}`,
+    ),
+
+  deleteThread: (pipelineId: string, threadId: string) =>
+    api.delete<{ deleted: number }>(
+      `/pipelines/${pipelineId}/chat/threads/${threadId}`,
+    ),
+
+  documentChunks: (
+    pipelineId: string,
+    documentId: string,
+    params?: { page?: number; page_size?: number },
+  ) =>
+    api.get<{
+      document_id: string;
+      source_name: string | null;
+      page: number;
+      page_size: number;
+      total: number;
+      items: { chunk_index: number; text: string; chars: number }[];
+    }>(`/pipelines/${pipelineId}/documents/${documentId}/chunks`, { params }),
+
+  rateTurn: (pipelineId: string, turnId: string, value: -1 | 0 | 1) =>
+    api.post<{ turn_id: string; feedback: number }>(
+      `/pipelines/${pipelineId}/chat/turns/${turnId}/feedback`,
+      { value },
+    ),
 
   /**
    * Stream a RAG turn token-by-token. Uses native `fetch` (not axios) because
@@ -69,12 +122,14 @@ export const ragApi = {
     pipelineId: string,
     message: string,
     handlers: {
+      onThread?: (threadId: string) => void;
       onSources?: (sources: ChatSource[]) => void;
       onToken?: (chunk: string) => void;
       onDone?: (finalAnswer: string) => void;
       onError?: (error: string, detail?: string) => void;
     },
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    threadId?: string,
   ): Promise<void> => {
     const token = useAuthStore.getState().accessToken;
     const resp = await fetch(`/api/pipelines/${pipelineId}/chat/stream`, {
@@ -84,7 +139,7 @@ export const ragApi = {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       credentials: "include",
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({ message, ...(threadId ? { thread_id: threadId } : {}) }),
       signal,
     });
 
@@ -114,6 +169,9 @@ export const ragApi = {
         return;
       }
       switch (evt.type) {
+        case "thread":
+          handlers.onThread?.(String(evt.thread_id ?? ""));
+          break;
         case "sources":
           handlers.onSources?.((evt.sources_used as ChatSource[]) ?? []);
           break;
@@ -132,7 +190,7 @@ export const ragApi = {
       }
     };
 
-    while (true) {
+    for (;;) {
       const { value, done } = await reader.read();
       if (done) break;
       buffer += decoder.decode(value, { stream: true });

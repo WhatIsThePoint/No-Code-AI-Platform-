@@ -2,17 +2,21 @@ import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { Box, Chip, Typography, alpha } from "@mui/material";
 import StorageRoundedIcon from "@mui/icons-material/StorageRounded";
 import type { VectorStoreNodeData } from "../../../types/pipeline";
+import { NodeBadge } from "./NodeBadge";
+import { getValidationBorderColor, type NodeValidation } from "./validation";
 
 export function VectorStoreNode({ data, selected }: NodeProps) {
-  const d = data as VectorStoreNodeData;
+  const d = data as VectorStoreNodeData & { __validation?: NodeValidation };
+  const validationBorder = getValidationBorderColor(d.__validation, "");
   return (
     <Box
       sx={{
+        position: "relative",
         px: 2.5,
         py: 2,
         borderRadius: 3,
         border: 2,
-        borderColor: selected ? "#a855f7" : alpha("#a855f7", 0.25),
+        borderColor: validationBorder || (selected ? "#a855f7" : alpha("#a855f7", 0.25)),
         bgcolor: "#fff",
         minWidth: 190,
         boxShadow: selected
@@ -68,6 +72,7 @@ export function VectorStoreNode({ data, selected }: NodeProps) {
       </Box>
 
       <Handle type="source" position={Position.Right} />
+      <NodeBadge validation={d.__validation} />
     </Box>
   );
 }

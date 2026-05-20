@@ -189,7 +189,7 @@ function StrategyHint({ text }: { text: string }) {
         color: "text.secondary",
         mt: 0.75,
         pl: 1.5,
-        borderLeft: `3px solid ${alpha("#6366f1", 0.3)}`,
+        borderLeft: `3px solid ${alpha("#d2541c", 0.3)}`,
         fontSize: "0.8rem",
         lineHeight: 1.5,
       }}
@@ -262,10 +262,10 @@ export function PreprocessingPanel({ dataset, onDone }: Props) {
         severity="info"
         sx={{
           mb: 3,
-          bgcolor: alpha("#6366f1", 0.04),
+          bgcolor: alpha("#d2541c", 0.04),
           border: 1,
-          borderColor: alpha("#6366f1", 0.15),
-          "& .MuiAlert-icon": { color: "#6366f1" },
+          borderColor: alpha("#d2541c", 0.15),
+          "& .MuiAlert-icon": { color: "#d2541c" },
         }}
       >
         <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
@@ -307,7 +307,7 @@ export function PreprocessingPanel({ dataset, onDone }: Props) {
                     checked={included.includes(col)}
                     onChange={() => toggleColumn(col)}
                     size="small"
-                    sx={{ "&.Mui-checked": { color: "#6366f1" } }}
+                    sx={{ "&.Mui-checked": { color: "#d2541c" } }}
                   />
                 }
                 label={<Typography variant="body2">{col}</Typography>}
@@ -315,7 +315,7 @@ export function PreprocessingPanel({ dataset, onDone }: Props) {
                   mr: 1,
                   px: 1,
                   borderRadius: 2,
-                  bgcolor: included.includes(col) ? alpha("#6366f1", 0.04) : "transparent",
+                  bgcolor: included.includes(col) ? alpha("#d2541c", 0.04) : "transparent",
                   transition: "background 0.2s",
                 }}
               />
@@ -394,7 +394,7 @@ export function PreprocessingPanel({ dataset, onDone }: Props) {
           </Typography>
           <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
             {[
-              { label: "Train", value: splitRatios.train, color: "#6366f1" },
+              { label: "Train", value: splitRatios.train, color: "#d2541c" },
               { label: "Val", value: splitRatios.val, color: "#8b5cf6" },
               { label: "Test", value: splitRatios.test, color: "#10b981" },
             ].map((s) => (
@@ -456,7 +456,7 @@ export function PreprocessingPanel({ dataset, onDone }: Props) {
                   bgcolor: alpha("#8b5cf6", 0.1),
                   "& .MuiLinearProgress-bar": {
                     borderRadius: 3,
-                    background: "linear-gradient(90deg, #6366f1, #8b5cf6)",
+                    background: "linear-gradient(90deg, #d2541c, #8b5cf6)",
                   },
                 }}
               />

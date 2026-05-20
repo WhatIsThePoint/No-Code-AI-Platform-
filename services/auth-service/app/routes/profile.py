@@ -3,8 +3,10 @@ from flask_jwt_extended import get_jwt_identity, jwt_required
 from marshmallow import ValidationError
 
 from ..extensions import db
+from ..models.subscription import Subscription
 from ..models.user import User
 from ..schemas.user import UpdateProfileSchema, UserSchema
+from ..services.plan_limits import effective_limits
 
 profile_bp = Blueprint("profile", __name__, url_prefix="/users")
 
@@ -19,7 +21,25 @@ def get_profile():
     user = User.query.get(user_id)
     if not user:
         return jsonify({"error": "user_not_found"}), 404
-    return jsonify(_user_schema.dump(user)), 200
+    body = _user_schema.dump(user)
+    # Inline the user's effective resource ceilings so the frontend can
+    # clamp slider maxes (DL train epochs / batch size) and gate UI
+    # affordances (RAG chunk warnings) without a second round-trip. The
+    # gateway forwards the same numbers as `X-Max-*` headers when proxying
+    # to dl-training-service so the server-side guard stays authoritative.
+    sub = Subscription.query.filter_by(user_id=user.id).one_or_none()
+    overrides = (
+        {
+            "max_chunks": sub.max_chunks,
+            "max_vram_mb": sub.max_vram_mb,
+            "max_dl_epochs": sub.max_dl_epochs,
+            "max_dl_batch_size": sub.max_dl_batch_size,
+        }
+        if sub is not None
+        else None
+    )
+    body["limits"] = effective_limits(user.tier, overrides)
+    return jsonify(body), 200
 
 
 @profile_bp.patch("/me")

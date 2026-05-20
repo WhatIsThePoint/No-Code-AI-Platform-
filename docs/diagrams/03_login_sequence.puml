@@ -1,0 +1,53 @@
+@startuml login_sequence
+' Replaces \figureplaceholder{Login + JWT issuance sequence diagram}.
+
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+autonumber
+
+actor User
+participant "Browser\n(React)" as B
+participant "api-gateway\n(:8000)" as GW
+participant "auth-service\n(:8001)" as A
+database "Postgres" as PG
+database "Redis\n(JTI blacklist)" as R
+
+User -> B : enter email + password
+B -> GW : POST /auth/login\n{ email, password }
+GW -> A : forward (no JWT yet)
+A -> PG : SELECT users WHERE email=?
+PG --> A : user row + bcrypt hash
+A -> A : bcrypt.verify(password, hash)
+
+alt valid credentials
+  A -> A : sign access JWT (15 min, JTI)
+  A -> A : sign refresh JWT (rotate, sha256)
+  A -> PG : INSERT refresh_tokens (hash, exp)
+  A --> GW : 200 { access, refresh-cookie }
+  GW --> B : 200 + Set-Cookie HttpOnly
+  B -> B : store access in memory\n(refresh via cookie only)
+else invalid
+  A --> GW : 401
+  GW --> B : 401 invalid_credentials
+end
+
+== Subsequent request ==
+
+B -> GW : GET /users/me\nAuthorization: Bearer <access>
+GW -> GW : verify_jwt_in_request()\nstrip X-User-* headers
+GW -> GW : inject X-User-Id / X-User-Tier\nfrom JWT claims
+GW -> A : forward with injected headers
+A -> PG : SELECT user details
+A --> GW : 200 { user, limits }
+GW --> B : 200
+
+== Refresh ==
+
+B -> GW : POST /auth/refresh\n(refresh cookie)
+GW -> A : forward
+A -> R : SADD blacklist <old JTI>
+A -> A : sign new access + refresh
+A --> GW : 200 { access, new refresh-cookie }
+GW --> B : rotated tokens
+
+@enduml

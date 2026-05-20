@@ -15,7 +15,8 @@ import subprocess
 import time
 from typing import Any
 
-from flask import Blueprint, jsonify
+import requests
+from flask import Blueprint, current_app, jsonify
 
 system_bp = Blueprint("system", __name__)
 
@@ -54,13 +55,58 @@ def _gpu_from_env() -> dict[str, Any] | None:
     }
 
 
-def _probe_gpu() -> dict[str, Any] | None:
-    """Return {name, total_mb, free_mb} for the first NVIDIA GPU, or None."""
-    override = _gpu_from_env()
-    if override is not None:
-        return override
-    if shutil.which("nvidia-smi") is None:
+def _gpu_from_dl_service() -> dict[str, Any] | None:
+    """Ask dl-training-service for a live GPU snapshot.
+
+    The dl-training container has the nvidia runtime mounted (see compose
+    `deploy.resources.reservations.devices`), so its `/dl/gpu` endpoint
+    returns the *real* free-VRAM number from `torch.cuda.mem_get_info`.
+    The gateway has no GPU passthrough by design (no need to ship a 1 GB
+    CUDA wheel into a routing service), so delegating here is the only
+    way the admin panel can show a live, moving bar.
+
+    Returns None on any error so the caller can fall through to
+    `nvidia-smi` (also won't be available in the gateway container) and
+    finally to the env-var override.
+    """
+    base = (current_app.config.get("DL_SERVICE_URL") or "").rstrip("/")
+    if not base:
         return None
+    try:
+        r = requests.get(f"{base}/dl/gpu", timeout=1.5)
+        r.raise_for_status()
+        data = r.json()
+    except Exception:
+        return None
+    if not data.get("available"):
+        return None
+    total = data.get("total_memory_mb_live") or data.get("total_memory_mb")
+    free = data.get("free_memory_mb")
+    if not total or free is None:
+        return None
+    return {
+        "name": data.get("device_name", "GPU (via dl-training-service)"),
+        "total_mb": int(total),
+        "free_mb": int(free),
+    }
+
+
+def _probe_gpu() -> dict[str, Any] | None:
+    """Return {name, total_mb, free_mb} for the first NVIDIA GPU, or None.
+
+    Probe order: dl-training-service (live, accurate) → local nvidia-smi
+    (won't be available in the gateway container without GPU
+    passthrough) → static env-var override (last resort). The first
+    source that yields a result wins.
+    """
+    live = _gpu_from_dl_service()
+    if live is not None:
+        return live
+    if shutil.which("nvidia-smi") is None:
+        # No live GPU access from the gateway. Fall back to the env-var
+        # override so the admin panel still says "GPU detected", even if
+        # the free-VRAM number is the static value declared at boot.
+        return _gpu_from_env()
     try:
         out = subprocess.run(
             [

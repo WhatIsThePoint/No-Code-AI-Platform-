@@ -1,0 +1,24 @@
+@startuml quantization_vram
+' Replaces \figureplaceholder{Quantisation → VRAM mapping}.
+' This stub is a placeholder — for the final figure, render a real bar chart
+' with matplotlib (see scripts/plot_quantization_vram.py if/when added).
+
+skinparam shadowing false
+skinparam defaultFontName "Helvetica"
+
+title VRAM footprint by quantisation\n(Llama 3.2 3B, 6 GB GTX 1660 SUPER ceiling)
+
+rectangle "FP16 weights\n≈ 12 GB" as FP16 #LightCoral
+rectangle "INT8 weights\n≈ 6 GB" as INT8 #LightYellow
+rectangle "Q4_K_M weights\n≈ 2 GB" as Q4 #LightGreen
+rectangle "6 GB ceiling\n(GTX 1660 SUPER)" as CEIL #LightBlue
+
+FP16 -[hidden]down- INT8
+INT8 -[hidden]down- CEIL
+CEIL -[hidden]down- Q4
+
+note right of FP16 : does not fit
+note right of INT8 : borderline\n(no headroom)
+note right of Q4 : fits comfortably,\nroom for activations
+
+@enduml

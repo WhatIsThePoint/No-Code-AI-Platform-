@@ -113,10 +113,10 @@ export function DemoDatasetButton({ onDone, variant = "outlined", size = "medium
         onClick={(e) => setMenuAnchor(e.currentTarget)}
         aria-label={t("demoDatasets.menuAriaLabel")}
         sx={{
-          borderColor: alpha("#8b5cf6", 0.4),
-          color: "#7c3aed",
+          borderColor: alpha("#d2541c", 0.4),
+          color: "#a8401a",
           fontWeight: 600,
-          "&:hover": { borderColor: "#8b5cf6", bgcolor: alpha("#8b5cf6", 0.06) },
+          "&:hover": { borderColor: "#d2541c", bgcolor: alpha("#d2541c", 0.06) },
         }}
       >
         {t("demoDatasets.buttonLabel")}
@@ -150,7 +150,7 @@ export function DemoDatasetButton({ onDone, variant = "outlined", size = "medium
         PaperProps={{ sx: { borderRadius: 3 } }}
       >
         <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1, fontWeight: 700 }}>
-          <DatasetRoundedIcon sx={{ color: "#8b5cf6" }} />
+          <DatasetRoundedIcon sx={{ color: "#d2541c" }} />
           {active && t(`demoDatasets.${active.i18nKey}.title`)}
         </DialogTitle>
         <DialogContent dividers>
@@ -164,12 +164,12 @@ export function DemoDatasetButton({ onDone, variant = "outlined", size = "medium
                   sx={{
                     p: 2,
                     borderRadius: 2,
-                    bgcolor: alpha("#8b5cf6", 0.06),
+                    bgcolor: alpha("#d2541c", 0.06),
                     border: 1,
-                    borderColor: alpha("#8b5cf6", 0.2),
+                    borderColor: alpha("#d2541c", 0.2),
                   }}
                 >
-                  <Typography variant="caption" sx={{ color: "#6d28d9", fontWeight: 600, display: "block", mb: 0.5 }}>
+                  <Typography variant="caption" sx={{ color: "#8a3415", fontWeight: 600, display: "block", mb: 0.5 }}>
                     {t("demoDatasets.summaryHeader")}
                   </Typography>
                   <Typography variant="body2" sx={{ fontSize: "0.8rem", whiteSpace: "pre-line" }}>
@@ -203,8 +203,8 @@ export function DemoDatasetButton({ onDone, variant = "outlined", size = "medium
             disabled={loading || !!taskId}
             startIcon={<AutoAwesomeRoundedIcon />}
             sx={{
-              background: "linear-gradient(135deg, #8b5cf6, #7c3aed)",
-              "&:hover": { background: "linear-gradient(135deg, #7c3aed, #6d28d9)" },
+              background: "linear-gradient(135deg, #d2541c, #a8401a)",
+              "&:hover": { background: "linear-gradient(135deg, #a8401a, #8a3415)" },
             }}
           >
             {loading

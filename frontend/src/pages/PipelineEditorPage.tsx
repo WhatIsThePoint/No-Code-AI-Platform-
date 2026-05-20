@@ -116,8 +116,8 @@ export function PipelineEditorPage() {
             onClick={() => navigate("/pipelines")}
             aria-label="Back to pipelines"
             sx={{
-              bgcolor: alpha("#6366f1", 0.08),
-              "&:hover": { bgcolor: alpha("#6366f1", 0.15) },
+              bgcolor: alpha("#d2541c", 0.08),
+              "&:hover": { bgcolor: alpha("#d2541c", 0.15) },
             }}
           >
             <ArrowBackIcon sx={{ fontSize: 18 }} />

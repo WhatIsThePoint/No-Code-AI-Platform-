@@ -27,7 +27,7 @@ const FEATURES: Record<string, string[]> = {
 
 const TIER_GRADIENT: Record<string, string> = {
   free: "linear-gradient(135deg, #94a3b8, #64748b)",
-  solo: "linear-gradient(135deg, #6366f1, #4f46e5)",
+  solo: "linear-gradient(135deg, #d2541c, #a8401a)",
   company: "linear-gradient(135deg, #8b5cf6, #7c3aed)",
 };
 
@@ -50,7 +50,7 @@ function PlanCard({
         height: "100%",
         display: "flex",
         flexDirection: "column",
-        borderColor: isActive ? "#6366f1" : undefined,
+        borderColor: isActive ? "#d2541c" : undefined,
         borderWidth: isActive ? 2 : 1,
         borderStyle: "solid",
         position: "relative",
@@ -58,7 +58,7 @@ function PlanCard({
         transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
         "&:hover": {
           transform: "translateY(-4px)",
-          boxShadow: `0 12px 32px -8px ${alpha("#6366f1", 0.18)}`,
+          boxShadow: `0 12px 32px -8px ${alpha("#d2541c", 0.18)}`,
         },
       }}
     >
@@ -77,7 +77,7 @@ function PlanCard({
             sx={{
               fontWeight: 700,
               fontSize: "0.65rem",
-              background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+              background: "linear-gradient(135deg, #d2541c, #8b5cf6)",
               color: "#fff",
             }}
           />
@@ -220,7 +220,7 @@ export function BillingPage() {
             width: 40,
             height: 40,
             borderRadius: "12px",
-            background: "linear-gradient(135deg, #6366f1, #4f46e5)",
+            background: "linear-gradient(135deg, #d2541c, #a8401a)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -244,7 +244,7 @@ export function BillingPage() {
                 label={subscription.plan.replace(/^company/, "collaborator").replace("_", " ")}
                 sx={{
                   fontWeight: 700,
-                  background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                  background: "linear-gradient(135deg, #d2541c, #8b5cf6)",
                   color: "#fff",
                 }}
               />
@@ -264,7 +264,7 @@ export function BillingPage() {
                   label={`Tier: ${user.tier}`}
                   variant="outlined"
                   size="small"
-                  sx={{ borderColor: alpha("#6366f1", 0.3), color: "#6366f1" }}
+                  sx={{ borderColor: alpha("#d2541c", 0.3), color: "#d2541c" }}
                 />
               )}
               {subscription.trial_end && (

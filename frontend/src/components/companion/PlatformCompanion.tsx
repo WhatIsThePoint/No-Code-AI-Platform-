@@ -80,11 +80,13 @@ export function PlatformCompanion() {
           elapsedMs: resp.data.elapsed_ms,
         },
       ]);
-    } catch (err: any) {
+    } catch (err) {
+      const errorCode = (err as { response?: { data?: { error?: string } } })
+        ?.response?.data?.error;
       const msg =
-        err?.response?.data?.error === "ollama_unavailable"
+        errorCode === "ollama_unavailable"
           ? "Local LLM is offline. Start Ollama and try again."
-          : err?.response?.data?.error === "ollama_timeout"
+          : errorCode === "ollama_timeout"
           ? "Ollama took too long. Try a shorter question."
           : "Something went wrong reaching the local model.";
       setTurns((prev) => [...prev, { role: "error", text: msg, ts: Date.now() }]);
@@ -106,10 +108,10 @@ export function PlatformCompanion() {
             right: 24,
             bottom: 24,
             zIndex: (t) => t.zIndex.drawer + 2,
-            background: "linear-gradient(135deg, #6366f1, #4338ca)",
+            background: "linear-gradient(135deg, #d2541c, #4338ca)",
             boxShadow: "0 12px 28px rgba(67,56,202,0.35)",
             "&:hover": {
-              background: "linear-gradient(135deg, #4f46e5, #3730a3)",
+              background: "linear-gradient(135deg, #a8401a, #3730a3)",
             },
           }}
         >
@@ -147,7 +149,7 @@ export function PlatformCompanion() {
               width: 32,
               height: 32,
               borderRadius: "10px",
-              background: "linear-gradient(135deg, #6366f1, #4338ca)",
+              background: "linear-gradient(135deg, #d2541c, #4338ca)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -179,7 +181,7 @@ export function PlatformCompanion() {
               sx={{
                 fontSize: "0.65rem",
                 height: 22,
-                bgcolor: alpha("#6366f1", 0.1),
+                bgcolor: alpha("#d2541c", 0.1),
                 color: "#4338ca",
                 fontWeight: 600,
               }}
@@ -219,7 +221,7 @@ export function PlatformCompanion() {
                       bgcolor: "#fff",
                       border: 1,
                       borderColor: "divider",
-                      "&:hover": { bgcolor: alpha("#6366f1", 0.06) },
+                      "&:hover": { bgcolor: alpha("#d2541c", 0.06) },
                     }}
                   />
                 ))}
@@ -242,13 +244,13 @@ export function PlatformCompanion() {
                   borderRadius: 2.5,
                   bgcolor:
                     t.role === "user"
-                      ? "linear-gradient(135deg, #6366f1, #4338ca)"
+                      ? "linear-gradient(135deg, #d2541c, #4338ca)"
                       : t.role === "error"
                       ? alpha("#ef4444", 0.08)
                       : "#fff",
                   background:
                     t.role === "user"
-                      ? "linear-gradient(135deg, #6366f1, #4338ca)"
+                      ? "linear-gradient(135deg, #d2541c, #4338ca)"
                       : undefined,
                   color: t.role === "user" ? "#fff" : "text.primary",
                   border: t.role === "assistant" ? 1 : 0,
@@ -327,8 +329,8 @@ export function PlatformCompanion() {
                     disabled={loading || !question.trim()}
                     aria-label="Send question to companion"
                     sx={{
-                      bgcolor: alpha("#6366f1", 0.1),
-                      "&:hover": { bgcolor: alpha("#6366f1", 0.18) },
+                      bgcolor: alpha("#d2541c", 0.1),
+                      "&:hover": { bgcolor: alpha("#d2541c", 0.18) },
                     }}
                   >
                     <SendIcon fontSize="small" sx={{ color: "#4338ca" }} />

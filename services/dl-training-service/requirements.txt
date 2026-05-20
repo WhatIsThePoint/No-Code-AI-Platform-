@@ -1,0 +1,21 @@
+Flask==3.0.3
+python-dotenv==1.0.1
+gunicorn==22.0.0
+pymongo==4.7.3
+Flask-PyMongo==2.3.0
+celery[redis]==5.4.0
+redis==5.0.6
+numpy==1.26.4
+Pillow==10.4.0
+requests==2.32.3
+# flask-socketio + python-socketio: required by `services/realtime_emitter.py`
+# to publish `training_epoch` / `training_progress` events onto the gateway's
+# Redis SocketIO message queue (DB 2). Without these the worker silently
+# drops events and the LiveTrainingChart never moves past "waiting".
+Flask-SocketIO==5.3.6
+python-socketio==5.11.0
+sentry-sdk[flask]>=2.0,<3.0
+
+# torch / torchvision are installed from the PyTorch CUDA index inside the
+# Dockerfile (CUDA 12.1 wheels — fits Turing / 1660 Super) so they aren't
+# pinned here against the default PyPI index.

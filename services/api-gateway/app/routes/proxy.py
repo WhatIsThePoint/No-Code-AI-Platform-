@@ -298,6 +298,22 @@ def proxy_models(subpath):
     return _forward(upstream, f"/models/{subpath}", require_auth=True)
 
 
+# ── DL Training Service routes ────────────────────────────────────────────────
+# Deep-learning image-classification endpoints proxied to dl-training-service.
+# All require auth — there is no public DL surface. The catch-all `<path>`
+# matcher keeps the gateway out of route bookkeeping when chats 3/7 add new
+# sub-paths (e.g. /dl/predict/<id>, /dl/gpu).
+
+
+@proxy_bp.route(
+    "/dl/<path:subpath>",
+    methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+)
+def proxy_dl(subpath: str):
+    upstream = current_app.config["DL_SERVICE_URL"]
+    return _forward(upstream, f"/dl/{subpath}", require_auth=True)
+
+
 # ── Auth-service: admin + billing routes ──────────────────────────────────────
 
 

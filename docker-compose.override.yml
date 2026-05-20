@@ -55,3 +55,20 @@ services:
     volumes:
       - ./services/metrics-service:/app
     command: flask --app app.main run --host=0.0.0.0 --port=8004 --debug
+
+  # Sprint 8 — dev hot-reload for dl-training-service. Same pattern as the
+  # ml-training pair: mount the source over /app so a file edit triggers
+  # Flask's reloader without a docker rebuild.
+  dl-training-service:
+    volumes:
+      - ./services/dl-training-service:/app
+      - uploaded_files:/uploads
+      - model_artifacts:/models
+    command: flask --app app.main run --host=0.0.0.0 --port=8005 --debug
+
+  dl-training-worker:
+    volumes:
+      - ./services/dl-training-service:/app
+      - uploaded_files:/uploads
+      - model_artifacts:/models
+    command: celery -A app.tasks.celery_app worker --loglevel=debug -Q dl_training --concurrency=1 --include=app.tasks.train_image

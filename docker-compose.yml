@@ -23,6 +23,11 @@ volumes:
   uploaded_files:
   model_artifacts:
   ollama_models:
+  # Sprint 8 — isolated stores for the SQL-connector wizard demo. Kept on
+  # their own volumes so a wipe of the production-shaped postgres_data
+  # never touches the test fixtures, and vice versa.
+  test_postgres_data:
+  test_mysql_data:
 
 services:
   # ── Databases ──────────────────────────────────────────────────────────────
@@ -48,6 +53,53 @@ services:
       retries: 5
     ports:
       - "5434:5432"
+
+  # ── Test fixtures for the SQL Connector Wizard ────────────────────────────
+  # Two throwaway databases pre-seeded with a small retail-analytics dataset
+  # so a reviewer can click through the wizard end-to-end against both
+  # supported dialects. Network-internal hosts are `test-postgres` and
+  # `test-mysql`; from outside the compose network they live on 5435 / 3307.
+  # Credentials are intentionally trivial — these stores hold demo data only.
+  test-postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    networks:
+      - backend
+    volumes:
+      - test_postgres_data:/var/lib/postgresql/data
+      - ./infra/test-dbs/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    environment:
+      POSTGRES_USER: testuser
+      POSTGRES_PASSWORD: testpass
+      POSTGRES_DB: shopdb
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U testuser -d shopdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5435:5432"
+
+  test-mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    networks:
+      - backend
+    volumes:
+      - test_mysql_data:/var/lib/mysql
+      - ./infra/test-dbs/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: shopdb
+      MYSQL_USER: testuser
+      MYSQL_PASSWORD: testpass
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-ptestpass"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "3307:3306"
 
   mongo:
     image: mongo:7
@@ -117,6 +169,7 @@ services:
       DATA_SERVICE_URL: http://data-ingestion-service:8002
       ML_SERVICE_URL: http://ml-training-service:8003
       METRICS_SERVICE_URL: http://metrics-service:8004
+      DL_SERVICE_URL: http://dl-training-service:8005
       REDIS_URL: redis://redis:6379/0
       SOCKETIO_MESSAGE_QUEUE: redis://redis:6379/2
       DATABASE_URL: postgresql://${POSTGRES_USER:-nocode}:${POSTGRES_PASSWORD:-nocode_secret}@postgres:5432/${POSTGRES_DB:-nocode_auth}
@@ -175,6 +228,8 @@ services:
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1
       UPLOAD_FOLDER: /uploads
+      IMAGE_DATASET_ROOT: /uploads/images
+      MAX_IMAGE_UPLOAD_SIZE_MB: ${MAX_IMAGE_UPLOAD_SIZE_MB:-500}
       PGVECTOR_DSN: postgresql://${POSTGRES_USER:-nocode}:${POSTGRES_PASSWORD:-nocode_secret}@postgres:5432/${POSTGRES_DB:-nocode_auth}
       EMBEDDING_MODEL: sentence-transformers/all-MiniLM-L6-v2
     depends_on:
@@ -199,6 +254,8 @@ services:
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1
       UPLOAD_FOLDER: /uploads
+      IMAGE_DATASET_ROOT: /uploads/images
+      MAX_IMAGE_UPLOAD_SIZE_MB: ${MAX_IMAGE_UPLOAD_SIZE_MB:-500}
       PGVECTOR_DSN: postgresql://${POSTGRES_USER:-nocode}:${POSTGRES_PASSWORD:-nocode_secret}@postgres:5432/${POSTGRES_DB:-nocode_auth}
       EMBEDDING_MODEL: sentence-transformers/all-MiniLM-L6-v2
     depends_on:
@@ -347,3 +404,83 @@ services:
     depends_on:
       timescaledb:
         condition: service_healthy
+
+  # ── Deep-learning service (image classification, PyTorch + CUDA) ──────────
+  # Split out from ml-training-service because torch+torchvision is ~2 GB of
+  # deps and only this service needs the GPU. Falls back to CPU automatically
+  # when the nvidia runtime isn't wired up — slow but functional, so CI on a
+  # GPU-less host still boots the stack.
+  dl-training-service:
+    <<: *python-service
+    build:
+      context: ./services/dl-training-service
+      dockerfile: Dockerfile
+    ports:
+      - "8005:8005"
+    volumes:
+      - uploaded_files:/uploads
+      - model_artifacts:/models
+    environment:
+      MONGO_URL: mongodb://${MONGO_INITDB_ROOT_USERNAME:-nocode}:${MONGO_INITDB_ROOT_PASSWORD:-nocode_secret}@mongo:27017/${MONGO_DB:-nocode_ingestion}?authSource=admin
+      MONGO_DB: ${MONGO_DB:-nocode_ingestion}
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      SOCKETIO_MESSAGE_QUEUE: redis://redis:6379/2
+      UPLOAD_FOLDER: /uploads
+      MODEL_FOLDER: /models
+      IMAGE_DATASET_ROOT: /uploads/images
+      DEFAULT_MAX_VRAM_MB: ${DL_DEFAULT_MAX_VRAM_MB:-5120}
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    # GPU reservation — requires nvidia-container-toolkit on the host.
+    # Ollama (RAG LLM) intentionally has NO reservation block, so it stays
+    # on CPU and never competes with the training task for the 6 GB of
+    # VRAM on the GTX 1660 Super. The DL service owns the GPU exclusively.
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  dl-training-worker:
+    <<: *python-service
+    build:
+      context: ./services/dl-training-service
+      dockerfile: Dockerfile
+    command: celery -A app.tasks.celery_app worker --loglevel=info -Q dl_training --concurrency=1
+    volumes:
+      - uploaded_files:/uploads
+      - model_artifacts:/models
+    environment:
+      MONGO_URL: mongodb://${MONGO_INITDB_ROOT_USERNAME:-nocode}:${MONGO_INITDB_ROOT_PASSWORD:-nocode_secret}@mongo:27017/${MONGO_DB:-nocode_ingestion}?authSource=admin
+      MONGO_DB: ${MONGO_DB:-nocode_ingestion}
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      SOCKETIO_MESSAGE_QUEUE: redis://redis:6379/2
+      UPLOAD_FOLDER: /uploads
+      MODEL_FOLDER: /models
+      IMAGE_DATASET_ROOT: /uploads/images
+      DEFAULT_MAX_VRAM_MB: ${DL_DEFAULT_MAX_VRAM_MB:-5120}
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    # `--concurrency=1` is intentional — only one training task at a time
+    # holds the GPU, and that's also the level at which OOM safety is
+    # enforced. Bumping this up requires either multiple GPUs or per-task
+    # memory limits, neither of which is in scope for the demo.
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

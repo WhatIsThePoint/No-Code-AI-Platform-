@@ -44,6 +44,9 @@ import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
 import AutoFixHighRoundedIcon from "@mui/icons-material/AutoFixHighRounded";
 import ScienceRoundedIcon from "@mui/icons-material/ScienceRounded";
 import SmartToyRoundedIcon from "@mui/icons-material/SmartToyRounded";
+import PsychologyRoundedIcon from "@mui/icons-material/PsychologyRounded";
+import ImageRoundedIcon from "@mui/icons-material/ImageRounded";
+import HubRoundedIcon from "@mui/icons-material/HubRounded";
 import LibraryAddRoundedIcon from "@mui/icons-material/LibraryAddRounded";
 import MapRoundedIcon from "@mui/icons-material/MapRounded";
 import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
@@ -58,17 +61,22 @@ import { EvaluateNode } from "./nodes/EvaluateNode";
 import { DocumentNode } from "./nodes/DocumentNode";
 import { VectorStoreNode } from "./nodes/VectorStoreNode";
 import { RAGConfigNode } from "./nodes/RAGConfigNode";
+import { ImageDatasetNode } from "./nodes/ImageDatasetNode";
+import { CNNArchNode } from "./nodes/CNNArchNode";
+import { DLTrainNode } from "./nodes/DLTrainNode";
 import { validateNode } from "./nodes/validation";
 import { autoLayoutNodes } from "../../lib/autoLayout";
 import { createIdMinter, presetsForMode, type PipelinePreset } from "../../lib/pipelinePresets";
 import { useNotifications } from "../../store/notificationsSlice";
 import { NodePanel } from "./NodePanel";
-import { PipelineStepper, derivePipelineStep } from "./PipelineStepper";
+import { PipelineStepper } from "./PipelineStepper";
+import { derivePipelineStep } from "./derivePipelineStep";
 import { PipelineTour } from "../onboarding/PipelineTour";
 import { GenAITour } from "../tour/GenAITour";
 import { ChatInterface } from "./ChatInterface";
 import { ChatDrawer } from "./ChatDrawer";
 import { MeetingButton } from "./MeetingButton";
+import { DLPredictPanel } from "./DLPredictPanel";
 import { UpgradeLockBadge } from "../common/UpgradeLockBadge";
 import { useAuthStore } from "../../store/authSlice";
 import { useCompanionStore } from "../../store/companionSlice";
@@ -76,6 +84,7 @@ import { defaultHyperparams } from "./HyperparamControls";
 import { pipelinesApi } from "../../api/pipelines";
 import { modelsApi } from "../../api/models";
 import { ragApi } from "../../api/rag";
+import { dlApi } from "../../api/dl";
 import { useTaskStatus } from "../../hooks/useTaskStatus";
 import type {
   Pipeline,
@@ -83,6 +92,9 @@ import type {
   PipelineType,
   TrainNodeData,
   DatasetNodeData,
+  ImageDatasetNodeData,
+  CNNArchNodeData,
+  DLTrainNodeData,
 } from "../../types/pipeline";
 import type { Dataset } from "../../types/dataset";
 import type { ModelVersion } from "../../types/model";
@@ -94,14 +106,19 @@ const NODE_TYPES = {
   document: DocumentNode,
   vector_store: VectorStoreNode,
   rag_config: RAGConfigNode,
+  image_dataset: ImageDatasetNode,
+  cnn_arch: CNNArchNode,
+  dl_train: DLTrainNode,
 };
 
-// Buckets used to lock the ML/RAG mode toggle once the user has committed to
-// one family. Switching modes mid-pipeline is intentionally blocked because
-// the runtime shapes of the two graphs are incompatible (training run vs.
-// vector index + chat) and a partial mix would be unrunnable.
+// Buckets used to lock the ML/RAG/DL mode toggle once the user has committed
+// to one family. Switching modes mid-pipeline is intentionally blocked: the
+// runtime shapes of the three graphs are incompatible (tabular training vs.
+// vector index + chat vs. image classifier) and a partial mix would be
+// unrunnable. The 3rd bucket lands in chat 6 alongside the canvas wiring.
 const ML_NODE_TYPES = new Set(["dataset", "train", "evaluate"]);
 const RAG_NODE_TYPES = new Set(["document", "vector_store", "rag_config"]);
+const DL_NODE_TYPES = new Set(["image_dataset", "cnn_arch", "dl_train"]);
 
 interface Props {
   pipeline: Pipeline;
@@ -323,7 +340,11 @@ function PipelineCanvasInner({ pipeline, datasets, onSaved }: Props) {
     () => nodes.some((n) => n.type !== undefined && RAG_NODE_TYPES.has(n.type)),
     [nodes],
   );
-  const lockMode = hasMLNodes || hasRAGNodes;
+  const hasDLNodes = useMemo(
+    () => nodes.some((n) => n.type !== undefined && DL_NODE_TYPES.has(n.type)),
+    [nodes],
+  );
+  const lockMode = hasMLNodes || hasRAGNodes || hasDLNodes;
 
   const decoratedNodes = useMemo<Node[]>(
     () =>
@@ -442,6 +463,14 @@ function PipelineCanvasInner({ pipeline, datasets, onSaved }: Props) {
       defaultData = { llm_engine: "llama3.2:3b", top_k: 3 };
     } else if (type === "vector_store") {
       defaultData = { total_chunks: 0 };
+    } else if (type === "image_dataset") {
+      defaultData = { dataset_id: "" };
+    } else if (type === "cnn_arch") {
+      // Defaults match the recommended starter for the demo budget — see
+      // dlStarter preset (lib/pipelinePresets.ts) for the same values.
+      defaultData = { arch: "tiny_resnet", pretrained: false, input_size: 64 };
+    } else if (type === "dl_train") {
+      defaultData = { epochs: 5, batch_size: 32, lr: 1e-3, optimizer: "adam", augment: false };
     }
     setNodes((prev) => [
       ...prev,
@@ -513,7 +542,55 @@ function PipelineCanvasInner({ pipeline, datasets, onSaved }: Props) {
   };
 
   const handleRun = async () => {
-    // Collect train node config
+    // DL mode runs through dl-training-service, which expects the merged
+    // ImageDataset + CNNArch + DLTrain config flattened into a single
+    // POST body. The route returns 400 with a structured estimate when a
+    // tier's VRAM budget is exceeded; we surface that detail in the snack
+    // bar rather than a generic "Run failed".
+    if (canvasMode === "dl") {
+      const imgNode = nodes.find((n) => n.type === "image_dataset");
+      const archNode = nodes.find((n) => n.type === "cnn_arch");
+      const trainNode = nodes.find((n) => n.type === "dl_train");
+      if (!imgNode || !archNode || !trainNode) {
+        setSnack({ open: true, msg: t("pipelineCanvas.status.missingDLNodes"), severity: "error" });
+        pushCompanionError("DL run needs Image Dataset + CNN Arch + DL Train nodes");
+        return;
+      }
+      const id = imgNode.data as unknown as ImageDatasetNodeData;
+      const ar = archNode.data as unknown as CNNArchNodeData;
+      const tr = trainNode.data as unknown as DLTrainNodeData;
+      if (!id.dataset_id) {
+        setSnack({ open: true, msg: t("pipelineCanvas.status.dlMissingDataset"), severity: "error" });
+        return;
+      }
+      try {
+        await handleSave();
+        const { data } = await dlApi.startTraining({
+          pipeline_id: pipeline.pipeline_id,
+          dataset_id: id.dataset_id,
+          arch: ar.arch ?? "tiny_resnet",
+          pretrained: ar.pretrained ?? false,
+          input_size: ar.input_size ?? 64,
+          epochs: tr.epochs ?? 5,
+          batch_size: tr.batch_size ?? 32,
+          lr: tr.lr ?? 1e-3,
+          optimizer: tr.optimizer ?? "adam",
+          augment: tr.augment ?? false,
+        });
+        setTrainTaskId(data.task_id);
+      } catch (err) {
+        const e = err as { response?: { status?: number; data?: { detail?: string; error?: string } } };
+        const detail = e.response?.data?.detail || e.response?.data?.error;
+        const msg = detail
+          ? `${t("pipelineCanvas.status.runFailed")}: ${detail}`
+          : t("pipelineCanvas.status.runFailed");
+        setSnack({ open: true, msg, severity: "error" });
+        pushCompanionError(detail ?? "DL training failed to start");
+      }
+      return;
+    }
+
+    // ── ML path (unchanged) ────────────────────────────────────────────
     const trainNode = nodes.find((n) => n.type === "train");
     const datasetNode = nodes.find((n) => n.type === "dataset");
     if (!trainNode || !datasetNode) {
@@ -592,7 +669,7 @@ function PipelineCanvasInner({ pipeline, datasets, onSaved }: Props) {
           >
             <ToggleButton
               value="ml"
-              disabled={hasRAGNodes}
+              disabled={hasRAGNodes || hasDLNodes}
               sx={{ textTransform: "none", fontWeight: 600 }}
             >
               <ScienceRoundedIcon sx={{ fontSize: 15, mr: 0.75 }} />
@@ -600,11 +677,19 @@ function PipelineCanvasInner({ pipeline, datasets, onSaved }: Props) {
             </ToggleButton>
             <ToggleButton
               value="rag"
-              disabled={hasMLNodes}
+              disabled={hasMLNodes || hasDLNodes}
               sx={{ textTransform: "none", fontWeight: 600 }}
             >
               <SmartToyRoundedIcon sx={{ fontSize: 15, mr: 0.75 }} />
               {t("pipelineCanvas.mode.rag")}
+            </ToggleButton>
+            <ToggleButton
+              value="dl"
+              disabled={hasMLNodes || hasRAGNodes}
+              sx={{ textTransform: "none", fontWeight: 600 }}
+            >
+              <PsychologyRoundedIcon sx={{ fontSize: 15, mr: 0.75 }} />
+              {t("pipelineCanvas.mode.dl")}
             </ToggleButton>
           </ToggleButtonGroup>
         </Tooltip>
@@ -617,7 +702,7 @@ function PipelineCanvasInner({ pipeline, datasets, onSaved }: Props) {
               startIcon={<StorageIcon sx={{ fontSize: 15 }} />}
               onClick={() => addNode("dataset")}
               variant="outlined"
-              sx={{ borderColor: alpha("#6366f1", 0.25), color: "#4f46e5", "&:hover": { borderColor: "#6366f1", bgcolor: alpha("#6366f1", 0.04) } }}
+              sx={{ borderColor: alpha("#d2541c", 0.25), color: "#a8401a", "&:hover": { borderColor: "#d2541c", bgcolor: alpha("#d2541c", 0.04) } }}
             >
               {t("pipelineCanvas.addNode.dataset")}
             </Button>
@@ -675,6 +760,41 @@ function PipelineCanvasInner({ pipeline, datasets, onSaved }: Props) {
               sx={{ borderColor: alpha("#f59e0b", 0.3), color: "#d97706", "&:hover": { borderColor: "#f59e0b", bgcolor: alpha("#f59e0b", 0.04) } }}
             >
               {t("pipelineCanvas.addNode.ragConfig")}
+            </Button>
+          </>
+        )}
+
+        {canvasMode === "dl" && (
+          <>
+            <Button
+              data-tour="add-image-dataset"
+              size="small"
+              startIcon={<ImageRoundedIcon sx={{ fontSize: 15 }} />}
+              onClick={() => addNode("image_dataset")}
+              variant="outlined"
+              sx={{ borderColor: alpha("#0ea5e9", 0.25), color: "#0284c7", "&:hover": { borderColor: "#0ea5e9", bgcolor: alpha("#0ea5e9", 0.04) } }}
+            >
+              {t("pipelineCanvas.addNode.imageDataset")}
+            </Button>
+            <Button
+              data-tour="add-cnn-arch"
+              size="small"
+              startIcon={<HubRoundedIcon sx={{ fontSize: 15 }} />}
+              onClick={() => addNode("cnn_arch")}
+              variant="outlined"
+              sx={{ borderColor: alpha("#a855f7", 0.25), color: "#7e22ce", "&:hover": { borderColor: "#a855f7", bgcolor: alpha("#a855f7", 0.04) } }}
+            >
+              {t("pipelineCanvas.addNode.cnnArch")}
+            </Button>
+            <Button
+              data-tour="add-dl-train"
+              size="small"
+              startIcon={<ModelTrainingIcon sx={{ fontSize: 15 }} />}
+              onClick={() => addNode("dl_train")}
+              variant="outlined"
+              sx={{ borderColor: alpha("#10b981", 0.25), color: "#059669", "&:hover": { borderColor: "#10b981", bgcolor: alpha("#10b981", 0.04) } }}
+            >
+              {t("pipelineCanvas.addNode.dlTrain")}
             </Button>
           </>
         )}
@@ -826,11 +946,11 @@ function PipelineCanvasInner({ pipeline, datasets, onSaved }: Props) {
               startIcon={<ChatBubbleIcon sx={{ fontSize: 15 }} />}
               onClick={() => setChatOpen((o) => !o)}
               sx={{
-                borderColor: alpha("#6366f1", 0.25),
-                color: "#4f46e5",
+                borderColor: alpha("#d2541c", 0.25),
+                color: "#a8401a",
                 "&:hover": {
-                  borderColor: "#6366f1",
-                  bgcolor: alpha("#6366f1", 0.04),
+                  borderColor: "#d2541c",
+                  bgcolor: alpha("#d2541c", 0.04),
                 },
               }}
             >
@@ -862,7 +982,7 @@ function PipelineCanvasInner({ pipeline, datasets, onSaved }: Props) {
         >
           {t("pipelineCanvas.actions.save")}
         </Button>
-        {canvasMode === "ml" && (
+        {(canvasMode === "ml" || canvasMode === "dl") && (
           <Button
             data-tour="run-pipeline"
             size="small"
@@ -881,7 +1001,7 @@ function PipelineCanvasInner({ pipeline, datasets, onSaved }: Props) {
       </Box>
 
       {/* Progress bar */}
-      {canvasMode === "ml" && isRunning && (
+      {(canvasMode === "ml" || canvasMode === "dl") && isRunning && (
         <Box sx={{ px: 2.5, py: 1 }}>
           <Typography variant="caption" sx={{ fontWeight: 600, color: "#8b5cf6" }}>
             {t("pipelineCanvas.progress.training", { pct: progress })}
@@ -896,21 +1016,33 @@ function PipelineCanvasInner({ pipeline, datasets, onSaved }: Props) {
               bgcolor: alpha("#8b5cf6", 0.1),
               "& .MuiLinearProgress-bar": {
                 borderRadius: 3,
-                background: "linear-gradient(90deg, #6366f1, #8b5cf6)",
+                background: "linear-gradient(90deg, #d2541c, #8b5cf6)",
               },
             }}
           />
         </Box>
       )}
-      {canvasMode === "ml" && taskResult?.status === "failure" && (
+      {(canvasMode === "ml" || canvasMode === "dl") && taskResult?.status === "failure" && (
         <Alert severity="error" sx={{ mx: 2, my: 0.5 }}>
           {t("pipelineCanvas.status.trainFailed", { error: taskResult.error_message })}
         </Alert>
       )}
-      {canvasMode === "ml" && taskResult?.status === "success" && (
+      {(canvasMode === "ml" || canvasMode === "dl") && taskResult?.status === "success" && (
         <Alert severity="success" sx={{ mx: 2, my: 0.5 }}>
           {t("pipelineCanvas.status.trainSuccess")}
         </Alert>
+      )}
+
+      {/* DL "Try it" panel — only renders after a DL run produces a version.
+          Sits above the canvas so the user sees inference as the natural
+          next step from the success alert without scrolling. */}
+      {canvasMode === "dl" && taskResult?.status === "success" && taskResult.version_id && (
+        <Box sx={{ mx: 2, my: 1 }}>
+          <DLPredictPanel
+            versionId={taskResult.version_id}
+            arch={(nodes.find((n) => n.type === "cnn_arch")?.data as CNNArchNodeData | undefined)?.arch}
+          />
+        </Box>
       )}
 
       {/* Canvas + side panel (or RAG split: canvas on top, ChatInterface below) */}

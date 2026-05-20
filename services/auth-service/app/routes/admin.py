@@ -109,6 +109,8 @@ def get_user(user_id):
                         "status": sub.status,
                         "max_chunks": sub.max_chunks,
                         "max_vram_mb": sub.max_vram_mb,
+                        "max_dl_epochs": sub.max_dl_epochs,
+                        "max_dl_batch_size": sub.max_dl_batch_size,
                     }
                     if sub
                     else None
@@ -415,6 +417,8 @@ def list_subscriptions():
             ),
             "max_chunks": s.max_chunks,
             "max_vram_mb": s.max_vram_mb,
+            "max_dl_epochs": s.max_dl_epochs,
+            "max_dl_batch_size": s.max_dl_batch_size,
         }
         for s in subs
     ]
@@ -441,6 +445,10 @@ def override_subscription(user_id):
         kwargs["max_chunks"] = data.get("max_chunks")
     if "max_vram_mb" in payload_keys:
         kwargs["max_vram_mb"] = data.get("max_vram_mb")
+    if "max_dl_epochs" in payload_keys:
+        kwargs["max_dl_epochs"] = data.get("max_dl_epochs")
+    if "max_dl_batch_size" in payload_keys:
+        kwargs["max_dl_batch_size"] = data.get("max_dl_batch_size")
     try:
         sub = admin_service.override_subscription(
             user_id,
@@ -466,6 +474,8 @@ def override_subscription(user_id):
                 "status": sub.status,
                 "max_chunks": sub.max_chunks,
                 "max_vram_mb": sub.max_vram_mb,
+                "max_dl_epochs": sub.max_dl_epochs,
+                "max_dl_batch_size": sub.max_dl_batch_size,
             }
         ),
         200,

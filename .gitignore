@@ -52,3 +52,15 @@ logs/
 # Claude Code session metadata + local scratch notes
 .claude/
 PFE Imp
+
+# LaTeX build artefacts (keep report.tex and report.pdf, drop the rest)
+report.aux
+report.out
+report.toc
+report.fls
+report.fdb_latexmk
+*.synctex.gz
+
+# Reference PDFs and demo datasets (kept locally, not committed)
+Lina Yassine.pdf
+images.zip

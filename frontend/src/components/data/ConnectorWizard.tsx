@@ -246,7 +246,7 @@ export function ConnectorWizard({ open, onClose, onCreated }: Props) {
                   label: "Amazon S3",
                   hint: "Probe a bucket + list objects (verify-only for now).",
                   Icon: CloudRoundedIcon,
-                  color: "#7c3aed",
+                  color: "#a8401a",
                 },
               ] satisfies { k: ConnectorKind; label: string; hint: string; Icon: typeof StorageRoundedIcon; color: string }[]
             ).map(({ k, label, hint, Icon, color }) => (

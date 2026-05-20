@@ -1,0 +1,40 @@
+@startuml upload_sequence
+' Replaces \figureplaceholder{Asynchronous upload sequence}.
+
+skinparam shadowing false
+autonumber
+
+actor User
+participant "Browser" as B
+participant "api-gateway" as GW
+participant "data-ingestion\n(API)" as ING
+participant "ingestion-worker\n(Celery)" as W
+database "MongoDB\n(datasets,\ntask_results)" as M
+database "uploaded_files\n(shared volume)" as V
+database "Redis\n(broker)" as R
+
+User -> B : pick CSV
+B -> GW : POST /datasets/upload\n(multipart, JWT)
+GW -> ING : forward with X-User-*
+ING -> V : write /uploads/<id>.csv
+ING -> M : INSERT datasets\n{ status=pending }
+ING -> R : apply_async(profile_dataset, id)
+ING --> GW : 202 { dataset_id, task_id }
+GW --> B : 202
+
+== async ==
+R -> W : dispatch task
+W -> M : UPDATE task_results\n{ status=running, progress=0 }
+W -> V : read /uploads/<id>.csv
+W -> W : compute_profile_summary(df)
+W -> M : UPDATE datasets\n{ status=ready, profile=… }
+W -> M : UPDATE task_results\n{ status=success, progress=100 }
+
+== frontend polls ==
+B -> GW : GET /datasets/tasks/<task_id>
+GW -> ING : forward
+ING -> M : SELECT task_results
+ING --> GW : { status, progress }
+GW --> B : 200
+
+@enduml

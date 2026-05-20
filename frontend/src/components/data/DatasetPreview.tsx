@@ -49,14 +49,14 @@ export function DatasetPreview({ datasetId }: Props) {
   return (
     <Box className="animate-fade-in">
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
-        <TableChartIcon sx={{ fontSize: 18, color: "#6366f1" }} />
+        <TableChartIcon sx={{ fontSize: 18, color: "#d2541c" }} />
         <Typography variant="body2" color="text.secondary">
           Showing first {rows.length} of {totalRows.toLocaleString()} rows
         </Typography>
         <Chip
           label={`${columns.length} columns`}
           size="small"
-          sx={{ fontSize: "0.65rem", height: 20, bgcolor: alpha("#6366f1", 0.08), color: "#4f46e5", fontWeight: 600 }}
+          sx={{ fontSize: "0.65rem", height: 20, bgcolor: alpha("#d2541c", 0.08), color: "#a8401a", fontWeight: 600 }}
         />
       </Box>
       <Paper sx={{ height: 450, borderRadius: 4, overflow: "hidden" }}>

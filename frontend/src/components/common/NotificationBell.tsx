@@ -42,7 +42,7 @@ const ICONS: Record<NotificationKind, React.ElementType> = {
 };
 
 const ACCENTS: Record<NotificationKind, string> = {
-  chat_message: "#6366f1",
+  chat_message: "#d2541c",
   mention: "#a855f7",
   training_done: "#10b981",
   training_failed: "#ef4444",
@@ -169,7 +169,7 @@ export function NotificationBell() {
           <Box sx={{ overflowY: "auto", maxHeight: 440 }}>
             {items.map((n, idx) => {
               const Icon = ICONS[n.kind] ?? InfoOutlinedIcon;
-              const accent = ACCENTS[n.kind] ?? "#6366f1";
+              const accent = ACCENTS[n.kind] ?? "#d2541c";
               return (
                 <Box key={n.id}>
                   <Box

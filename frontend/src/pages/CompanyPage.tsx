@@ -69,7 +69,7 @@ interface SentInvite {
 const ROLE_COLOR: Record<string, string> = {
   owner: "#f59e0b",
   data_scientist: "#8b5cf6",
-  pm: "#6366f1",
+  pm: "#d2541c",
   analyst: "#10b981",
   viewer: "#94a3b8",
 };
@@ -214,7 +214,7 @@ export function CompanyPage() {
             width: 40,
             height: 40,
             borderRadius: "12px",
-            background: "linear-gradient(135deg, #6366f1, #4f46e5)",
+            background: "linear-gradient(135deg, #d2541c, #a8401a)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -249,8 +249,8 @@ export function CompanyPage() {
                 <Card
                   sx={{
                     border: "1.5px solid",
-                    borderColor: alpha("#6366f1", 0.2),
-                    bgcolor: alpha("#6366f1", 0.02),
+                    borderColor: alpha("#d2541c", 0.2),
+                    bgcolor: alpha("#d2541c", 0.02),
                   }}
                 >
                   <CardContent sx={{ p: 2.5, "&:last-child": { pb: 2.5 } }}>
@@ -260,7 +260,7 @@ export function CompanyPage() {
                           width: 36,
                           height: 36,
                           borderRadius: "10px",
-                          background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                          background: "linear-gradient(135deg, #d2541c, #8b5cf6)",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
@@ -307,7 +307,7 @@ export function CompanyPage() {
                     width: 56,
                     height: 56,
                     borderRadius: "16px",
-                    background: "linear-gradient(135deg, #6366f1, #4f46e5)",
+                    background: "linear-gradient(135deg, #d2541c, #a8401a)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -378,7 +378,7 @@ export function CompanyPage() {
         <Box>
           {/* Company header */}
           <Card sx={{ mb: 3, overflow: "hidden" }}>
-            <Box sx={{ height: 4, background: "linear-gradient(90deg, #6366f1, #8b5cf6)" }} />
+            <Box sx={{ height: 4, background: "linear-gradient(90deg, #d2541c, #8b5cf6)" }} />
             <CardContent sx={{ p: 3 }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                 <Box
@@ -386,7 +386,7 @@ export function CompanyPage() {
                     width: 48,
                     height: 48,
                     borderRadius: "14px",
-                    background: "linear-gradient(135deg, #6366f1, #4f46e5)",
+                    background: "linear-gradient(135deg, #d2541c, #a8401a)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -552,9 +552,9 @@ export function CompanyPage() {
                   display: "flex",
                   alignItems: "center",
                   gap: 1,
-                  bgcolor: alpha("#6366f1", 0.04),
+                  bgcolor: alpha("#d2541c", 0.04),
                   border: "1px solid",
-                  borderColor: alpha("#6366f1", 0.15),
+                  borderColor: alpha("#d2541c", 0.15),
                 }}
               >
                 <Typography

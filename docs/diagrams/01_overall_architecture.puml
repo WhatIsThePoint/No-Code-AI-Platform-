@@ -1,0 +1,65 @@
+@startuml overall_architecture
+' Replaces \figureplaceholder{Overall system architecture} in report.tex.
+' Render: plantuml -tpng docs/diagrams/01_overall_architecture.puml
+'         → docs/diagrams/overall_architecture.png
+
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName "Helvetica"
+
+actor "End user\n(browser)" as User
+actor "Super-admin\n(browser)" as Admin
+
+package "Frontend (port 5173)" {
+  [React 18 + Vite\nTypeScript + MUI] as FE
+}
+
+package "API Gateway (port 8000)" {
+  [Flask + Flask-JWT-Extended\nFlask-SocketIO host] as GW
+}
+
+package "Application services" {
+  [auth-service\n(8001)] as AUTH
+  [data-ingestion-service\n(8002)] as ING
+  [ml-training-service\n(8003)] as MLT
+  [metrics-service\n(8004)] as MET
+  [dl-training-service\n(8005)] as DLT
+}
+
+package "Celery workers" {
+  [ingestion-worker] as ING_W
+  [ml-training-worker] as MLT_W
+  [dl-training-worker] as DLT_W
+}
+
+database "Postgres + pgvector" as PG
+database "MongoDB" as MONGO
+database "Redis\n(queue + cache + bus)" as REDIS
+database "TimescaleDB" as TS
+
+[Ollama\n(llama3.2:3b)] as OLLAMA
+
+User --> FE
+Admin --> FE
+FE --> GW : HTTPS / SocketIO
+GW --> AUTH
+GW --> ING
+GW --> MLT
+GW --> MET
+GW --> DLT
+
+ING ..> REDIS : enqueue
+ING_W ..> REDIS : consume
+MLT ..> REDIS : enqueue
+MLT_W ..> REDIS : consume
+DLT ..> REDIS : enqueue
+DLT_W ..> REDIS : consume
+
+AUTH --> PG
+ING --> MONGO
+MLT --> MONGO
+MLT --> PG : pgvector (RAG)
+MET --> TS
+MLT --> OLLAMA : HTTP / stream
+
+@enduml

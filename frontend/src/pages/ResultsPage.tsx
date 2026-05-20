@@ -23,8 +23,13 @@ import { MetricsChart } from "../components/pipeline/MetricsChart";
 import { ResidualPlot } from "../components/pipeline/ResidualPlot";
 import { ConfusionMatrixHeatmap } from "../components/pipeline/ConfusionMatrixHeatmap";
 import { ExportModelCard } from "../components/results/ExportModelCard";
-import type { ModelVersion, RegressionMetrics, ResidualPoint } from "../types/model";
-import type { ClassificationMetrics } from "../types/model";
+import type {
+  ClassificationMetrics,
+  ModelMetrics,
+  ModelVersion,
+  RegressionMetrics,
+  ResidualPoint,
+} from "../types/model";
 import type { Pipeline } from "../types/pipeline";
 
 export function ResultsPage() {
@@ -51,7 +56,10 @@ export function ResultsPage() {
   if (loading) return <Box sx={{ display: "flex", justifyContent: "center", mt: 8 }}><CircularProgress /></Box>;
   if (error || !version) return <Typography color="error" sx={{ mt: 4 }}>{error || "Not found"}</Typography>;
 
-  const metrics = version.metrics as unknown as Record<string, unknown>;
+  // `version.metrics` is now optional on the type because DL versions may
+  // arrive before metrics are stamped. Treat absent metrics as empty so
+  // downstream `"key" in metrics` checks are sound.
+  const metrics = (version.metrics ?? {}) as unknown as Record<string, unknown>;
 
   return (
     <Box className="animate-fade-in">
@@ -80,14 +88,14 @@ export function ResultsPage() {
         </Box>
         <Typography variant="h4">Results</Typography>
         <Chip
-          label={version.algorithm}
+          label={version.algorithm ?? version.arch ?? "—"}
           sx={{
             fontWeight: 600,
-            bgcolor: alpha("#6366f1", 0.1),
-            color: "#4f46e5",
+            bgcolor: alpha("#d2541c", 0.1),
+            color: "#a8401a",
           }}
         />
-        <Chip label={version.task_type} variant="outlined" />
+        <Chip label={version.task_type ?? version.framework ?? "—"} variant="outlined" />
       </Box>
 
       <Grid container spacing={3}>
@@ -100,13 +108,13 @@ export function ResultsPage() {
                     width: 28,
                     height: 28,
                     borderRadius: "8px",
-                    bgcolor: alpha("#6366f1", 0.1),
+                    bgcolor: alpha("#d2541c", 0.1),
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                   }}
                 >
-                  <AssessmentIcon sx={{ fontSize: 15, color: "#6366f1" }} />
+                  <AssessmentIcon sx={{ fontSize: 15, color: "#d2541c" }} />
                 </Box>
                 <Typography variant="subtitle2" sx={{ color: "text.secondary", fontWeight: 600 }}>
                   Model Info
@@ -115,10 +123,16 @@ export function ResultsPage() {
               <Divider sx={{ mb: 1.5 }} />
               <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
                 <Typography variant="body2"><strong>Version ID:</strong> {version.version_id.slice(0, 8)}...</Typography>
-                <Typography variant="body2"><strong>Algorithm:</strong> {version.algorithm}</Typography>
-                <Typography variant="body2"><strong>Task Type:</strong> {version.task_type}</Typography>
                 <Typography variant="body2">
-                  <strong>Training Time:</strong> {version.training_duration_s.toFixed(1)}s
+                  <strong>{version.framework === "pytorch" ? "Architecture" : "Algorithm"}:</strong>{" "}
+                  {version.algorithm ?? version.arch ?? "—"}
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Task Type:</strong> {version.task_type ?? version.framework ?? "—"}
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Training Time:</strong>{" "}
+                  {(version.training_duration_s ?? version.duration_s ?? 0).toFixed(1)}s
                 </Typography>
                 <Typography variant="body2">
                   <strong>Created:</strong> {new Date(version.created_at).toLocaleString()}
@@ -149,7 +163,7 @@ export function ResultsPage() {
               </Box>
               <Divider sx={{ mb: 1.5 }} />
               <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-                {Object.entries(version.hyperparams).map(([k, v]) => (
+                {Object.entries(version.hyperparams ?? {}).map(([k, v]) => (
                   <Typography key={k} variant="body2">
                     <strong>{k}:</strong> {String(v)}
                   </Typography>
@@ -191,7 +205,18 @@ export function ResultsPage() {
         <Grid item xs={12} md={8}>
           <Paper sx={{ p: 3, borderRadius: 4 }}>
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>Metrics</Typography>
-            <MetricsChart metrics={version.metrics} taskType={version.task_type} />
+            {/* `metrics` is the (?? {}) narrowing above; cast through it so
+                MetricsChart's tabular-only types remain happy on legacy rows. */}
+            {version.task_type && version.metrics ? (
+              <MetricsChart
+                metrics={version.metrics as ModelMetrics}
+                taskType={version.task_type}
+              />
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                Metrics aren't tabular for this version.
+              </Typography>
+            )}
           </Paper>
 
           {"confusion_matrix" in metrics && Array.isArray(metrics.confusion_matrix) && (
@@ -215,7 +240,7 @@ export function ResultsPage() {
                 variant="h3"
                 sx={{
                   fontWeight: 800,
-                  background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                  background: "linear-gradient(135deg, #d2541c, #8b5cf6)",
                   backgroundClip: "text",
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",

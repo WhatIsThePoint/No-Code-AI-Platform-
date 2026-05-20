@@ -62,7 +62,17 @@ def download_model(version_id: str):
     if not artifact_path:
         return jsonify({"error": "artifact_missing"}), 404
 
-    filename = f"model_{doc['algorithm']}_{version_id[:8]}.joblib"
+    # Filename + extension depend on the producing framework. H2O / sklearn
+    # rows carry an `algorithm` slug; pytorch rows from dl-training-service
+    # carry `arch` instead and the on-disk artefact is a `.pt` state-dict.
+    framework = doc.get("framework", "h2o")
+    short = version_id[:8]
+    if framework == "pytorch":
+        slug = doc.get("arch", "model")
+        filename = f"model_{slug}_{short}.pt"
+    else:
+        slug = doc.get("algorithm", "model")
+        filename = f"model_{slug}_{short}.joblib"
     return send_file(
         artifact_path,
         as_attachment=True,

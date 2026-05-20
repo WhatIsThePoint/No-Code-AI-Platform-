@@ -60,7 +60,7 @@ export function MetricsChart({ metrics }: Props) {
             <XAxis type="number" domain={[0, 1]} tickFormatter={(v) => `${(v * 100).toFixed(0)}%`} />
             <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 12 }} />
             <Tooltip formatter={(v: number) => `${(v * 100).toFixed(2)}%`} contentStyle={{ borderRadius: 12, border: "1px solid #e2e8f0" }} />
-            <Bar dataKey="value" fill="#6366f1" radius={[0, 6, 6, 0]} />
+            <Bar dataKey="value" fill="#d2541c" radius={[0, 6, 6, 0]} />
           </BarChart>
         </ResponsiveContainer>
 
@@ -101,7 +101,7 @@ export function MetricsChart({ metrics }: Props) {
             { label: "RMSE", value: metrics.rmse.toFixed(4) },
             { label: "R\u00B2", value: metrics.r2.toFixed(4) },
           ].map((m) => (
-            <Box key={m.label} sx={{ px: 2, py: 1.5, borderRadius: 3, bgcolor: alpha("#6366f1", 0.04), border: 1, borderColor: alpha("#6366f1", 0.1) }}>
+            <Box key={m.label} sx={{ px: 2, py: 1.5, borderRadius: 3, bgcolor: alpha("#d2541c", 0.04), border: 1, borderColor: alpha("#d2541c", 0.1) }}>
               <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600 }}>{m.label}</Typography>
               <Typography variant="h6" sx={{ fontWeight: 800 }}>{m.value}</Typography>
             </Box>
@@ -137,7 +137,7 @@ export function MetricsChart({ metrics }: Props) {
             <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600 }}>Clusters</Typography>
             <Typography variant="h6" sx={{ fontWeight: 800 }}>{metrics.n_clusters}</Typography>
           </Box>
-          <Box sx={{ px: 2, py: 1.5, borderRadius: 3, bgcolor: alpha("#6366f1", 0.04), border: 1, borderColor: alpha("#6366f1", 0.1) }}>
+          <Box sx={{ px: 2, py: 1.5, borderRadius: 3, bgcolor: alpha("#d2541c", 0.04), border: 1, borderColor: alpha("#d2541c", 0.1) }}>
             <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600 }}>Inertia</Typography>
             <Typography variant="h6" sx={{ fontWeight: 800 }}>{metrics.inertia.toFixed(2)}</Typography>
           </Box>
@@ -157,7 +157,7 @@ export function MetricsChart({ metrics }: Props) {
                 <XAxis dataKey="k" label={{ value: "k", position: "insideBottom", offset: -5 }} />
                 <YAxis />
                 <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid #e2e8f0" }} />
-                <Line type="monotone" dataKey="inertia" stroke="#6366f1" dot={{ fill: "#6366f1", r: 4 }} strokeWidth={2} />
+                <Line type="monotone" dataKey="inertia" stroke="#d2541c" dot={{ fill: "#d2541c", r: 4 }} strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
           </>
@@ -174,7 +174,7 @@ export function MetricsChart({ metrics }: Props) {
         </Typography>
         <Box sx={{ display: "flex", gap: 3, mb: 2, flexWrap: "wrap" }}>
           {metrics.mae != null && (
-            <Box sx={{ px: 2, py: 1.5, borderRadius: 3, bgcolor: alpha("#6366f1", 0.04), border: 1, borderColor: alpha("#6366f1", 0.1) }}>
+            <Box sx={{ px: 2, py: 1.5, borderRadius: 3, bgcolor: alpha("#d2541c", 0.04), border: 1, borderColor: alpha("#d2541c", 0.1) }}>
               <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600 }}>MAE</Typography>
               <Typography variant="h6" sx={{ fontWeight: 800 }}>{metrics.mae.toFixed(4)}</Typography>
             </Box>
@@ -193,7 +193,7 @@ export function MetricsChart({ metrics }: Props) {
             <YAxis />
             <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid #e2e8f0" }} />
             <Legend />
-            <Line type="monotone" dataKey="yhat" stroke="#6366f1" dot={false} name="Forecast" strokeWidth={2} />
+            <Line type="monotone" dataKey="yhat" stroke="#d2541c" dot={false} name="Forecast" strokeWidth={2} />
             <Line type="monotone" dataKey="yhat_lower" stroke={alpha("#8b5cf6", 0.4)} dot={false} strokeDasharray="4 2" name="Lower" />
             <Line type="monotone" dataKey="yhat_upper" stroke={alpha("#8b5cf6", 0.4)} dot={false} strokeDasharray="4 2" name="Upper" />
           </LineChart>

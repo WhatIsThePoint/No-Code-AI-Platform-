@@ -224,7 +224,7 @@ const TASK_META: Record<
   TaskType,
   { label: string; icon: React.ComponentType<{ sx?: object }>; color: string }
 > = {
-  classification: { label: "Classification", icon: CategoryIcon, color: "#6366f1" },
+  classification: { label: "Classification", icon: CategoryIcon, color: "#d2541c" },
   regression: { label: "Regression", icon: TrendingUpIcon, color: "#8b5cf6" },
   clustering: { label: "Clustering", icon: BubbleChartIcon, color: "#10b981" },
   unknown: { label: "Unknown", icon: AutoGraphIcon, color: "#64748b" },
@@ -248,7 +248,7 @@ export function DataInsights({ summary, rowCount }: Props) {
             width: 40,
             height: 40,
             borderRadius: "12px",
-            background: "linear-gradient(135deg, #8b5cf6, #6366f1)",
+            background: "linear-gradient(135deg, #8b5cf6, #d2541c)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -475,9 +475,9 @@ export function DataInsights({ summary, rowCount }: Props) {
             sx={{
               p: 3,
               borderRadius: 4,
-              background: `linear-gradient(135deg, ${alpha("#6366f1", 0.04)}, ${alpha("#8b5cf6", 0.04)})`,
+              background: `linear-gradient(135deg, ${alpha("#d2541c", 0.04)}, ${alpha("#8b5cf6", 0.04)})`,
               border: 1,
-              borderColor: alpha("#6366f1", 0.15),
+              borderColor: alpha("#d2541c", 0.15),
             }}
           >
             <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
@@ -493,7 +493,7 @@ export function DataInsights({ summary, rowCount }: Props) {
               }}
             >
               {[
-                { icon: CleaningServicesIcon, label: "Preprocess", desc: "Clean & split", color: "#6366f1" },
+                { icon: CleaningServicesIcon, label: "Preprocess", desc: "Clean & split", color: "#d2541c" },
                 { icon: SettingsIcon, label: "Build Pipeline", desc: "Drag nodes", color: "#8b5cf6" },
                 { icon: AutoGraphIcon, label: "Train", desc: "Run the model", color: "#ec4899" },
                 { icon: AssessmentIcon, label: "Evaluate", desc: "See metrics", color: "#10b981" },
@@ -524,7 +524,7 @@ export function DataInsights({ summary, rowCount }: Props) {
                     </Box>
                   </Box>
                   {i < arr.length - 1 && (
-                    <Typography sx={{ color: alpha("#6366f1", 0.4), fontSize: 20, display: { xs: "none", sm: "block" } }}>
+                    <Typography sx={{ color: alpha("#d2541c", 0.4), fontSize: 20, display: { xs: "none", sm: "block" } }}>
                       →
                     </Typography>
                   )}

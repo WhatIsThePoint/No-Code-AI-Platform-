@@ -57,7 +57,7 @@ type TwoFAStep = "idle" | "loading" | "scan" | "verify" | "done";
 
 const TIER_CONFIG: Record<string, { label: string; color: string; gradient: string; limits: string }> = {
   free: { label: "Free", color: "#64748b", gradient: "linear-gradient(135deg, #94a3b8, #64748b)", limits: "3 datasets, 2 pipelines" },
-  solo: { label: "Solo", color: "#6366f1", gradient: "linear-gradient(135deg, #6366f1, #4f46e5)", limits: "20 datasets, 10 pipelines" },
+  solo: { label: "Solo", color: "#d2541c", gradient: "linear-gradient(135deg, #d2541c, #a8401a)", limits: "20 datasets, 10 pipelines" },
   company: { label: "Collaborator", color: "#8b5cf6", gradient: "linear-gradient(135deg, #8b5cf6, #7c3aed)", limits: "Unlimited" },
   super_admin: { label: "Admin", color: "#f59e0b", gradient: "linear-gradient(135deg, #f59e0b, #d97706)", limits: "Unlimited" },
 };
@@ -257,7 +257,7 @@ export function ProfilePage() {
                   icon={<BadgeRoundedIcon />}
                   label={ROLE_LABELS[user?.role ?? "data_scientist"]}
                   size="small"
-                  sx={{ fontWeight: 600, bgcolor: alpha("#6366f1", 0.08), color: "#4f46e5", "& .MuiChip-icon": { color: "#6366f1" } }}
+                  sx={{ fontWeight: 600, bgcolor: alpha("#d2541c", 0.08), color: "#a8401a", "& .MuiChip-icon": { color: "#d2541c" } }}
                 />
                 <Chip
                   icon={<WorkspacePremiumRoundedIcon />}
@@ -289,7 +289,7 @@ export function ProfilePage() {
             <CardContent sx={{ py: 2.5 }}>
               <Typography variant="subtitle2" sx={{ mb: 2, fontSize: "0.7rem" }}>Usage Overview</Typography>
               {[
-                { icon: <StorageRoundedIcon />, label: "Datasets", value: datasets.length, color: "#6366f1" },
+                { icon: <StorageRoundedIcon />, label: "Datasets", value: datasets.length, color: "#d2541c" },
                 { icon: <AccountTreeRoundedIcon />, label: "Pipelines", value: pipelines.length, color: "#8b5cf6" },
                 { icon: <CheckCircleIcon />, label: "Trained", value: trainedPipelines, color: "#10b981" },
               ].map((stat) => (
@@ -417,7 +417,7 @@ export function ProfilePage() {
                     width: 40,
                     height: 40,
                     borderRadius: "12px",
-                    bgcolor: alpha("#6366f1", 0.08),
+                    bgcolor: alpha("#d2541c", 0.08),
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -487,7 +487,7 @@ export function ProfilePage() {
                     borderRadius: "12px",
                     background: user?.totp_enabled
                       ? "linear-gradient(135deg, #10b981, #059669)"
-                      : alpha("#6366f1", 0.08),
+                      : alpha("#d2541c", 0.08),
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -532,7 +532,7 @@ export function ProfilePage() {
                 <Button
                   variant="contained"
                   onClick={handleEnable2FA}
-                  sx={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}
+                  sx={{ background: "linear-gradient(135deg, #d2541c, #8b5cf6)" }}
                 >
                   Enable Two-Factor Authentication
                 </Button>
@@ -545,9 +545,9 @@ export function ProfilePage() {
             <Card
               sx={{
                 overflow: "hidden",
-                background: `linear-gradient(135deg, ${alpha("#6366f1", 0.04)}, ${alpha("#8b5cf6", 0.06)})`,
+                background: `linear-gradient(135deg, ${alpha("#d2541c", 0.04)}, ${alpha("#8b5cf6", 0.06)})`,
                 border: 1,
-                borderColor: alpha("#6366f1", 0.2),
+                borderColor: alpha("#d2541c", 0.2),
               }}
             >
               <CardContent sx={{ p: 3 }}>
@@ -557,11 +557,11 @@ export function ProfilePage() {
                       width: 48,
                       height: 48,
                       borderRadius: "14px",
-                      background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                      background: "linear-gradient(135deg, #d2541c, #8b5cf6)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      boxShadow: `0 8px 20px -4px ${alpha("#6366f1", 0.4)}`,
+                      boxShadow: `0 8px 20px -4px ${alpha("#d2541c", 0.4)}`,
                       flexShrink: 0,
                     }}
                   >
@@ -579,7 +579,7 @@ export function ProfilePage() {
                     variant="contained"
                     endIcon={<ArrowForwardRoundedIcon />}
                     sx={{
-                      background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                      background: "linear-gradient(135deg, #d2541c, #8b5cf6)",
                       whiteSpace: "nowrap",
                       flexShrink: 0,
                     }}

@@ -89,14 +89,14 @@ export function RegisterPage() {
                 width: 44,
                 height: 44,
                 borderRadius: "14px",
-                background: "linear-gradient(135deg, #818cf8 0%, #6366f1 50%, #4f46e5 100%)",
+                background: "linear-gradient(135deg, #818cf8 0%, #d2541c 50%, #a8401a 100%)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 fontWeight: 800,
                 fontSize: "1.1rem",
                 color: "#fff",
-                boxShadow: `0 8px 25px -5px ${alpha("#6366f1", 0.4)}`,
+                boxShadow: `0 8px 25px -5px ${alpha("#d2541c", 0.4)}`,
               }}
             >
               AI
@@ -113,7 +113,7 @@ export function RegisterPage() {
               maxWidth: 440,
               borderRadius: 3,
               border: "1px solid",
-              borderColor: alpha("#6366f1", 0.12),
+              borderColor: alpha("#d2541c", 0.12),
               position: "relative",
               overflow: "hidden",
               "&::before": {
@@ -123,7 +123,7 @@ export function RegisterPage() {
                 left: 0,
                 right: 0,
                 height: "3px",
-                background: "linear-gradient(90deg, #8b5cf6, #6366f1, #8b5cf6)",
+                background: "linear-gradient(90deg, #8b5cf6, #d2541c, #8b5cf6)",
                 backgroundSize: "200% 100%",
                 animation: "gradient-shift 3s ease infinite",
               },

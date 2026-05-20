@@ -26,6 +26,7 @@ class Config:
     DATA_SERVICE_URL = os.environ.get("DATA_SERVICE_URL", "http://localhost:8002")
     ML_SERVICE_URL = os.environ.get("ML_SERVICE_URL", "http://localhost:8003")
     METRICS_SERVICE_URL = os.environ.get("METRICS_SERVICE_URL", "http://localhost:8004")
+    DL_SERVICE_URL = os.environ.get("DL_SERVICE_URL", "http://localhost:8005")
 
     # Sprint 7 Module 4 — local AI companion
     OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://ollama:11434")

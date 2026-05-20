@@ -20,7 +20,7 @@ interface Props {
  */
 export function BoxViolinChart({
   columns,
-  color = "#6366f1",
+  color = "#d2541c",
   height = 320,
   title = "Numeric distributions (box & whisker)",
 }: Props) {

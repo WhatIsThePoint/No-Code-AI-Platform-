@@ -93,6 +93,35 @@ export function validateNode(node: Node, edges: Edge[], allNodes: Node[]): NodeV
       if (!engine) return { status: "error", message: "Pick a local LLM engine" };
       return OK;
     }
+    // ── Deep-learning family ─────────────────────────────────────────────
+    case "image_dataset": {
+      const datasetId = data.dataset_id as string | undefined;
+      if (!datasetId) return { status: "error", message: "Pick an image dataset" };
+      const numClasses = data.num_classes as number | undefined;
+      if (numClasses !== undefined && numClasses < 2) {
+        return { status: "error", message: "Need at least 2 classes" };
+      }
+      return OK;
+    }
+    case "cnn_arch": {
+      if (!incomingFrom(node, edges, allNodes, "image_dataset")) {
+        return { status: "error", message: "Connect an Image Dataset node" };
+      }
+      if (!(data.arch as string | undefined)) {
+        return { status: "error", message: "Pick a CNN architecture" };
+      }
+      return OK;
+    }
+    case "dl_train": {
+      if (!incomingFrom(node, edges, allNodes, "cnn_arch")) {
+        return { status: "error", message: "Connect a CNN Arch node" };
+      }
+      const epochs = data.epochs as number | undefined;
+      if (!epochs || epochs < 1) return { status: "error", message: "Set epochs ≥ 1" };
+      const batch = data.batch_size as number | undefined;
+      if (!batch || batch < 1) return { status: "error", message: "Set batch size ≥ 1" };
+      return OK;
+    }
     default:
       return OK;
   }

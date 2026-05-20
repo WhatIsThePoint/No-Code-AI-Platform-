@@ -35,7 +35,7 @@ interface Props {
 }
 
 function avatarColor(userId: string): string {
-  const palette = ["#6366f1", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444", "#0ea5e9"];
+  const palette = ["#d2541c", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444", "#0ea5e9"];
   let hash = 0;
   for (let i = 0; i < userId.length; i++) {
     hash = (hash * 31 + userId.charCodeAt(i)) | 0;
@@ -234,10 +234,10 @@ export function ChatDrawer({ pipelineId, open, onClose }: Props) {
           py: 1.5,
           borderBottom: 1,
           borderColor: "divider",
-          background: `linear-gradient(135deg, ${alpha("#6366f1", 0.06)}, ${alpha("#8b5cf6", 0.06)})`,
+          background: `linear-gradient(135deg, ${alpha("#d2541c", 0.06)}, ${alpha("#8b5cf6", 0.06)})`,
         }}
       >
-        <ChatBubbleIcon sx={{ fontSize: 18, color: "#6366f1", mr: 1 }} />
+        <ChatBubbleIcon sx={{ fontSize: 18, color: "#d2541c", mr: 1 }} />
         <Typography variant="subtitle2" sx={{ fontWeight: 700, flex: 1 }}>
           Team Chat
         </Typography>
@@ -329,7 +329,7 @@ export function ChatDrawer({ pipelineId, open, onClose }: Props) {
                     px: 1.25,
                     py: 0.75,
                     borderRadius: 2,
-                    bgcolor: mine ? alpha("#6366f1", 0.12) : alpha("#0f172a", 0.04),
+                    bgcolor: mine ? alpha("#d2541c", 0.12) : alpha("#0f172a", 0.04),
                     color: "text.primary",
                     fontSize: 13,
                     lineHeight: 1.4,
@@ -402,7 +402,7 @@ export function ChatDrawer({ pipelineId, open, onClose }: Props) {
                   disabled={!draft.trim()}
                   onClick={send}
                   aria-label="Send team chat message"
-                  sx={{ color: "#6366f1" }}
+                  sx={{ color: "#d2541c" }}
                 >
                   <SendIcon fontSize="small" />
                 </IconButton>

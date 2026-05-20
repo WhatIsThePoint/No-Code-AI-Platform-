@@ -43,7 +43,7 @@ interface CompareResult {
   metric_keys: string[];
 }
 
-const CHART_COLORS = ["#6366f1", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444"];
+const CHART_COLORS = ["#d2541c", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444"];
 
 export function ModelComparisonPage() {
   const { pipelineId } = useParams<{ pipelineId: string }>();
@@ -110,7 +110,7 @@ export function ModelComparisonPage() {
             width: 40,
             height: 40,
             borderRadius: "12px",
-            background: "linear-gradient(135deg, #6366f1, #4f46e5)",
+            background: "linear-gradient(135deg, #d2541c, #a8401a)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -143,15 +143,15 @@ export function ModelComparisonPage() {
                 selected={selected.has(v.version_id)}
                 sx={{
                   cursor: "pointer",
-                  "&.Mui-selected": { bgcolor: alpha("#6366f1", 0.06) },
-                  "&.Mui-selected:hover": { bgcolor: alpha("#6366f1", 0.1) },
+                  "&.Mui-selected": { bgcolor: alpha("#d2541c", 0.06) },
+                  "&.Mui-selected:hover": { bgcolor: alpha("#d2541c", 0.1) },
                 }}
                 onClick={() => toggle(v.version_id)}
               >
                 <TableCell padding="checkbox">
                   <Checkbox
                     checked={selected.has(v.version_id)}
-                    sx={{ "&.Mui-checked": { color: "#6366f1" } }}
+                    sx={{ "&.Mui-checked": { color: "#d2541c" } }}
                   />
                 </TableCell>
                 <TableCell>
@@ -161,9 +161,9 @@ export function ModelComparisonPage() {
                     sx={{ bgcolor: alpha("#8b5cf6", 0.08), color: "#7c3aed", fontWeight: 600, fontSize: "0.7rem" }}
                   />
                 </TableCell>
-                <TableCell>{v.task_type}</TableCell>
+                <TableCell>{v.task_type ?? v.framework ?? "—"}</TableCell>
                 <TableCell>{new Date(v.created_at).toLocaleString()}</TableCell>
-                <TableCell>{v.training_duration_s.toFixed(1)}s</TableCell>
+                <TableCell>{(v.training_duration_s ?? v.duration_s ?? 0).toFixed(1)}s</TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -203,7 +203,7 @@ export function ModelComparisonPage() {
                       <Chip
                         label={String(row.algorithm)}
                         size="small"
-                        sx={{ bgcolor: alpha("#6366f1", 0.08), color: "#4f46e5", fontWeight: 600 }}
+                        sx={{ bgcolor: alpha("#d2541c", 0.08), color: "#a8401a", fontWeight: 600 }}
                       />
                     </TableCell>
                     <TableCell>

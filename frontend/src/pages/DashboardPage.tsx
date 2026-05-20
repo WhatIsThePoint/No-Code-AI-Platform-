@@ -49,7 +49,7 @@ import { RenameableTitle } from "../components/common/RenameableTitle";
 import { CardSkeletonGrid } from "../components/common/CardSkeletonGrid";
 
 const STAT_CARDS = [
-  { key: "datasets", i18nKey: "datasets", icon: <StorageIcon />, gradient: "linear-gradient(135deg, #6366f1, #4f46e5)" },
+  { key: "datasets", i18nKey: "datasets", icon: <StorageIcon />, gradient: "linear-gradient(135deg, #d2541c, #a8401a)" },
   { key: "ready", i18nKey: "ready", icon: <CheckCircleIcon />, gradient: "linear-gradient(135deg, #10b981, #059669)" },
   { key: "pipelines", i18nKey: "pipelines", icon: <AccountTreeIcon />, gradient: "linear-gradient(135deg, #8b5cf6, #7c3aed)" },
   { key: "trained", i18nKey: "trained", icon: <ModelTrainingIcon />, gradient: "linear-gradient(135deg, #3b82f6, #2563eb)" },
@@ -190,8 +190,8 @@ export function DashboardPage() {
             mb: 2,
             borderRadius: 3,
             border: "1px solid",
-            borderColor: alpha("#6366f1", 0.15),
-            bgcolor: alpha("#6366f1", 0.04),
+            borderColor: alpha("#d2541c", 0.15),
+            bgcolor: alpha("#d2541c", 0.04),
           }}
         >
           <strong>{a.title}</strong> — {a.body}

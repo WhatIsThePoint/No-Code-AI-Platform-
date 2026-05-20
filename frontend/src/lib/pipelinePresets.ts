@@ -4,7 +4,7 @@ import type { PipelineType } from "../types/pipeline";
 
 export interface PipelinePreset {
   id: string;
-  i18nKey: "mlStarter" | "ragStarter";
+  i18nKey: "mlStarter" | "ragStarter" | "dlStarter";
   mode: PipelineType;
   /**
    * Build the (nodes, edges) the preset should append to the canvas.
@@ -136,6 +136,54 @@ export const PIPELINE_PRESETS: PipelinePreset[] = [
     },
   },
 ];
+
+// DL starter — image-classification path. The defaults match the
+// `tiny_resnet @ 64 px, 5 epochs, batch=32, lr=1e-3` recommendation that
+// fits comfortably on the 1660 Super demo GPU. Pretrained is left off
+// because tiny_resnet has no canonical ImageNet checkpoint; mobilenet is
+// available for users who want transfer-learning.
+PIPELINE_PRESETS.push({
+  id: "dl-starter",
+  i18nKey: "dlStarter",
+  mode: "dl",
+  build: (mintId) => {
+    const imgId = mintId();
+    const archId = mintId();
+    const trainId = mintId();
+    return {
+      nodes: [
+        {
+          id: imgId,
+          type: "image_dataset",
+          position: { x: 60, y: 120 },
+          data: { dataset_id: "" },
+        },
+        {
+          id: archId,
+          type: "cnn_arch",
+          position: { x: 320, y: 120 },
+          data: { arch: "tiny_resnet", pretrained: false, input_size: 64 },
+        },
+        {
+          id: trainId,
+          type: "dl_train",
+          position: { x: 580, y: 120 },
+          data: {
+            epochs: 5,
+            batch_size: 32,
+            lr: 1e-3,
+            optimizer: "adam",
+            augment: false,
+          },
+        },
+      ],
+      edges: [
+        { id: `e-${imgId}-${archId}`, source: imgId, target: archId, animated: true },
+        { id: `e-${archId}-${trainId}`, source: archId, target: trainId, animated: true },
+      ],
+    };
+  },
+});
 
 export function presetsForMode(mode: PipelineType): PipelinePreset[] {
   return PIPELINE_PRESETS.filter((p) => p.mode === mode);

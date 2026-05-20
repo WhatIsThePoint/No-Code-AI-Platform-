@@ -25,9 +25,13 @@ class Subscription(db.Model):
 
     # Per-user quota overrides written by super-admin. NULL means "use the
     # plan default" — surfaced to other services via /admin endpoints so they
-    # can clamp RAG ingestion (max_chunks) and Ollama loads (max_vram_mb).
+    # can clamp RAG ingestion (max_chunks), Ollama loads (max_vram_mb), and
+    # deep-learning training (max_dl_epochs / max_dl_batch_size). Sprint 8
+    # added the DL pair when image-classification training landed.
     max_chunks = db.Column(db.Integer, nullable=True)
     max_vram_mb = db.Column(db.Integer, nullable=True)
+    max_dl_epochs = db.Column(db.Integer, nullable=True)
+    max_dl_batch_size = db.Column(db.Integer, nullable=True)
 
     created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
     updated_at = db.Column(

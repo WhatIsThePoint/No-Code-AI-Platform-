@@ -8,6 +8,15 @@ export interface User {
   has_seen_pipeline_tour?: boolean;
   has_seen_genai_tour?: boolean;
   created_at: string;
+  /** Effective per-user resource ceilings — populated by GET /users/me. */
+  limits?: UserLimits;
+}
+
+export interface UserLimits {
+  max_chunks: number;
+  max_vram_mb: number;
+  max_dl_epochs: number;
+  max_dl_batch_size: number;
 }
 
 export interface AuthState {

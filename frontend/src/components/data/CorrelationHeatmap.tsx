@@ -19,7 +19,7 @@ export function CorrelationHeatmap({ matrix, truncated }: Props) {
             width: 32,
             height: 32,
             borderRadius: "10px",
-            background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+            background: "linear-gradient(135deg, #d2541c, #8b5cf6)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",

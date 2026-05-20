@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [api-gateway, auth-service, data-ingestion-service, ml-training-service]
+        service: [api-gateway, auth-service, data-ingestion-service, ml-training-service, dl-training-service]
     steps:
       - uses: actions/checkout@v4
 
@@ -63,7 +63,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [api-gateway, auth-service, data-ingestion-service, ml-training-service]
+        service: [api-gateway, auth-service, data-ingestion-service, ml-training-service, dl-training-service]
 
     services:
       postgres:
@@ -117,6 +117,16 @@ jobs:
           cd services/${{ matrix.service }}
           pip install -r requirements.txt
           pip install pytest pytest-cov pytest-flask
+
+      # dl-training-service intentionally omits torch from requirements.txt
+      # (production pulls CUDA wheels via the PyTorch index inside the
+      # Dockerfile). For CI we want the much smaller CPU-only wheels — this
+      # step is a no-op for every other service in the matrix.
+      - name: Install torch CPU wheels (dl-training-service only)
+        if: matrix.service == 'dl-training-service'
+        run: |
+          pip install torch==2.4.1 torchvision==0.19.1 \
+            --index-url https://download.pytorch.org/whl/cpu
 
       - name: Run tests
         env:

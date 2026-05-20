@@ -8,7 +8,7 @@ interface Props {
   color?: string;
 }
 
-export function ResidualPlot({ points, color = "#6366f1" }: Props) {
+export function ResidualPlot({ points, color = "#d2541c" }: Props) {
   if (!points || points.length === 0) return null;
 
   const xs = points.map((p) => p.y_pred);

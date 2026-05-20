@@ -16,6 +16,7 @@ def make_celery() -> Celery:
             "app.tasks.preprocessing",
             "app.tasks.sql_import",
             "app.tasks.rag_ingest",
+            "app.tasks.image_extract",
         ],
     )
     celery.conf.update(
@@ -30,6 +31,10 @@ def make_celery() -> Celery:
             "app.tasks.preprocessing.*": {"queue": "ingestion"},
             "app.tasks.sql_import.*": {"queue": "connectors"},
             "app.tasks.rag_ingest.*": {"queue": "rag"},
+            # Image extraction is CPU+IO bound and short-lived per file;
+            # routed to the existing ingestion queue so we don't spin up a
+            # fourth worker just for unzips.
+            "app.tasks.image_extract.*": {"queue": "ingestion"},
         },
     )
     return celery

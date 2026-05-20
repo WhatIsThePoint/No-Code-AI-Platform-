@@ -21,7 +21,7 @@ import { useTranslation } from "react-i18next";
 import { modelsApi } from "../api/models";
 import { pipelinesApi } from "../api/pipelines";
 import { MetricsChart } from "../components/pipeline/MetricsChart";
-import type { ModelVersion } from "../types/model";
+import type { ModelMetrics, ModelVersion } from "../types/model";
 import type { Pipeline } from "../types/pipeline";
 import { EmptyStateHero } from "../components/common/EmptyStateHero";
 import { CardSkeletonGrid } from "../components/common/CardSkeletonGrid";
@@ -121,22 +121,29 @@ export function ModelRegistryPage() {
                       <Box>
                         <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
                           <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                            {v.algorithm.toUpperCase()}
+                            {/* DL versions ship `arch` (lenet / tiny_resnet /
+                                mobilenet_v3_small) instead of `algorithm`,
+                                and a partially-trained row may not have
+                                either yet — fall back gracefully. */}
+                            {(v.algorithm ?? v.arch ?? "model").toString().toUpperCase()}
                           </Typography>
-                          <Chip
-                            label={v.task_type}
-                            size="small"
-                            sx={{
-                              fontSize: "0.65rem",
-                              height: 22,
-                              bgcolor: alpha("#8b5cf6", 0.08),
-                              color: "#7c3aed",
-                              fontWeight: 600,
-                            }}
-                          />
+                          {(v.task_type || v.framework) && (
+                            <Chip
+                              label={v.task_type ?? v.framework}
+                              size="small"
+                              sx={{
+                                fontSize: "0.65rem",
+                                height: 22,
+                                bgcolor: alpha("#8b5cf6", 0.08),
+                                color: "#7c3aed",
+                                fontWeight: 600,
+                              }}
+                            />
+                          )}
                         </Box>
                         <Typography variant="caption" color="text.secondary">
-                          {new Date(v.created_at).toLocaleString()} · {v.training_duration_s}s training
+                          {new Date(v.created_at).toLocaleString()}
+                          {v.training_duration_s != null && ` · ${v.training_duration_s}s training`}
                         </Typography>
                       </Box>
                       <Box sx={{ display: "flex", gap: 1 }}>
@@ -160,7 +167,16 @@ export function ModelRegistryPage() {
                       </Box>
                     </Box>
                     <Divider sx={{ mb: 2.5 }} />
-                    <MetricsChart metrics={v.metrics} taskType={v.task_type} />
+                    {v.metrics && v.task_type ? (
+                      <MetricsChart
+                        metrics={v.metrics as ModelMetrics}
+                        taskType={v.task_type}
+                      />
+                    ) : (
+                      <Typography variant="body2" color="text.secondary">
+                        Metrics are not available for this model version yet.
+                      </Typography>
+                    )}
                   </CardContent>
                 </Card>
               ))}

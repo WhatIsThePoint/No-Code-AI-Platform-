@@ -1,0 +1,42 @@
+@startuml dl_service
+' Replaces \figureplaceholder{DL service architecture}.
+
+skinparam shadowing false
+skinparam componentStyle rectangle
+
+actor "End user" as U
+component "api-gateway\n(:8000)" as GW
+
+package "dl-training-service" {
+  [Flask API\n(:8005)] as API
+  [VRAM guard\n(static estimator)] as VG
+  [Architecture registry\nLeNet / TinyResNet / MobileNetV3] as REG
+  [Model storage helper] as MS
+  [Realtime emitter\n→ /training namespace] as RE
+}
+
+queue "Celery: dl_training\n(Redis broker)" as Q
+component "dl-training-worker\n(GPU)" as W
+
+storage "uploaded_files\n(shared volume)" as UF
+storage "model_artifacts\n(shared volume)" as MA
+database "MongoDB\n(model versions)" as MG
+
+cloud "NVIDIA GPU\nGTX 1660 SUPER (6 GB)\nvia nvidia-container-toolkit" as GPU
+
+U --> GW
+GW --> API : /dl/train, /dl/predict,\n/dl/gpu (X-Max-* headers)
+API -> VG : check tier + arch + batch
+VG --> API : ok / 400 oversize
+API -> Q : apply_async(train_image, …)
+Q -> W : dispatch
+W -> UF : read ImageFolder
+W -> REG : build model
+W -> GPU : forward / backward (AMP)
+W -> RE : per-epoch progress
+RE -> GW : socket.emit training_epoch
+W -> MS : save state_dict + sidecars
+MS -> MA : write model.pt
+MS -> MG : INSERT model_versions
+
+@enduml

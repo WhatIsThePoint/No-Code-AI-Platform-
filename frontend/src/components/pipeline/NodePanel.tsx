@@ -62,7 +62,7 @@ export function NodePanel({ node, pipelineId, datasets, latestVersion, onUpdate 
               width: 28,
               height: 28,
               borderRadius: "8px",
-              background: "linear-gradient(135deg, #6366f1, #4f46e5)",
+              background: "linear-gradient(135deg, #d2541c, #a8401a)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -193,8 +193,14 @@ export function NodePanel({ node, pipelineId, datasets, latestVersion, onUpdate 
           </Box>
           <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Evaluate Node</Typography>
         </Box>
-        {latestVersion ? (
-          <MetricsChart metrics={latestVersion.metrics} taskType={latestVersion.task_type} />
+        {latestVersion && latestVersion.metrics && latestVersion.task_type ? (
+          // The Evaluate node only renders for tabular runs; DL versions are
+          // shown via DLPredictPanel under the canvas. Narrow defensively so
+          // a fresh DL version never lands here without `task_type`.
+          <MetricsChart
+            metrics={latestVersion.metrics as import("../../types/model").ModelMetrics}
+            taskType={latestVersion.task_type}
+          />
         ) : (
           <Typography variant="body2" color="text.secondary">
             No trained model yet. Run the pipeline first.

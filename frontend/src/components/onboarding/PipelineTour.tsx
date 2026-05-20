@@ -86,14 +86,14 @@ export function PipelineTour({ shouldStart }: Props) {
       callback={handleCallback}
       styles={{
         options: {
-          primaryColor: "#6366f1",
+          primaryColor: "#d2541c",
           zIndex: 2000,
           arrowColor: "#ffffff",
           backgroundColor: "#ffffff",
           textColor: "#0f172a",
         },
         tooltipContainer: { textAlign: "left" },
-        buttonNext: { background: "linear-gradient(135deg, #6366f1, #8b5cf6)" },
+        buttonNext: { background: "linear-gradient(135deg, #d2541c, #8b5cf6)" },
       }}
     />
   );

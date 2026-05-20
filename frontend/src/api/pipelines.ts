@@ -4,6 +4,7 @@ import type {
   Pipeline,
   PipelineEdge,
   PipelineNode,
+  PipelineType,
   StepNote,
 } from "../types/pipeline";
 
@@ -23,7 +24,7 @@ export const pipelinesApi = {
 
   create: (payload: {
     name: string;
-    type?: "ml" | "rag";
+    type?: PipelineType;
     owner_type: OwnerType;
     company_id?: string;
     nodes?: PipelineNode[];
@@ -34,7 +35,7 @@ export const pipelinesApi = {
     id: string,
     payload: {
       name?: string;
-      type?: "ml" | "rag";
+      type?: PipelineType;
       nodes?: PipelineNode[];
       edges?: PipelineEdge[];
     }

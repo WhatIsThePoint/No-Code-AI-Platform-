@@ -690,11 +690,11 @@ function MessageBubble({ message, pipelineId, onFeedback }: MessageBubbleProps) 
         sx={{
           width: 28,
           height: 28,
-          bgcolor: isUser ? alpha("#6366f1", 0.15) : alpha("#f59e0b", 0.15),
+          bgcolor: isUser ? alpha("#d2541c", 0.15) : alpha("#f59e0b", 0.15),
         }}
       >
         {isUser ? (
-          <PersonRoundedIcon sx={{ fontSize: 16, color: "#4f46e5" }} />
+          <PersonRoundedIcon sx={{ fontSize: 16, color: "#a8401a" }} />
         ) : (
           <SmartToyRoundedIcon sx={{ fontSize: 16, color: "#d97706" }} />
         )}
@@ -708,7 +708,7 @@ function MessageBubble({ message, pipelineId, onFeedback }: MessageBubbleProps) 
             bgcolor: message.error
               ? alpha("#ef4444", 0.05)
               : isUser
-              ? alpha("#6366f1", 0.06)
+              ? alpha("#d2541c", 0.06)
               : "#fff",
             border: message.error ? `1px solid ${alpha("#ef4444", 0.3)}` : 1,
             borderColor: message.error ? alpha("#ef4444", 0.3) : "divider",

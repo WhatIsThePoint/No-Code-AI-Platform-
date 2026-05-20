@@ -16,16 +16,16 @@ export function DatasetNode({ data, selected }: NodeProps) {
         py: 2,
         borderRadius: 3,
         border: 2,
-        borderColor: validationBorder || (selected ? "#6366f1" : alpha("#6366f1", 0.2)),
+        borderColor: validationBorder || (selected ? "#d2541c" : alpha("#d2541c", 0.2)),
         bgcolor: "#fff",
         minWidth: 180,
         boxShadow: selected
-          ? `0 8px 25px -5px ${alpha("#6366f1", 0.3)}, 0 0 0 3px ${alpha("#6366f1", 0.1)}`
+          ? `0 8px 25px -5px ${alpha("#d2541c", 0.3)}, 0 0 0 3px ${alpha("#d2541c", 0.1)}`
           : `0 2px 8px -2px ${alpha("#0f172a", 0.08)}`,
         transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
         "&:hover": {
-          borderColor: alpha("#6366f1", 0.5),
-          boxShadow: `0 4px 16px -4px ${alpha("#6366f1", 0.25)}`,
+          borderColor: alpha("#d2541c", 0.5),
+          boxShadow: `0 4px 16px -4px ${alpha("#d2541c", 0.25)}`,
         },
       }}
     >
@@ -35,7 +35,7 @@ export function DatasetNode({ data, selected }: NodeProps) {
             width: 28,
             height: 28,
             borderRadius: "8px",
-            background: "linear-gradient(135deg, #6366f1, #4f46e5)",
+            background: "linear-gradient(135deg, #d2541c, #a8401a)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -43,7 +43,7 @@ export function DatasetNode({ data, selected }: NodeProps) {
         >
           <StorageIcon sx={{ fontSize: 16, color: "#fff" }} />
         </Box>
-        <Typography variant="caption" sx={{ fontWeight: 700, color: "#6366f1", letterSpacing: "0.05em", textTransform: "uppercase", fontSize: "0.65rem" }}>
+        <Typography variant="caption" sx={{ fontWeight: 700, color: "#d2541c", letterSpacing: "0.05em", textTransform: "uppercase", fontSize: "0.65rem" }}>
           Dataset
         </Typography>
       </Box>

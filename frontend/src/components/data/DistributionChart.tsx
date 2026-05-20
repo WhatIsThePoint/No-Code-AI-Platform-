@@ -7,7 +7,7 @@ interface Props {
   color?: string;
 }
 
-export function DistributionChart({ histogram, color = "#6366f1" }: Props) {
+export function DistributionChart({ histogram, color = "#d2541c" }: Props) {
   const { bins, counts } = histogram;
   const centers = counts.map((_, i) => (bins[i] + bins[i + 1]) / 2);
   const widths = counts.map((_, i) => bins[i + 1] - bins[i]);

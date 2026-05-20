@@ -37,3 +37,17 @@ class SubscriptionOverrideSchema(Schema):
         allow_none=True,
         validate=validate.Range(min=0, max=16_384),
     )
+    # DL training caps (Sprint 8). Service-wide hard ceilings live in
+    # dl-training-service.config.HARD_MAX_*; the marshmallow Range here is
+    # the *override* envelope — anything within these bounds is plausibly
+    # storable, but the dl-training-service still enforces the hard cap.
+    max_dl_epochs = fields.Int(
+        load_default=None,
+        allow_none=True,
+        validate=validate.Range(min=1, max=100),
+    )
+    max_dl_batch_size = fields.Int(
+        load_default=None,
+        allow_none=True,
+        validate=validate.Range(min=1, max=256),
+    )

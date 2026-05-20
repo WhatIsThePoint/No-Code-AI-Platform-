@@ -1,0 +1,68 @@
+@startuml class_sprint1
+' Replaces \figureplaceholder{Class diagram for Sprint 1}.
+
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+
+class User {
+  +user_id : uuid
+  +email : str
+  +password_hash : str (bcrypt)
+  +role : enum(super_admin, owner, member)
+  +tier : enum(free, solo, company)
+  +totp_secret : str?
+  +created_at : datetime
+  --
+  +verify_password()
+  +rotate_totp()
+}
+
+class RefreshToken {
+  +token_id : uuid
+  +user_id : uuid (FK)
+  +token_hash : str (sha256)
+  +expires_at : datetime
+  +revoked_at : datetime?
+}
+
+class Company {
+  +company_id : uuid
+  +name : str
+  +owner_id : uuid (FK → User)
+  +stripe_customer_id : str?
+}
+
+class Membership {
+  +membership_id : uuid
+  +company_id : uuid (FK)
+  +user_id : uuid (FK)
+  +role : enum
+  +joined_at : datetime
+}
+
+class Invitation {
+  +invitation_id : uuid
+  +company_id : uuid (FK)
+  +email : str
+  +token : str
+  +expires_at : datetime
+  +accepted_at : datetime?
+}
+
+class AuditLog {
+  +log_id : uuid
+  +actor_user_id : uuid
+  +action : str
+  +target : str
+  +ip : str
+  +detail : jsonb
+  +created_at : datetime
+}
+
+User "1" -- "0..*" RefreshToken
+User "1" -- "0..*" Membership
+Company "1" -- "0..*" Membership
+Company "1" -- "0..*" Invitation
+User "1" -- "0..*" AuditLog : actor
+
+@enduml

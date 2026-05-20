@@ -4,6 +4,7 @@ export type DatasetStatus =
   | "ready"
   | "preprocessing"
   | "preprocessed"
+  | "extracting"
   | "error";
 
 export interface ColumnHistogram {
@@ -91,18 +92,29 @@ export interface PreprocessingConfig {
   split_ratios: { train: number; val: number; test: number };
 }
 
+// Image-dataset profile written by data-ingestion's `image_extract` task.
+// Surfaced on the canvas's ImageDatasetNode for the class chips + thumbnail
+// strip; absent on tabular datasets.
+export interface ImageDatasetProfile {
+  total_images: number;
+  num_classes: number;
+  class_counts: Record<string, number>;
+  sample_dim?: [number, number] | null;
+}
+
 export interface Dataset {
   dataset_id: string;
   user_id: string;
   company_id: string | null;
   name: string;
   description?: string | null;
-  source_type: "csv" | "excel" | "postgres" | "mysql";
+  source_type: "csv" | "excel" | "postgres" | "mysql" | "image";
   status: DatasetStatus;
   row_count?: number;
   column_count?: number;
   size_bytes?: number;
   profiling_summary?: ProfilingSummary;
+  image_profile?: ImageDatasetProfile;
   preprocessing_config?: PreprocessingConfig;
   task_id?: string;
   created_at: string;

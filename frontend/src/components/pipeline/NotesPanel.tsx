@@ -85,7 +85,7 @@ export function NotesPanel({ pipelineId, nodeId }: Props) {
                     multiline
                     maxRows={3}
                   />
-                  <IconButton size="small" onClick={() => handleEdit(note.note_id)} aria-label="Save note edit" sx={{ color: "#6366f1" }}>
+                  <IconButton size="small" onClick={() => handleEdit(note.note_id)} aria-label="Save note edit" sx={{ color: "#d2541c" }}>
                     <CheckIcon fontSize="small" />
                   </IconButton>
                   <IconButton size="small" onClick={() => setEditingId(null)} aria-label="Cancel note edit">

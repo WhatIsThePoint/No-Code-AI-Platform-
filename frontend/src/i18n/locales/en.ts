@@ -218,6 +218,7 @@ export const en = {
     mode: {
       ml: "Traditional ML",
       rag: "Generative AI",
+      dl: "Deep Learning",
       lockedHint: "Clear the canvas to switch pipeline mode.",
     },
     addNode: {
@@ -227,6 +228,9 @@ export const en = {
       document: "Document",
       vectorStore: "Vector Store",
       ragConfig: "RAG Config",
+      imageDataset: "Image Dataset",
+      cnnArch: "CNN Arch",
+      dlTrain: "DL Train",
     },
     actions: {
       templates: "Templates",
@@ -254,6 +258,10 @@ export const en = {
         label: "RAG starter",
         description: "Document → Vector Store → RAG Config, pre-wired.",
       },
+      dlStarter: {
+        label: "DL starter",
+        description: "Image Dataset → CNN Arch (Tiny ResNet) → DL Train, pre-wired.",
+      },
       inserted: "Template inserted — Auto-Layout applied.",
     },
     progress: {
@@ -265,6 +273,8 @@ export const en = {
       saved: "Pipeline saved",
       saveFailed: "Save failed",
       missingNodes: "Add both a Dataset and Train node first",
+      missingDLNodes: "Add an Image Dataset, a CNN Arch, and a DL Train node first",
+      dlMissingDataset: "Pick an image dataset on the Image Dataset node before running",
       runFailed: "Failed to start training",
     },
   },

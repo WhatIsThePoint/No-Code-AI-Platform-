@@ -137,12 +137,17 @@ def list_ollama_models():
 # ── Infra healthcheck ────────────────────────────────────────────────────────
 
 
-def _http_probe(name: str, base_url: str) -> dict:
-    """Probe an HTTP `/health` endpoint with a strict timeout."""
+def _http_probe(name: str, base_url: str, path: str = "/health") -> dict:
+    """Probe an HTTP endpoint with a strict timeout.
+
+    The default `path="/health"` matches every Python service in the
+    platform. Ollama doesn't expose `/health` — it uses `/api/tags` as a
+    cheap "is the daemon up" liveness check; pass `path="/api/tags"`.
+    """
     started = time.perf_counter()
     try:
         resp = requests.get(
-            f"{base_url.rstrip('/')}/health", timeout=HEALTHCHECK_TIMEOUT
+            f"{base_url.rstrip('/')}{path}", timeout=HEALTHCHECK_TIMEOUT
         )
         latency_ms = round((time.perf_counter() - started) * 1000, 1)
         if resp.status_code < 400:
@@ -204,11 +209,22 @@ def _tcp_probe(name: str, host: str, port: int) -> dict:
         }
 
 
-def _redis_probe() -> dict:
-    """Real Redis PING via the gateway's already-loaded client."""
+def _redis_probe(client=None) -> dict:
+    """Real Redis PING.
+
+    Accepts an optional pre-resolved redis client because this probe runs
+    inside a `ThreadPoolExecutor` worker thread where Flask's
+    `current_app` proxy raises `RuntimeError: Working outside of
+    application context`. The aggregator below captures the client on the
+    request thread and passes it through.
+    """
     started = time.perf_counter()
-    redis = current_app.extensions.get("redis")
-    if redis is None:
+    if client is None:
+        try:
+            client = current_app.extensions.get("redis")
+        except RuntimeError:
+            client = None
+    if client is None:
         return {
             "service": "redis",
             "status": "down",
@@ -216,7 +232,7 @@ def _redis_probe() -> dict:
             "message": "redis client not initialized",
         }
     try:
-        redis.ping()
+        client.ping()
         return {
             "service": "redis",
             "status": "up",
@@ -543,14 +559,27 @@ def system_health():
     pg_host, pg_port = _parse_host_port(cfg.get("DATABASE_URL"), "postgres", 5432)
     mongo_url = os.environ.get("MONGO_URL") or os.environ.get("MONGO_URI")
     mongo_host, mongo_port = _parse_host_port(mongo_url, "mongo", 27017)
+    timescale_url = os.environ.get("TIMESCALE_URL")
+    ts_host, ts_port = _parse_host_port(timescale_url, "timescaledb", 5432)
 
+    # Sprint 8: dl-training-service + metrics-service joined the running
+    # stack but never made it into the healthcheck list, so the panel was
+    # showing 6/6 up while two services could be down silently. Adding
+    # them, plus Ollama (RAG inference) and TimescaleDB (metrics-service
+    # backing store), brings the panel in line with `docker compose ps`.
     probes = [
         ("auth-service", lambda: _http_probe("auth-service", cfg["AUTH_SERVICE_URL"])),
         ("data-ingestion", lambda: _http_probe("data-ingestion", cfg["DATA_SERVICE_URL"])),
         ("ml-training", lambda: _http_probe("ml-training", cfg["ML_SERVICE_URL"])),
+        ("metrics-service", lambda: _http_probe("metrics-service", cfg["METRICS_SERVICE_URL"])),
+        ("dl-training", lambda: _http_probe("dl-training", cfg["DL_SERVICE_URL"])),
+        ("ollama", lambda: _http_probe("ollama", cfg["OLLAMA_URL"], path="/api/tags")),
         ("postgres", lambda: _tcp_probe("postgres", pg_host, pg_port)),
         ("mongo", lambda: _tcp_probe("mongo", mongo_host, mongo_port)),
-        ("redis", _redis_probe),
+        ("timescaledb", lambda: _tcp_probe("timescaledb", ts_host, ts_port)),
+        # Capture the redis client on the request thread; `current_app`
+        # is a thread-local that doesn't survive into the ThreadPoolExecutor.
+        ("redis", lambda c=current_app.extensions.get("redis"): _redis_probe(c)),
     ]
 
     results: dict[str, dict] = {}
@@ -570,7 +599,18 @@ def system_health():
                 }
 
     # Deterministic ordering: services first (HTTP), then datastores (TCP/PING).
-    order = ["auth-service", "data-ingestion", "ml-training", "postgres", "mongo", "redis"]
+    order = [
+        "auth-service",
+        "data-ingestion",
+        "ml-training",
+        "metrics-service",
+        "dl-training",
+        "ollama",
+        "postgres",
+        "mongo",
+        "timescaledb",
+        "redis",
+    ]
     services = [results[name] for name in order if name in results]
     summary = {
         "checked_at": time.time(),

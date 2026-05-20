@@ -26,7 +26,7 @@ export function EmptyStateHero({
   actionLabel,
   onAction,
   secondaryAction,
-  accent = "#6366f1",
+  accent = "#d2541c",
   dense = false,
 }: Props) {
   return (

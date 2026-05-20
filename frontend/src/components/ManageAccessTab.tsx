@@ -137,7 +137,7 @@ export function ManageAccessTab({ pipeline }: Props) {
             width: 36,
             height: 36,
             borderRadius: "10px",
-            background: "linear-gradient(135deg, #6366f1, #4f46e5)",
+            background: "linear-gradient(135deg, #d2541c, #a8401a)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -162,7 +162,7 @@ export function ManageAccessTab({ pipeline }: Props) {
         </Alert>
       )}
 
-      <Paper sx={{ p: 2, mb: 3, border: 1, borderColor: alpha("#6366f1", 0.15) }}>
+      <Paper sx={{ p: 2, mb: 3, border: 1, borderColor: alpha("#d2541c", 0.15) }}>
         <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 700 }}>
           Add a teammate
         </Typography>

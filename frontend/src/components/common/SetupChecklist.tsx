@@ -83,8 +83,8 @@ export function SetupChecklist({ state }: Props) {
       sx={{
         mb: 3,
         border: 1,
-        borderColor: allRequiredDone ? alpha("#10b981", 0.3) : alpha("#6366f1", 0.18),
-        bgcolor: allRequiredDone ? alpha("#10b981", 0.04) : alpha("#6366f1", 0.025),
+        borderColor: allRequiredDone ? alpha("#10b981", 0.3) : alpha("#d2541c", 0.18),
+        bgcolor: allRequiredDone ? alpha("#10b981", 0.04) : alpha("#d2541c", 0.025),
         boxShadow: "none",
       }}
     >
@@ -97,7 +97,7 @@ export function SetupChecklist({ state }: Props) {
               borderRadius: "10px",
               background: allRequiredDone
                 ? "linear-gradient(135deg, #10b981, #059669)"
-                : "linear-gradient(135deg, #6366f1, #4f46e5)",
+                : "linear-gradient(135deg, #d2541c, #a8401a)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -133,7 +133,7 @@ export function SetupChecklist({ state }: Props) {
                     borderRadius: 3,
                     background: allRequiredDone
                       ? "linear-gradient(90deg, #10b981, #059669)"
-                      : "linear-gradient(90deg, #6366f1, #8b5cf6)",
+                      : "linear-gradient(90deg, #d2541c, #d2541c)",
                   },
                 }}
               />

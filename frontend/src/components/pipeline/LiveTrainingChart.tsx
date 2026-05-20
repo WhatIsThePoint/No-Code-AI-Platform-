@@ -23,6 +23,20 @@ interface MetricEvent {
   split: string;
 }
 
+// DL training emits one packet per epoch carrying three series at once —
+// see realtime_emitter.emit_epoch in dl-training-service. Fanning it out
+// into three MetricEvents on the client keeps the rendering code below
+// completely framework-agnostic.
+interface EpochEvent {
+  pipeline_id: string;
+  ts: string;
+  epoch: number;
+  epochs_total: number;
+  train_loss: number;
+  val_loss: number;
+  val_acc: number;
+}
+
 interface CompleteEvent {
   pipeline_id: string;
   ts: string;
@@ -60,7 +74,20 @@ const STAGE_LABELS: Record<string, string> = {
   fitting_model: "Fitting model",
   training_done: "Training done",
   saving_model: "Saving model",
+  // DL-specific stages emitted by dl-training-service.train_image:
+  building_model: "Building model",
+  queued: "Queued",
+  done: "Complete",
+  error: "Error",
 };
+
+// `epoch_<n>_of_<N>` stages render as "Epoch n / N" — friendlier than the
+// raw underscore form. Returned untouched if the regex doesn't match.
+function prettyStage(raw: string): string {
+  const match = /^epoch_(\d+)_of_(\d+)$/.exec(raw);
+  if (match) return `Epoch ${match[1]} / ${match[2]}`;
+  return STAGE_LABELS[raw] ?? raw;
+}
 
 /**
  * Sprint 7 Module 3 — live training visualization.
@@ -108,6 +135,28 @@ export function LiveTrainingChart({ pipelineId, height = 280 }: Props) {
       });
     };
 
+    const onEpoch = (evt: EpochEvent) => {
+      if (evt.pipeline_id !== pipelineId) return;
+      // Three series per epoch, indexed by the epoch number on the X-axis
+      // so DL runs share the same step-based plotting code as ML runs.
+      const points: { key: string; value: number }[] = [
+        { key: "train_loss · train", value: evt.train_loss },
+        { key: "val_loss · val", value: evt.val_loss },
+        { key: "val_acc · val", value: evt.val_acc },
+      ];
+      setMetricSeries((prev) => {
+        const next = { ...prev };
+        for (const p of points) {
+          const existing = next[p.key] ?? { name: p.key, points: [] };
+          next[p.key] = {
+            ...existing,
+            points: [...existing.points, { step: evt.epoch, value: p.value }],
+          };
+        }
+        return next;
+      });
+    };
+
     const onComplete = (evt: CompleteEvent) => {
       if (evt.pipeline_id !== pipelineId) return;
       setStage("complete");
@@ -143,6 +192,7 @@ export function LiveTrainingChart({ pipelineId, height = 280 }: Props) {
 
     socket.on("training_progress", onProgress);
     socket.on("training_metric", onMetric);
+    socket.on("training_epoch", onEpoch);
     socket.on("training_complete", onComplete);
     socket.on("training_failed", onFailed);
     socket.on("connect", joinRoom);
@@ -151,6 +201,7 @@ export function LiveTrainingChart({ pipelineId, height = 280 }: Props) {
     return () => {
       socket.off("training_progress", onProgress);
       socket.off("training_metric", onMetric);
+      socket.off("training_epoch", onEpoch);
       socket.off("training_complete", onComplete);
       socket.off("training_failed", onFailed);
       socket.off("connect", joinRoom);
@@ -174,8 +225,8 @@ export function LiveTrainingChart({ pipelineId, height = 280 }: Props) {
         type: "scatter",
         mode: "lines+markers",
         name: "Progress %",
-        line: { color: "#6366f1", width: 2 },
-        marker: { color: "#6366f1", size: 5 },
+        line: { color: "#d2541c", width: 2 },
+        marker: { color: "#d2541c", size: 5 },
         yaxis: "y",
       });
     }
@@ -195,13 +246,13 @@ export function LiveTrainingChart({ pipelineId, height = 280 }: Props) {
     return out;
   }, [progressPoints, metricSeries]);
 
-  const stageLabel = STAGE_LABELS[stage] ?? stage;
+  const stageLabel = prettyStage(stage);
   const accent =
     stage === "complete"
       ? "#10b981"
       : stage === "failed"
       ? "#ef4444"
-      : "#6366f1";
+      : "#d2541c";
 
   return (
     <Box

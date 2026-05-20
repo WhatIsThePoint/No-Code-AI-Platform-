@@ -1,0 +1,37 @@
+@startuml microservice_topology
+' Replaces \figureplaceholder{Microservice topology}.
+
+skinparam componentStyle rectangle
+skinparam shadowing false
+
+cloud "React SPA\n(:5173)" as SPA
+
+rectangle "api-gateway\n(:8000)" as GW {
+  [JWT decode]
+  [Header inject\n(X-User-*)]
+  [SocketIO server]
+  [Rate limit]
+}
+
+rectangle "auth-service\n(:8001)" as AUTH
+rectangle "data-ingestion\n(:8002)" as ING
+rectangle "ml-training\n(:8003)" as MLT
+rectangle "metrics\n(:8004)" as MET
+rectangle "dl-training\n(:8005)" as DLT
+
+queue "Celery: ingestion" as Q_ING
+queue "Celery: ml_training" as Q_MLT
+queue "Celery: dl_training" as Q_DLT
+
+SPA -down-> GW : HTTPS\n+ socket.io
+GW -down-> AUTH : /auth/*, /users/*
+GW -down-> ING : /datasets/*
+GW -down-> MLT : /pipelines/*, /models/*
+GW -down-> MET : /metrics/*
+GW -down-> DLT : /dl/*
+
+ING ..> Q_ING : profile / preprocess /\nrag-ingest / image-extract
+MLT ..> Q_MLT : train (14 algos) /\nrag-chat orchestration
+DLT ..> Q_DLT : train (CNN) / predict
+
+@enduml

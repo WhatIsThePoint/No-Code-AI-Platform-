@@ -27,7 +27,14 @@ export function ConfusionMatrixHeatmap({
   const n = matrix.length;
   const ticks = labels && labels.length === n ? labels.map(String) : Array.from({ length: n }, (_, i) => `${i}`);
 
-  const annotations = [] as any[];
+  type Annotation = {
+    x: string;
+    y: string;
+    text: string;
+    showarrow: boolean;
+    font: { color: string; size: number };
+  };
+  const annotations: Annotation[] = [];
   for (let i = 0; i < n; i += 1) {
     for (let j = 0; j < n; j += 1) {
       annotations.push({

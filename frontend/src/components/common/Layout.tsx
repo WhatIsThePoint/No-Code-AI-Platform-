@@ -1,4 +1,4 @@
-import { Box, AppBar, Toolbar, Typography, Button, Drawer, List, ListItemButton, ListItemIcon, ListItemText, Divider, Avatar, Chip } from "@mui/material";
+import { Box, AppBar, Toolbar, Typography, Button, Drawer, List, ListItemButton, ListItemIcon, ListItemText, Avatar, Chip } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../hooks/useAuth";
@@ -9,7 +9,6 @@ import ModelTrainingIcon from "@mui/icons-material/ModelTrainingRounded";
 import BusinessIcon from "@mui/icons-material/BusinessRounded";
 import PaymentIcon from "@mui/icons-material/PaymentRounded";
 import PersonIcon from "@mui/icons-material/PersonRounded";
-import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettingsRounded";
 import LogoutIcon from "@mui/icons-material/LogoutRounded";
 import { PlatformCompanion } from "../companion/PlatformCompanion";
 import { LanguageToggle } from "./LanguageToggle";
@@ -29,19 +28,17 @@ const navItemDefs = [
   { i18nKey: "profile", path: "/profile", icon: <PersonIcon /> },
 ] as const;
 
-const adminItemDefs = [
-  { i18nKey: "adminPanel", path: "/admin", icon: <AdminPanelSettingsIcon /> },
-] as const;
-
 export function Layout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
   const { t } = useTranslation();
   const isAdmin = user?.role === "super_admin";
-  // Admins see the same tenant-facing links so they can demo / spot-check the
-  // user surfaces; the dedicated Admin section is rendered separately below.
-  const visibleNavItems = navItemDefs;
+  // Admins navigate from the AdminPage's own tabs, so the global sidebar
+  // would only ever hold a single "Admin panel" link — net negative as a
+  // navigation surface. Hide the drawer entirely and let the main content
+  // take the full width when the active session is a super-admin.
+  const visibleNavItems = isAdmin ? [] : navItemDefs;
 
   const initials = user?.full_name
     ? user.full_name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
@@ -124,6 +121,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </Toolbar>
       </AppBar>
 
+      {/* Admins navigate via the AdminPage's tab strip; a one-item global
+          sidebar is more clutter than affordance, so the drawer is omitted
+          entirely for super-admin sessions and the main content takes the
+          full viewport width. */}
+      {!isAdmin && (
       <Drawer
         variant="permanent"
         sx={{
@@ -174,46 +176,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
             })}
           </List>
 
-          {isAdmin && (
-            <>
-              {visibleNavItems.length > 0 && <Divider sx={{ mx: 2, my: 1 }} />}
-              <List sx={{ px: 0.5 }}>
-                {adminItemDefs.map((item) => {
-                  const isActive = location.pathname === item.path;
-                  return (
-                    <ListItemButton
-                      key={item.path}
-                      onClick={() => navigate(item.path)}
-                      selected={isActive}
-                      sx={{
-                        position: "relative",
-                        ...(isActive && {
-                          "&::before": {
-                            content: '""',
-                            position: "absolute",
-                            left: 0,
-                            top: 0,
-                            bottom: 0,
-                            width: 2,
-                            bgcolor: "primary.main",
-                          },
-                        }),
-                      }}
-                    >
-                      <ListItemIcon sx={{ minWidth: 36, color: isActive ? "primary.main" : "text.secondary" }}>
-                        {item.icon}
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={t(`nav.${item.i18nKey}`)}
-                        primaryTypographyProps={{ fontWeight: isActive ? 700 : 500 }}
-                      />
-                    </ListItemButton>
-                  );
-                })}
-              </List>
-            </>
-          )}
-
           {/* Bottom spacer */}
           <Box sx={{ flex: 1 }} />
 
@@ -225,6 +187,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </Box>
         </Box>
       </Drawer>
+      )}
 
       <Box
         component="main"

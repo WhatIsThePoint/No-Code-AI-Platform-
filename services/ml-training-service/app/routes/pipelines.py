@@ -36,7 +36,10 @@ def create_pipeline():
     body = request.get_json(silent=True) or {}
     name = body.get("name", "Untitled Pipeline")
     pipeline_type = body.get("type", "ml")
-    if pipeline_type not in ("ml", "rag"):
+    # Sprint 8 added the deep-learning workflow as a third pipeline family.
+    # The dl-training-service handles its training endpoint; ml-training-
+    # service still owns the pipeline document so it must accept the type.
+    if pipeline_type not in ("ml", "rag", "dl"):
         return jsonify({"error": "invalid_type"}), 400
 
     owner_type = body.get("owner_type", "personal")
@@ -202,7 +205,7 @@ def update_pipeline(pipeline_id: str):
     body = request.get_json(silent=True) or {}
     allowed = {"name", "nodes", "edges", "type"}
     updates = {k: v for k, v in body.items() if k in allowed}
-    if "type" in updates and updates["type"] not in ("ml", "rag"):
+    if "type" in updates and updates["type"] not in ("ml", "rag", "dl"):
         return jsonify({"error": "invalid_type"}), 400
     now = datetime.now(timezone.utc)
     updates["updated_at"] = now

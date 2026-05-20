@@ -75,9 +75,9 @@ export function UploadQuotaCard({ datasets }: Props) {
                 sx={{
                   height: 6,
                   borderRadius: 3,
-                  bgcolor: alpha("#6366f1", 0.08),
+                  bgcolor: alpha("#d2541c", 0.08),
                   "& .MuiLinearProgress-bar": {
-                    bgcolor: storageNearLimit ? "#f59e0b" : "#6366f1",
+                    bgcolor: storageNearLimit ? "#f59e0b" : "#d2541c",
                     borderRadius: 3,
                   },
                 }}
@@ -97,7 +97,7 @@ export function UploadQuotaCard({ datasets }: Props) {
           >
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.75 }}>
-                <DatasetRoundedIcon sx={{ fontSize: 18, color: "#8b5cf6" }} />
+                <DatasetRoundedIcon sx={{ fontSize: 18, color: "#d2541c" }} />
                 <Typography variant="caption" sx={{ fontWeight: 700, color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", fontSize: "0.7rem" }}>
                   Datasets
                 </Typography>
@@ -116,14 +116,14 @@ export function UploadQuotaCard({ datasets }: Props) {
                 sx={{
                   height: 6,
                   borderRadius: 3,
-                  bgcolor: alpha("#8b5cf6", 0.08),
+                  bgcolor: alpha("#d2541c", 0.08),
                   "& .MuiLinearProgress-bar": {
                     bgcolor:
                       limits.max_datasets === -1
                         ? "#10b981"
                         : datasetsNearLimit
                         ? "#f59e0b"
-                        : "#8b5cf6",
+                        : "#d2541c",
                     borderRadius: 3,
                   },
                 }}

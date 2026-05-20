@@ -356,7 +356,10 @@ export function RAGConfigNode({ id, data, selected }: NodeProps) {
           </Typography>
         </Tooltip>
       </Box>
-      <Box className="nodrag" sx={{ px: 1.25, pb: 2 }}>
+      {/* Slight right padding > left so the rightmost mark dot, whose
+          MUI default transform centres it on `left: 100%`, lands fully
+          inside the node's rounded border instead of bleeding past it. */}
+      <Box className="nodrag" sx={{ pl: 1.25, pr: 2, pb: 2 }}>
         <Slider
           size="small"
           value={Math.min(topK, dynamicMaxK)}
@@ -386,8 +389,17 @@ export function RAGConfigNode({ id, data, selected }: NodeProps) {
               color: MUTED,
               top: 16,
             },
-            // Pin the first/last labels inside the container instead of
-            // letting MUI center them on the thumb (which overflows the node).
+            // Pin the first/last *dots* fully inside the rail. MUI's default
+            // `translate(-50%, -50%)` puts half of the 0% / 100% mark
+            // outside the rail edges; we shift them inward instead.
+            "& .MuiSlider-mark[data-index='0']": {
+              transform: "translate(0, -50%)",
+            },
+            [`& .MuiSlider-mark[data-index='${sliderMarks.length - 1}']`]: {
+              transform: "translate(-100%, -50%)",
+            },
+            // Pin the first/last *labels* the same way so the digits don't
+            // hang past the node's rounded border.
             "& .MuiSlider-markLabel[data-index='0']": {
               transform: "translateX(0)",
             },

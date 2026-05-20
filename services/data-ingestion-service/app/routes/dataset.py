@@ -143,12 +143,27 @@ def preview_dataset(dataset_id):
 
     doc = mongo.get_collection("datasets").find_one(
         _ownership_query(dataset_id, user_id),
-        {"file_path": 1, "status": 1},
+        {"file_path": 1, "status": 1, "source_type": 1},
     )
     if not doc:
         return jsonify({"error": "not_found"}), 404
     if doc["status"] not in ("ready", "preprocessed"):
         return jsonify({"error": "dataset_not_ready", "status": doc["status"]}), 409
+    # Image datasets aren't tabular — load_dataframe() doesn't know how to
+    # parse a zip and would crash with `Unsupported file type: .zip`.
+    # Refuse here with a clear, frontend-actionable error so the dataset
+    # detail page can route the user to /image-preview instead.
+    if doc.get("source_type") == "image":
+        return (
+            jsonify(
+                {
+                    "error": "wrong_source_type",
+                    "detail": "This is an image dataset; use /datasets/<id>/image-preview.",
+                    "source_type": "image",
+                }
+            ),
+            415,
+        )
 
     # Check Redis cache
     _redis = redis_client.from_url(

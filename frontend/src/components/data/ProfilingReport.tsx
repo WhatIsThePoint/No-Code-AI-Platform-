@@ -28,7 +28,7 @@ interface Props {
 }
 
 const OVERVIEW_CARDS = [
-  { key: "columns", label: "Columns", icon: ViewColumnIcon, gradient: "linear-gradient(135deg, #6366f1, #4f46e5)", tooltip: "Total number of features in your dataset. More columns isn't always better — irrelevant or duplicated features can hurt model accuracy." },
+  { key: "columns", label: "Columns", icon: ViewColumnIcon, gradient: "linear-gradient(135deg, #d2541c, #a8401a)", tooltip: "Total number of features in your dataset. More columns isn't always better — irrelevant or duplicated features can hurt model accuracy." },
   { key: "missing", label: "Overall Missing %", icon: ReportProblemIcon, gradient: "linear-gradient(135deg, #f59e0b, #d97706)", tooltip: "Average missing percentage across all columns. Useful as a quick 'is this data clean?' signal — under 5% is great, over 20% means you'll need an imputation strategy." },
   { key: "duplicates", label: "Duplicate Rows", icon: ContentCopyIcon, gradient: "linear-gradient(135deg, #ef4444, #dc2626)", tooltip: "Rows that are exact copies of another row. They bias models by over-counting certain examples — usually safe to drop before training." },
 ];
@@ -196,7 +196,7 @@ export function ProfilingReport({ summary, rowCount }: Props) {
       )}
 
       {numericColumns.length > 0 && (
-        <BoxViolinChart columns={numericColumns} color="#6366f1" />
+        <BoxViolinChart columns={numericColumns} color="#d2541c" />
       )}
 
       {/* Per-column cards */}
@@ -214,8 +214,8 @@ export function ProfilingReport({ summary, rowCount }: Props) {
                     sx={{
                       fontSize: "0.6rem",
                       height: 20,
-                      bgcolor: alpha("#6366f1", 0.08),
-                      color: "#4f46e5",
+                      bgcolor: alpha("#d2541c", 0.08),
+                      color: "#a8401a",
                       fontWeight: 600,
                     }}
                   />

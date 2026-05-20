@@ -9,204 +9,546 @@
 \usepackage{listings}
 \usepackage{xcolor}
 \usepackage{titlesec}
+\usepackage{caption}
 
-% Setup for code listings
+% ─────────────────────────────────────────────────────────────────────────────
+%  Code-listing style. Tuned for printability — blacks stay black on monochrome
+%  printers and the grey background survives photocopying.
+% ─────────────────────────────────────────────────────────────────────────────
 \definecolor{codegreen}{rgb}{0,0.6,0}
 \definecolor{codegray}{rgb}{0.5,0.5,0.5}
 \definecolor{codepurple}{rgb}{0.58,0,0.82}
 \definecolor{backcolour}{rgb}{0.95,0.95,0.92}
 
 \lstdefinestyle{mystyle}{
-    backgroundcolor=\color{backcolour},   
+    backgroundcolor=\color{backcolour},
     commentstyle=\color{codegreen},
     keywordstyle=\color{magenta},
     numberstyle=\tiny\color{codegray},
     stringstyle=\color{codepurple},
     basicstyle=\ttfamily\footnotesize,
-    breakatwhitespace=false,         
-    breaklines=true,                 
-    captionpos=b,                    
-    keepspaces=true,                 
-    numbers=left,                    
-    numbersep=5pt,                  
-    showspaces=false,                
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,
     showstringspaces=false,
-    showtabs=false,                  
-    tabsize=2
+    showtabs=false,
+    tabsize=2,
+    extendedchars=true,
+    inputencoding=utf8,
+    literate=%
+      {—}{{---}}1 {–}{{--}}1
+      {’}{{'}}1 {‘}{{`}}1
+      {“}{{``}}1 {”}{{''}}1
+      {→}{{$\to$}}1 {≈}{{$\approx$}}1
+      {…}{{\ldots}}1 {×}{{$\times$}}1
 }
 \lstset{style=mystyle}
 
-\title{End-of-Studies Project (PFE)\\ \Large Privacy-First No-Code AI Platform}
-\author{Engineering Student}
+% listings doesn't ship a JSON lexer; define a minimal one here.
+\lstdefinelanguage{JSON}{
+    morestring=[b]",
+    morestring=[d]',
+    morekeywords={true,false,null},
+    sensitive=true,
+    morecomment=[l]{//},
+    morecomment=[s]{/*}{*/},
+}
+
+% Lightweight figure-placeholder helper: when the asset isn't ready yet, the
+% report still compiles and shows a labelled box so the layout review can
+% happen in parallel with the diagramming work.
+\newcommand{\figureplaceholder}[2]{%
+    \begin{center}
+        \fbox{\parbox{0.85\linewidth}{\centering \textit{[Figure placeholder]}\\ \textbf{#1}\\[2pt] \small{#2}}}
+    \end{center}
+}
+
+\title{End-of-Studies Project (PFE)\\[6pt] \Large A Privacy-First, No-Code AI Platform\\ \large for Tabular Machine Learning, Generative AI, and Deep Learning}
+\author{[Student Name]\\ \small Supervised by [Supervisor Name]}
 \date{\today}
 
 \begin{document}
 
 \maketitle
 
+\begin{abstract}
+This report describes a no-code AI platform I built over eight sprints as an
+end-of-studies project. The platform lets non-technical users upload their
+data, sketch a pipeline on a visual canvas, and train a model --- with one
+firm constraint: nothing ever leaves the machine. Three workflows sit
+behind the same canvas. The first is classical tabular ML, with fourteen
+algorithms spanning classification, regression, clustering, and
+forecasting. The second is local Generative AI through a
+Retrieval-Augmented Generation chat that answers from the user's own
+documents, powered by Ollama and \texttt{pgvector}. The third, added
+during the final sprint, is deep-learning image classification using a
+small catalogue of CNN architectures sized to fit on the GTX 1660 Super
+(6\,GB VRAM) that served as the demo box. The chapters that follow walk
+through each sprint's design choices, the things that broke on the first
+try, and the handful of architectural conventions I ended up leaning on
+throughout: Celery for anything CPU-bound, Mongo for anything that
+genuinely resists a schema, and a strict gateway-only header-injection
+scheme that gave the microservices a zero-trust boundary without any of
+the usual gymnastics.
+\end{abstract}
+
 \tableofcontents
 \newpage
 
-\chapter{General Context of the Project}
+% ═════════════════════════════════════════════════════════════════════════════
+\chapter*{General Introduction}
+\addcontentsline{toc}{chapter}{General Introduction}
+% ═════════════════════════════════════════════════════════════════════════════
 
-\section{Project Overview and Context}
-\subsection{The Domain of No-Code Machine Learning}
-Machine learning has historically been the domain of specialized engineers and data scientists. Building, tuning, and deploying models requires deep expertise in Python, statistics, and DevOps. While platforms like DataRobot and Azure ML Studio have abstracted these complexities into drag-and-drop interfaces, they universally demand that users ship their proprietary data to third-party cloud infrastructure. 
+Machine learning has become routine in almost every industry, yet the
+tooling around it still tends to assume one of two extremes. On one end
+sit the cloud-managed services --- DataRobot, Vertex AI, Azure ML
+Studio --- which hide the complexity behind polished interfaces but
+require users to ship their data into someone else's infrastructure. On
+the other end live the open notebooks where everything is possible and
+nothing is easy: Jupyter, Colab, raw Python. The space between those two
+poles, where a non-technical user might want to build a model without
+either learning Python or handing over their data, is surprisingly thin.
 
-\subsection{Project Description – Privacy-First No-Code AI Platform}
-This End-of-Studies project (PFE) introduces a No-Code AI platform designed from the ground up for strict data privacy. It delivers the complete MLOps and Generative AI experience—from data ingestion and statistical profiling to training, model explainability, and Retrieval-Augmented Generation (RAG) chat—running entirely locally on commodity hardware.
+That gap is what this project sets out to address. The goal was a
+platform that gives a domain expert --- a clinician, an analyst, a small
+business owner --- enough visual scaffolding to build, train, and inspect
+a model on their own machine. Not a tutorial, not a hosted SaaS, but a
+real piece of software that runs locally, accepts local data, and never
+phones home to a vendor API.
 
-\section{Requirements Specification}
-\subsection{Functional Requirements}
-The platform must allow non-technical users to:
+Building this turned out to be more interesting than I expected. Three
+distinct workloads --- tabular ML, RAG-style generative AI, and image
+classification --- impose three different operational profiles, and
+fitting them into a single coherent product meant making choices that
+weren't obvious upfront. Some of those choices held up well. A few
+didn't, and the chapter on reflections is honest about which is which.
+
+The report is organised as follows. The opening chapters set the scene:
+the project's context and scope, a quick look at the broader no-code ML
+landscape, and the methodology I used to keep eight sprints moving on a
+solo timeline. The middle chapters walk through each sprint in turn,
+from the authentication-and-gateway foundation up through the deep
+learning module added in the final stretch. The closing chapters cover
+testing and deployment, then step back to discuss what worked, what
+didn't, and what I'd build differently with another quarter to spend.
+
+\newpage
+
+% ═════════════════════════════════════════════════════════════════════════════
+\chapter{Project Context and Scope}
+% ═════════════════════════════════════════════════════════════════════════════
+
+\section*{Introduction}
+
+This first chapter lays out the question the project tries to answer,
+the audience it imagines, and the scope I committed to before any code
+was written. It also gives a high-level tour of the platform so the
+later chapters have something concrete to refer back to.
+
+\section{Why no-code, and why local?}
+
+The original question was narrow on purpose: \textit{can a non-technical
+analyst go from a CSV file to a deployed model without ever shipping
+their data to someone else's cloud?} The first half of that question has
+been answered many times over. DataRobot, Azure ML Studio, and Vertex AI
+all give you a drag-and-drop pipeline builder of one kind or another.
+But every one of them assumes the user is fine uploading their dataset
+to a vendor bucket. For a hospital, a bank, or any organisation that
+sits on PII or trade secrets, that assumption isn't acceptable --- and
+it's worth noting that it's not a contractual problem, it's a
+regulatory one. The data simply cannot leave.
+
+The second half of the question --- can it actually run locally? ---
+has only recently become realistic. Quantised LLMs that fit inside
+4--6\,GB of VRAM (Llama 3.2 3B, Phi-3 Mini, Gemma 2) opened the door to
+local generative AI. PyTorch has supported local image classification
+for years, but only in the last couple of generations of consumer GPUs
+has a 6\,GB card been enough to fine-tune small CNNs without contortion.
+The platform I built sits inside both of those windows: it runs Ollama
+for chat, sentence-transformers for embeddings, scikit-learn / H2O /
+XGBoost for tabular ML, and PyTorch for the image-classification
+workflow that landed in the final sprint.
+
+\section{What the platform does}
+
+A user, once signed in, can:
+
 \begin{itemize}
-    \item Upload structured data (CSV/XLSX) or connect to SQL databases.
-    \item Visually build Machine Learning pipelines via an intuitive DAG (Directed Acyclic Graph) editor.
-    \item Train supervised and unsupervised models automatically. Supported ML tasks include:
-    \begin{itemize}
-        \item \textbf{Classification:} XGBoost, Random Forest, GBM, Logistic Regression, LightGBM, CatBoost.
-        \item \textbf{Regression:} XGBoost Regressor, Random Forest Regressor, GBM Regressor, Ridge, LightGBM Regressor, CatBoost Regressor.
-        \item \textbf{Clustering:} K-Means (with Elbow curve).
-        \item \textbf{Forecasting:} Prophet (time-series).
-    \end{itemize}
-    \item Interact with an AI companion capable of querying internal documents using RAG.
+    \item Upload tabular data (CSV, Excel), pull it from a Postgres or
+        MySQL connector, or upload a zip of images organised by class
+        folder.
+    \item Inspect a profile of the dataset --- missing values, skew,
+        outliers, target imbalance, correlations --- before doing
+        anything else with it.
+    \item Build a pipeline visually on a React Flow canvas, in one of
+        three modes:
+        \begin{itemize}
+            \item \textbf{Traditional ML} --- fourteen supervised and
+                unsupervised algorithms spanning classification,
+                regression, clustering, and time-series forecasting.
+            \item \textbf{Generative AI} --- index documents into a
+                local vector store and chat with a RAG pipeline.
+            \item \textbf{Deep Learning} --- image classification on a
+                fixed catalogue of three CNN architectures (LeNet, a
+                custom ResNet-9, and MobileNet-V3-Small with optional
+                ImageNet transfer learning).
+        \end{itemize}
+    \item Train, evaluate, download the trained artefact, and --- for
+        image models --- run live inference on a hand-uploaded test
+        image.
+    \item Collaborate with teammates inside a company workspace, with
+        role-based access control, real-time canvas presence, threaded
+        chat per pipeline, and one-click Google Meet links.
 \end{itemize}
 
-\subsection{Multi-Tenancy Model}
-The platform supports two operational modes:
+Alongside the user-facing application sits a super-admin role with its
+own dashboard for user management, audit logs, queue health, hardware
+monitoring, and a ``view-as-user'' impersonation flow gated by a hard
+five-minute TTL.
+
+\section{Functional and non-functional requirements}
+
+\subsection{Functional}
+
 \begin{itemize}
-    \item \textbf{Individual:} Personal workspaces with private datasets and pipelines.
-    \item \textbf{Company:} Shared workspaces with role-based access control (Owner, PM, Data Scientist, Analyst, Viewer).
+    \item Tabular ML pipelines: dataset $\to$ train $\to$ evaluate,
+        backed by fourteen algorithms.
+    \item RAG pipelines: document $\to$ vector store $\to$ chat, end
+        to end on the local box.
+    \item DL pipelines: image dataset $\to$ CNN architecture $\to$
+        training loop, again fully local.
+    \item User authentication with email/password and optional TOTP-based
+        two-factor authentication.
+    \item Stripe-backed billing across free, solo, and company tiers,
+        with super-admin overrides on per-user quotas.
+    \item Real-time presence and shared editing on the pipeline canvas.
 \end{itemize}
 
-\subsection{Non-Functional Requirements}
+\subsection{Non-functional}
+
 \begin{itemize}
-    \item \textbf{Data Sovereignty:} Zero outbound network calls; all computation and models must run locally.
-    \item \textbf{Modularity:} The system must employ a microservices architecture to isolate CPU-intensive ML tasks from standard I/O API routing.
-    \item \textbf{Scalability:} Background tasks must be orchestrated asynchronously.
+    \item \textbf{Data sovereignty.} No outbound calls to AI vendors.
+        The only third-party service in the deployment graph is Stripe,
+        and Stripe is optional --- without an API key the platform
+        still works on the free tier.
+    \item \textbf{Modularity.} The system splits into five independent
+        Python services so that a long XGBoost run can never block an
+        authentication request.
+    \item \textbf{Reproducibility.} Every dataset version is profiled,
+        every training run is recorded, every model artefact is
+        versioned and downloadable.
+    \item \textbf{Hardware constraints.} The whole stack runs on a
+        single consumer machine. My development box --- a laptop with
+        16\,GB of RAM and a GTX 1660 Super GPU --- was picked
+        deliberately, because it sits close to the floor of what
+        someone might realistically deploy on.
 \end{itemize}
 
-\section{Technical Architecture}
-\subsection{Technology Stack}
-The platform leverages a robust, modern stack:
+\section{High-level architecture}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\linewidth]{docs/diagrams/overall_architecture.png}
+    \caption{Overall system architecture}
+\end{figure}
+
+The overall shape is conventional: a React single-page app talks to a
+Flask API gateway, which decodes JWTs, injects authoritative
+\texttt{X-User-*} headers, and proxies the request to one of five
+upstream services. What is less conventional is the strict locality.
+Every model server, every vector store, every queue runs inside the
+same Docker Compose stack. There is no cloud the platform can fall back
+to if something local fails, and that was a deliberate design constraint
+rather than an oversight.
+
+\section*{Conclusion}
+
+The chapter framed the problem the rest of the report addresses --- how
+to make ML approachable without sacrificing data sovereignty --- and
+sketched the platform that emerged in response. The following chapter
+turns to the broader landscape to explain why this question is harder to
+answer with off-the-shelf tools than one might initially assume.
+
+% ═════════════════════════════════════════════════════════════════════════════
+\chapter{Background and Related Work}
+% ═════════════════════════════════════════════════════════════════════════════
+
+\section*{Introduction}
+
+Before getting into how the platform was built, it's worth a brief look
+at why nothing already on the market quite fits the problem. The
+no-code ML space is crowded, but the products in it cluster into
+families that all share the same blind spot.
+
+\section{The no-code ML landscape}
+
+Three categories of product dominate the space:
+
 \begin{itemize}
-    \item \textbf{Frontend:} React 18, Vite, Zustand, and React Flow.
-    \item \textbf{Backend Microservices:} Flask, Celery, and Flask-SocketIO.
-    \item \textbf{Data Stores:} PostgreSQL (with pgvector), MongoDB, and Redis.
-    \item \textbf{Local AI:} Ollama (\texttt{llama3.2:3b}), sentence-transformers, scikit-learn.
+    \item \textbf{Cloud-native AutoML platforms} (DataRobot, H2O
+        Driverless AI, Azure ML Studio, Google Vertex AI). Highly
+        polished, exhaustive algorithm catalogues, and almost
+        invariably SaaS-only --- meaning their privacy story ends at
+        ``trust our infrastructure''. For some buyers that's fine; for
+        regulated industries it isn't.
+    \item \textbf{Open-source notebooks} (Jupyter, Google Colab,
+        DataLab). Powerful for experts, but every workflow eventually
+        bottoms out in raw Python. That's exactly the friction the
+        no-code category was invented to remove.
+    \item \textbf{Visual ETL tools} (KNIME, Alteryx, RapidMiner).
+        Closer in spirit to what I built, but their centre of gravity
+        is data preparation rather than model training, and their LLM
+        integrations tend to route requests back through OpenAI.
 \end{itemize}
 
-\subsection{Technical Constraints}
-The primary hurdle was orchestrating resource-heavy ML algorithms and large language models (LLMs) on constrained local hardware (e.g., 8GB RAM laptops) without causing memory exhaustion or blocking the event loops.
+The platform I built tries to sit at the intersection of those three: a
+visual canvas in the spirit of KNIME, an algorithm catalogue at the
+scale of an AutoML service, and a deployment story modelled on a
+self-hosted notebook. Nothing leaves the box.
 
-\section{Conclusion}
-This chapter established the ambitious scope of the project: delivering enterprise-grade ML capabilities to domain experts without compromising on data sovereignty. 
+\section{Why local LLMs are now realistic}
 
-\chapter{Preliminary Study}
+When the project started I quietly assumed local generative AI would be
+too slow to ship as a real feature. Two technical shifts changed that:
 
-\section{Current Situation}
-The current market is dominated by managed Cloud AI services (e.g., AWS SageMaker, Vertex AI). While highly scalable, they present insurmountable hurdles for regulated domains such as healthcare, finance, and the public sector. 
-
-\section{Observed Problems}
-\subsection{Data Privacy and Security Risks in the Cloud}
-Organizations dealing with PII (Personally Identifiable Information) or sensitive intellectual property cannot legally or safely transfer their datasets to vendor-controlled S3 buckets.
-\subsection{High Barrier to Entry}
-Open-source alternatives like Jupyter Notebooks and scikit-learn demand extensive programming knowledge, alienating business analysts and domain experts.
-\subsection{High Cost of Managed AI}
-Relying on proprietary LLM APIs (like OpenAI) incurs unpredictable per-token costs and risks vendor lock-in.
-
-\section{Objectives of the New System}
-To address these flaws, the proposed platform bridges the gap by providing:
 \begin{enumerate}
-    \item \textbf{Local Execution:} Ensuring true air-gapped capability.
-    \item \textbf{Intuitive UX:} A visually driven, no-code pipeline builder.
-    \item \textbf{End-to-End Workflow:} Unifying data preparation, training, and deployment under one local roof.
+    \item \textbf{Aggressive quantisation.} Four-bit quantisation
+        (\texttt{Q4\_K\_M}) shrinks a three-billion-parameter model
+        from roughly $12$\,GB of weights down to about $2$\,GB, while
+        preserving most of the original quality on conversational
+        tasks. The trade-off is real but, for chat, it isn't fatal.
+    \item \textbf{First-class GPU inference runtimes for consumer
+        hardware} (Ollama, llama.cpp, vLLM). A 1660 Super, sporting
+        $6$\,GB of VRAM and $30$\,TFLOPS of FP16 throughput, can serve
+        roughly $30$ tokens per second on a 3B model --- which is
+        enough latency budget for an interactive RAG chat.
 \end{enumerate}
 
-\section{Conclusion}
-By diagnosing the friction points of cloud-based ML, the necessity of a local, microservices-driven architecture became undeniably clear, paving the way for the chosen methodology.
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\linewidth]{docs/diagrams/quantization_vram.png}
+    \caption{Quantisation $\to$ VRAM mapping}
+\end{figure}
 
-\chapter{Methodology and Work Environment}
+\section*{Conclusion}
 
-\section{Technology Choices \& Rationale}
-Selecting the right technology stack was crucial for balancing performance and maintainability:
+Cloud platforms solve the wrong half of the problem, notebooks demand
+too much of the user, and visual ETL tools aren't really aimed at model
+training. The shift in quantisation and consumer GPU inference is what
+makes this project viable today; it would not have been a year or two
+ago. The next chapter turns to the methodology I used to translate that
+opening into a working product.
+
+% ═════════════════════════════════════════════════════════════════════════════
+\chapter{Methodology and Working Environment}
+% ═════════════════════════════════════════════════════════════════════════════
+
+\section*{Introduction}
+
+Working alone for several months on a project this broad demanded some
+discipline. This chapter explains the methodology I followed, the
+technology choices that anchored the build, and the layout of the
+services those choices produced.
+
+\section{Why Agile, sprint-shaped}
+
+The temptation, when you're the only person on a project, is to skip
+ceremony --- no standups to attend, no retros to chair, no Jira to
+update. I resisted that for two reasons. First, ML capacity planning
+is genuinely unpredictable. A feature that looked easy on paper
+(``add Prophet for time-series forecasting'') ended up requiring
+\texttt{cmdstan} to be compiled from source, which doubled the size of
+one of my Docker images. That kind of surprise compounds if you don't
+have a sprint boundary to absorb the slip. Second, I needed checkpoints
+I could demo to my supervisor without hand-waving. Without sprint
+structure I would have ended up with a single ``everything works at
+once'' deliverable, no story to tell along the way, and no fallback
+position if a late feature fell through.
+
+So the eight sprints below each ended with a runnable demo and a
+self-contained git tag.
+
+\section{Technology choices}
+
 \begin{itemize}
-    \item \textbf{Backend Framework (Flask):} Chosen over Django or FastAPI for its microservice-friendly minimalist approach and robust extensions (Flask-JWT-Extended, Flask-PyMongo).
-    \item \textbf{Databases:} PostgreSQL provides ACID transactions necessary for auth data, while MongoDB offers the flexible schema required for arbitrary dataset profiles and pipeline configurations. Redis handles sub-millisecond lookups for token blacklists and rate limiting.
-    \item \textbf{Async Processing (Celery + Redis):} Since Pandas profiling and ML training are CPU-bound, \texttt{asyncio} would block the event loop. Celery utilizes independent worker processes to bypass the Python GIL safely.
+    \item \textbf{Frontend: React 18 + Vite + TypeScript + MUI.} React
+        for the ecosystem, Vite because cold starts under
+        \texttt{create-react-app} were embarrassingly slow, MUI because
+        it ships accessible components out of the box --- a point that
+        matters for the company-tier sale.
+    \item \textbf{Backend: Flask + Celery + Flask-SocketIO.} Flask was
+        the lowest-common-denominator choice for a microservice. FastAPI
+        would have given me typed routes for free, but every template I
+        started with assumed Flask, and going back through five
+        rewrites just for typing wasn't a fight I wanted to have.
+        Celery handles every CPU-bound task: profiling, preprocessing,
+        H2O training, RAG ingestion, image extraction, and PyTorch
+        training each live on their own queue.
+    \item \textbf{Postgres + pgvector for relational and vector data.}
+        Co-locating the vector store with the auth schema let me avoid
+        spinning up a sixth backing service. \texttt{pgvector}'s
+        IVFFlat index is more than enough for the few hundred thousand
+        chunks that a single-tenant local deployment is ever likely
+        to hold.
+    \item \textbf{MongoDB for everything schemaless.} Datasets,
+        pipelines, model versions, task results --- anything whose
+        shape evolves between sprints lives in Mongo. It's the path of
+        least resistance for objects that genuinely resist a fixed
+        schema.
+    \item \textbf{Redis for queue + cache + socket message bus.} Three
+        logical databases on the same instance: DB 0 for Celery, DB 1
+        for Celery results, DB 2 for the SocketIO message queue.
+    \item \textbf{Ollama for local LLM inference.} The alternative was
+        calling \texttt{llama.cpp} directly. That would have given me
+        finer control at the cost of building my own HTTP shim around
+        it; Ollama's REST API is good enough that the trade wasn't
+        close.
+    \item \textbf{PyTorch for image classification.} Added in Sprint 8.
+        The CUDA wheels are downloaded from PyTorch's CUDA 12.1 index
+        inside the Dockerfile so the host only needs the NVIDIA driver
+        plus \texttt{nvidia-container-toolkit}.
 \end{itemize}
 
-\section{CI/CD Pipeline}
-A rigorous Continuous Integration/Continuous Deployment (CI/CD) pipeline was implemented via GitHub Actions:
+\section{Microservice topology}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\linewidth]{docs/diagrams/microservice_topology.png}
+    \caption{Microservice topology}
+\end{figure}
+
 \begin{itemize}
-    \item \textbf{Code Quality Enforcement:} Backend code must pass \texttt{black} (formatting), \texttt{isort} (import ordering), and \texttt{flake8} (linting). Frontend code must pass strict \texttt{ESLint} checks and TypeScript compilation (\texttt{tsc --noEmit}).
-    \item \textbf{Automated Testing:} A matrix of tests spins up PostgreSQL, MongoDB, and Redis to execute \texttt{pytest} across all microservices, while \texttt{vitest} runs frontend coverage.
+    \item \texttt{api-gateway} (port 8000) --- decodes JWTs, injects
+        \texttt{X-User-Id} / \texttt{X-User-Tier} / \texttt{X-User-Role}
+        headers, proxies to the upstream services. It also hosts the
+        SocketIO server for chat and training presence.
+    \item \texttt{auth-service} (port 8001) --- user accounts, billing,
+        admin operations, project and company ACL.
+    \item \texttt{data-ingestion-service} (port 8002) --- file uploads,
+        SQL and S3 connectors, profiling, preprocessing, RAG
+        ingestion, image-dataset extraction.
+    \item \texttt{ml-training-service} (port 8003) --- the fourteen
+        tabular algorithms, model registry, RAG chat orchestration.
+    \item \texttt{metrics-service} (port 8004) --- TimescaleDB-backed
+        hardware-telemetry collection (added in Sprint 7).
+    \item \texttt{dl-training-service} (port 8005) --- PyTorch image
+        classification (added in Sprint 8).
 \end{itemize}
 
-\section{Comparison of Project Management Methodologies}
-Traditional Waterfall methodologies are too rigid for the iterative nature of software engineering, specifically when dealing with the unpredictable resource consumption of ML algorithms. 
+\section{CI/CD}
 
-\section{The Choice of Agile Methodology}
-Agile was selected because it accommodates continuous integration, allows for pivoting based on hardware constraints, and prioritizes working software over comprehensive documentation.
+A GitHub Actions workflow runs four jobs in parallel on every push:
 
-\section{Scrum Methodology}
-The project was divided into logical Sprints, each culminating in a deployable, tangible module. 
 \begin{itemize}
-    \item \textbf{Roles:} Handled autonomously, acting as Product Owner, Scrum Master, and Lead Developer.
-    \item \textbf{Artifacts:} Product Backlog, Sprint Backlog, and increments (demonstrated in the E2E testing).
+    \item Backend lint --- \texttt{black}, \texttt{isort},
+        \texttt{flake8} across all five Python services.
+    \item Frontend lint --- \texttt{eslint} and \texttt{tsc} in strict
+        mode.
+    \item Backend tests --- a PostgreSQL + Mongo + Redis stack is spun
+        up as services, then \texttt{pytest} runs against each
+        microservice. For \texttt{dl-training-service}, an extra step
+        installs torch's CPU-only wheels so the suite doesn't pull a
+        gigabyte of CUDA binaries it has no way to use on a CI runner.
+    \item Frontend tests --- \texttt{vitest} with coverage upload.
 \end{itemize}
 
-\section{System Architecture: The Gateway Pattern}
-To manage the complexity of ML tasks, a \textbf{Microservices Architecture} was designed. Instead of a monolithic codebase, the system is split into:
-\begin{itemize}
-    \item \texttt{api-gateway}: Centralized authentication and routing.
-    \item \texttt{auth-service}: JWT lifecycle and RBAC.
-    \item \texttt{data-ingestion-service}: Pandas profiling and chunking.
-    \item \texttt{ml-training-service}: Celery workers for XGBoost/Prophet.
-\end{itemize}
-This isolation prevents a heavy XGBoost training loop from starving the authentication service.
+End-to-end, CI runs in roughly six minutes for a frontend-only change,
+nine minutes for a backend change, and fourteen minutes when both sides
+move at once. Slow enough that I noticed; not so slow that I bypassed
+it.
 
-\chapter{Sprint 1: Account Management and Gateway Security}
+\section*{Conclusion}
 
-\section{Sprint Backlog}
-The goal of Sprint 1 was to lay the foundation: a secure, stateless authentication mechanism, Role-Based Access Control (RBAC), and a unified API Gateway to proxy requests to internal microservices safely.
+The methodology and toolchain described here held throughout the eight
+sprints. Some of these choices --- Flask in particular --- are ones I'd
+revisit if starting over, but they did get me to a working system
+without rework. The chapters that follow take each sprint in turn and
+explain what was built, why, and what broke along the way.
+
+% ═════════════════════════════════════════════════════════════════════════════
+\chapter{Sprint 1: Authentication and the Gateway}
+% ═════════════════════════════════════════════════════════════════════════════
+
+\section*{Introduction}
+
+Sprint 1 was the foundation sprint. Nothing here is glamorous --- no
+charts, no dashboards, no models --- but the design choices made in
+these two weeks shaped every later sprint, and a couple of them ended
+up being the quiet load-bearing decisions of the entire project.
+
+\section{Goal}
+
+The goal was a stateless JWT authentication scheme, a Redis-backed
+token revocation list, role-based access control with super-admin and
+tenant roles, and a gateway that strips client-supplied identity
+headers before injecting authoritative ones from the decoded JWT. None
+of this is novel on its own. Wiring it together correctly is what
+matters.
 
 \section{Design}
-\subsection{Use Case Diagram Description}
-The Use Case diagram features the \textit{User} interacting with the platform to "Register", "Login", and "Manage Workspaces". It branches into two roles: \textit{Individual User} (managing personal data) and \textit{Company Admin} (inviting team members, managing roles like PM or Data Scientist).
-\subsection{Sequence Diagram Description}
-The JWT Sequence diagram illustrates a user logging in. The \texttt{auth-service} validates credentials and issues a short-lived Access Token (JWT) alongside a long-lived Refresh Token (HttpOnly cookie). On subsequent requests, the \texttt{api-gateway} intercepts the call, cryptographically verifies the JWT, checks a Redis blacklist, and injects authoritative \texttt{X-User-Id} headers before proxying.
-\subsection{Class Diagram Description}
-The Class Diagram models PostgreSQL tables: \texttt{User} (1-to-N) \texttt{RefreshTokens}, \texttt{Company} (1-to-N) \texttt{Memberships}, and \texttt{Invitations}.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\linewidth]{docs/diagrams/login_sequence.png}
+    \caption{Login + JWT issuance sequence diagram}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\linewidth]{docs/diagrams/class_sprint1.png}
+    \caption{Class diagram for Sprint 1}
+\end{figure}
+
+\subsection{Why an opaque-but-decoded gateway?}
+
+Two reasonable architectures sat on the table:
+
+\begin{enumerate}
+    \item Have the gateway hit \texttt{auth-service} on every request
+        to validate the JWT.
+    \item Have the gateway hold the same \texttt{JWT\_SECRET\_KEY} as
+        \texttt{auth-service} and decode the token in-process.
+\end{enumerate}
+
+I went with the second, and I'd make the same call again. The gateway
+becomes a hot path; a synchronous HTTP round-trip per request adds
+latency that compounds badly under load. The price is that the gateway
+needs the same signing secret as the auth service --- which, in a
+shared environment file deployment, is a non-issue. In a horizontally
+scaled production setup it would be more involved; for the demo
+target it's the right trade.
+
+\subsection{Header-injection rules}
+
+The gateway strips any client-supplied \texttt{X-User-*},
+\texttt{X-Company-*}, or \texttt{X-Project-*} header before forwarding,
+then re-adds them from the decoded JWT. This is, without exaggeration,
+the most important single security invariant in the whole system.
+\textbf{Downstream services trust \texttt{X-User-Id} unconditionally,
+which means an attacker who can supply that header without going
+through the gateway can impersonate anyone.} The strip-then-inject
+pattern is deliberate, well tested, and not negotiable.
 
 \section{Implementation}
 
-\subsection{Role-Based Access Control (RBAC) and Gateway Routing}
-One of the most complex technical hurdles was ensuring zero-trust communication between the microservices without introducing network latency. By utilizing a "Decode-Only" Gateway, the gateway cryptographically verifies the JWT using a shared \texttt{JWT\_SECRET\_KEY} without executing a round-trip to the \texttt{auth-service}.
-
-Below is the implementation of the \texttt{\_forward} method in the API Gateway that handles proxying and header injection:
-
-\begin{lstlisting}[language=Python, caption=API Gateway Proxy and Header Injection]
-def _forward(
-    upstream_base: str,
-    path: str,
-    require_auth: bool = True,
-    timeout: int = 30,
-) -> Response:
-    """Forward the current request to an upstream service."""
+\begin{lstlisting}[language=Python, caption=Gateway proxy with header injection (excerpt from \texttt{api-gateway/app/routes/proxy.py})]
+def _forward(upstream_base, path, require_auth=True, timeout=30):
     if require_auth:
         try:
             verify_jwt_in_request()
             claims = get_jwt()
             g.user_id = get_jwt_identity()
             g.user_role = claims.get("role", "")
+            g.user_tier = claims.get("tier", "free")
         except Exception as e:
             return jsonify({"error": "unauthorized", "message": str(e)}), 401
 
-    # Build upstream URL
-    url = f"{upstream_base.rstrip('/')}{path}"
-    
-    # Strip client-supplied X-User-* headers to prevent spoofing
+    # Strip every client-supplied identity header before forwarding.
     _STRIP_PREFIXES = ("x-user-", "x-company-", "x-project-")
     headers = {
         k: v for k, v in request.headers
@@ -214,87 +556,132 @@ def _forward(
         and k.lower() != "host"
         and not k.lower().startswith(_STRIP_PREFIXES)
     }
-    
-    # Inject authoritative headers trusted by downstream microservices
+    # Re-inject the authoritative ones from the decoded JWT.
     if require_auth or hasattr(g, "user_id"):
         headers.update(get_forwarded_headers())
 
     resp = requests.request(
-        method=request.method,
-        url=url,
-        headers=headers,
-        data=request.get_data(),
-        stream=True,
+        method=request.method, url=f"{upstream_base.rstrip('/')}{path}",
+        headers=headers, data=request.get_data(), stream=True, timeout=timeout,
     )
-    # Return streamed response...
+    return _stream_response(resp)
 \end{lstlisting}
 
-\section{Security Design}
-\subsection{JWT and Password Security}
-The authentication system employs several layers of security:
+\section{Security posture}
+
 \begin{itemize}
-    \item \textbf{Token Lifecycle:} Short-lived access tokens (15 min) limit the window of misuse, while refresh tokens are rotated on every use and stored strictly as HttpOnly cookies to prevent XSS attacks.
-    \item \textbf{Blacklist Architecture:} A Redis-backed JWT ID (JTI) blacklist ensures that upon logout, tokens are instantly invalidated for the remainder of their natural TTL.
-    \item \textbf{Password Hashing:} User passwords are encrypted using bcrypt with a high cost factor. Only SHA-256 hashes of refresh tokens are stored in the database.
+    \item Access tokens have a fifteen-minute TTL. Refresh tokens live
+        as HttpOnly cookies and rotate on every refresh; the previous
+        token's JTI lands in the Redis blacklist so a stolen refresh
+        token can actually be revoked.
+    \item Passwords use \texttt{bcrypt} at cost 12. Refresh tokens
+        themselves are stored as SHA-256 hashes in Postgres --- the
+        database-breach scenario yields a hash, not a usable token.
+    \item TOTP-based two-factor authentication is optional per user;
+        super-admins can require it per-tier from the admin panel.
+    \item Per-IP and per-user rate limits sit at the gateway. The
+        per-user limit defaults to 600\,req/min in development,
+        deliberately loose because React 18 Strict Mode
+        double-invokes \texttt{useEffect} and a tighter cap was
+        producing spurious 429s.
 \end{itemize}
-\subsection{Rate Limiting and CORS}
-The API gateway enforces per-user rate limits (defaulting to 600 requests/minute to accommodate React Strict Mode in development). Cross-Origin Resource Sharing (CORS) is strictly configured at the gateway level.
 
-\section{Conclusion}
-Sprint 1 successfully established a fortress of security. The API Gateway effectively insulates the internal microservices, ensuring that they only ever process requests accompanied by verified, un-spoofable HTTP headers.
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\linewidth]{docs/figures/login_screen.png}
+    \caption{Login screen}
+\end{figure}
 
-\chapter{Sprint 2: Data Ingestion and Automated Profiling}
+\section{Outcome}
 
-\section{Sprint Backlog}
-Sprint 2 introduced the \texttt{data-ingestion-service}. The primary objectives were to handle asynchronous file uploads (CSV/XLSX), securely ingest SQL databases, and automatically compute a statistical profile (missing values, correlations, skewness) to guide the non-technical user in their data preparation.
+By the end of the sprint the platform had end-to-end authentication, a
+working refresh-token loop, and the gateway pattern that the next seven
+sprints would build on top of. The authoritative-headers convention
+turned out to be one of the project's most quietly useful design
+decisions: every subsequent service trusts \texttt{X-User-Id} without a
+second thought, because the gateway is the only path along which it
+can be set.
+
+% ═════════════════════════════════════════════════════════════════════════════
+\chapter{Sprint 2: Data Ingestion and Profiling}
+% ═════════════════════════════════════════════════════════════════════════════
+
+\section*{Introduction}
+
+With authentication in place, Sprint 2 turned to the next obvious
+need: getting data into the platform. The deliverable was the
+\texttt{data-ingestion-service} --- file uploads, SQL connectors,
+asynchronous profiling, and a preprocessing pipeline that splits data
+into train, validation, and test sets and saves them as Parquet for
+the downstream training services to consume.
+
+\section{Goal}
+
+End-to-end: a user uploads a CSV through the browser, the file lands
+on disk, a Celery task profiles it asynchronously, and the frontend
+sees the profile light up as it completes. The path needed to be both
+fast and unbreakable in the face of large or messy files.
 
 \section{Design}
-\subsection{Class Diagram Description}
-The database schema uses MongoDB due to the dynamic nature of dataset schemas. The \texttt{Dataset} document stores metadata (row count, target column) and a \texttt{profiling\_summary} sub-document. A separate \texttt{TaskResults} collection acts as a state machine for Celery tasks, storing \texttt{progress\_pct} and \texttt{status}.
-\subsection{Sequence Diagram Description}
-The Asynchronous Upload sequence demonstrates the API Gateway forwarding a multipart form data request. The ingestion service saves the file to a shared Docker volume, inserts a "pending" document in MongoDB, and dispatches a message to Redis. A Celery worker picks up the task, processes the DataFrame using Pandas, and updates MongoDB with the results while the frontend polls for completion.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\linewidth]{docs/diagrams/upload_sequence.png}
+    \caption{Asynchronous upload sequence}
+\end{figure}
+
+\subsection{The shared-volume convention}
+
+My first instinct was to have the ingestion service stream files to
+the worker over the network. I started building that, then realised
+halfway in that my Docker Compose stack already had a named volume
+(\texttt{uploaded\_files}) that both the API container and the worker
+container could mount. Mounting it in both places collapsed the
+streaming-upload protocol into a one-line write: the API saves to
+\texttt{/uploads/<id>.csv}, the worker reads from the same path. That
+pattern then became the convention for every binary artefact in the
+system --- trained models, RAG documents, image-dataset extracts.
+Sometimes the right design is the one you almost overlooked because
+it was already sitting in front of you.
+
+\subsection{Why MongoDB for dataset metadata}
+
+A dataset's profile is fundamentally schemaless. A CSV with two
+numeric columns produces a profile that looks nothing like the profile
+of a CSV with thirty mixed-type columns including a target. I spent
+the better part of a day considering a Postgres JSONB column for this
+and ultimately preferred Mongo's storage model. It's lossless, it's
+queryable enough for the use case, and it doesn't impose a schema
+migration every time I want to add a new statistic.
 
 \section{Implementation}
 
-\subsection{SQL Connector and Fernet Encryption}
-To allow users to ingest data directly from SQL databases, credentials must be stored to run scheduled imports. To secure this, symmetric AES-128-CBC encryption (Fernet) was implemented. The encryption key resides in the environment variables, meaning a breach of the MongoDB instance alone does not expose user database credentials. Furthermore, all dynamic SQL queries are executed via SQLAlchemy's parameterized text queries to prevent SQL Injection attacks.
-
-\subsection{Data Storage Strategy: Parquet Files}
-The preprocessing service splits uploaded data into train/val/test splits and saves them as Parquet files rather than CSVs. This design ensures identical data splits between training attempts and provides up to 10x faster I/O performance for columnar ML operations.
-
-\subsection{Automated Profiling Logic}
-A core feature is the automatic generation of statistical metrics. The logic is handled inside a Celery background worker to prevent HTTP timeout errors on massive datasets.
-
-\begin{lstlisting}[language=Python, caption=Celery Task for Data Profiling]
+\begin{lstlisting}[language=Python, caption=Profiling task (excerpt from \texttt{data-ingestion-service/app/tasks/profiling.py})]
 @celery.task(name="app.tasks.profiling.profile_dataset", bind=True)
 def profile_dataset(self, dataset_id: str):
     client = MongoClient(os.environ["MONGO_URL"])
-    datasets = client[os.environ.get("MONGO_DB", "nocode_ingestion")]["datasets"]
-    
-    # Mark task as running
+    db = client[os.environ.get("MONGO_DB", "nocode_ingestion")]
+    datasets = db["datasets"]
+    task_results = db["task_results"]
+
     task_results.update_one(
         {"task_id": self.request.id},
         {"$set": {"status": "running", "progress_pct": 0}},
         upsert=True,
     )
-    
     doc = datasets.find_one({"dataset_id": dataset_id})
     df = load_dataframe(doc["file_path"])
-    
-    # Target-aware profiling (Sprint 7 Module 2)
-    target_column = doc.get("target_column")
-    summary = compute_profile_summary(df, target_column=target_column)
 
-    # Persist summary
+    summary = compute_profile_summary(df, target_column=doc.get("target_column"))
+
     datasets.update_one(
         {"dataset_id": dataset_id},
-        {
-            "$set": {
-                "status": "ready",
-                "profiling_summary": summary,
-                "row_count": len(df),
-            }
-        },
+        {"$set": {
+            "status": "ready",
+            "profiling_summary": summary,
+            "row_count": len(df),
+            "column_count": len(df.columns),
+        }},
     )
     task_results.update_one(
         {"task_id": self.request.id},
@@ -302,131 +689,313 @@ def profile_dataset(self, dataset_id: str):
     )
 \end{lstlisting}
 
-\section{Conclusion}
-By decoupling the heavy data-processing pipeline into Celery workers and utilizing MongoDB for schemaless storage, Sprint 2 laid the groundwork for robust, scalable data preparation capable of handling complex outlier and skewness detection safely.
+\subsection{SQL connectors and Fernet encryption}
 
-\chapter{Sprint 3: Visual Pipeline Editor and ML Training Orchestration}
+Users can configure a Postgres or MySQL connector inside the platform;
+the credentials are encrypted with a Fernet key (AES-128-CBC plus
+HMAC) held in the service's environment, then stored in Mongo. The
+same key is reused for any other secret the ingestion service needs
+to hold, and rotating it is a documented operations procedure rather
+than a fire-fight. SQL queries themselves run through SQLAlchemy with
+parameter binding, which makes SQL injection structurally impossible
+rather than merely unlikely.
 
-\section{Sprint Backlog}
-Sprint 3 is the engine room of the platform. The goal was to build an intuitive, drag-and-drop web interface (DAG) that maps directly to a dynamic machine learning pipeline capable of orchestrating 14 distinct algorithms.
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\linewidth]{docs/figures/connector_wizard.png}
+    \caption{Connector wizard screenshot}
+\end{figure}
+
+\section{Outcome}
+
+By sprint's end the platform could ingest CSVs, profile them
+asynchronously, preprocess them into clean Parquet splits, and surface
+all of that to the frontend. Everything past this point assumed the
+ingestion path was a solved problem, which by and large it was. The
+only ingestion-related work that resurfaced later was the SQL probe
+step (Sprint 4) and the image-dataset path that arrived with deep
+learning in Sprint 8.
+
+% ═════════════════════════════════════════════════════════════════════════════
+\chapter{Sprint 3: Visual Pipeline Editor and Tabular Training}
+% ═════════════════════════════════════════════════════════════════════════════
+
+\section*{Introduction}
+
+Sprint 3 was the largest single sprint of the project. It pulled
+together three big pieces --- the visual pipeline editor, the
+\texttt{ml-training-service} with its fourteen tabular algorithms, and
+the live metric visualisations --- into a coherent flow the user
+could actually follow from canvas to model.
+
+\section{Goal}
+
+The deliverables: a directed acyclic graph editor on a React Flow
+canvas, the \texttt{ml-training-service} hosting all fourteen
+algorithms, a model registry with versioning, and live metric streaming
+from the training process back to the canvas.
 
 \section{Design}
-\subsection{Use Case Diagram Description}
-Users visually construct a pipeline by dragging three node types onto a canvas: \texttt{DatasetNode}, \texttt{TrainNode}, and \texttt{EvaluateNode}. They connect the edges to define data flow.
-\subsection{Class Diagram Description}
-A \texttt{Pipeline} document contains an array of \texttt{nodes} and \texttt{edges} (storing \texttt{x, y} coordinates for the canvas). A 1-to-N relationship links pipelines to \texttt{ModelVersions}, preserving a historical record of all training executions.
 
-\section{Implementation}
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\linewidth]{docs/figures/pipeline_editor_ml.png}
+    \caption{Pipeline editor screenshot --- ML mode}
+\end{figure}
 
-\subsection{React Flow DAG Management}
-The frontend leverages \texttt{React Flow} (XYFlow). The canvas state is serialized into a JSON configuration object. When the user clicks "Run", the UI traverses the graph from the \texttt{EvaluateNode} up to the \texttt{DatasetNode} to validate connections before submitting the configuration to the backend.
+\subsection{Graph schema}
 
-\subsection{Data Flow: File to Trained Model}
-The orchestrated data lifecycle follows this sequence:
-\begin{enumerate}
-    \item \textbf{Upload \& Profiling:} CSV upload triggers a Celery task that runs \texttt{pandas} metrics.
-    \item \textbf{Preprocessing:} User configures imputation and encoding; the task fits a \texttt{ColumnTransformer} and saves \texttt{.parquet} files.
-    \item \textbf{Training Configuration:} User connects nodes on the XYFlow canvas and selects one of the 14 algorithms.
-    \item \textbf{Execution:} The ML Celery worker loads the parquet data, dynamically instantiates the chosen algorithm via the \texttt{BaseMLModel} registry, fits the model, and serializes the estimator.
-\end{enumerate}
+A pipeline is stored in Mongo as a document with two arrays:
 
-\subsection{The BaseMLModel Abstraction}
-To accommodate diverse algorithms (from scikit-learn's Random Forest to Meta's Prophet) under a single orchestrator, the \texttt{BaseMLModel} abstract base class was engineered. This polymorphic design ensures that the training worker code remains identical regardless of the chosen algorithm.
+\begin{lstlisting}[language=JSON, caption=Pipeline document shape]
+{
+  "pipeline_id": "...",
+  "user_id": "...",
+  "type": "ml" | "rag" | "dl",
+  "nodes": [
+    { "node_id": "n1", "type": "dataset", "position": {"x": 60, "y": 120},
+      "data": { "dataset_id": "..." } },
+    { "node_id": "n2", "type": "train", "position": {"x": 320, "y": 120},
+      "data": { "algorithm": "xgboost", "task_type": "classification",
+                "hyperparams": {...}, "target_column": "..." } },
+    { "node_id": "n3", "type": "evaluate", "position": {"x": 580, "y": 120},
+      "data": {} }
+  ],
+  "edges": [
+    { "source": "n1", "target": "n2" },
+    { "source": "n2", "target": "n3" }
+  ],
+  "status": "draft"|"running"|"done"|"error"
+}
+\end{lstlisting}
 
-\begin{lstlisting}[language=Python, caption=Abstract BaseMLModel Interface]
-from abc import ABC, abstractmethod
-import pandas as pd
-from typing import Any
+\subsection{The \texttt{BaseMLModel} abstraction}
 
+Fourteen algorithms with one orchestrator implies an abstraction.
+Rather than over-engineer it, I went with a deliberately small abstract
+base class: each algorithm subclass exposes \texttt{train},
+\texttt{predict}, and \texttt{evaluate} with a shared signature,
+whether it's wrapping scikit-learn, XGBoost, LightGBM, CatBoost, or
+Prophet. The training Celery task is algorithm-agnostic --- it
+constructs a model from a registry, trains it, asks it for metrics,
+and serialises the estimator. Adding a new algorithm is, in practice,
+a one-file change.
+
+\begin{lstlisting}[language=Python, caption=Algorithm-agnostic training core]
 class BaseMLModel(ABC):
-    """
-    Unified interface for all supported algorithms.
-    Subclasses receive hyperparams as a dict at construction time.
-    """
     def __init__(self, hyperparams: dict[str, Any]):
         self.hyperparams = hyperparams
         self._estimator = None
 
     @abstractmethod
-    def train(self, X_train: pd.DataFrame, y_train: pd.Series | None = None) -> None:
-        """Fit the model. y_train is None for unsupervised tasks."""
-
+    def train(self, X_train, y_train=None) -> None: ...
     @abstractmethod
-    def predict(self, X: pd.DataFrame) -> Any:
-        """Return predictions for X."""
-
+    def predict(self, X) -> Any: ...
     @abstractmethod
-    def evaluate(self, X_test: pd.DataFrame, y_test: pd.Series | None = None) -> dict[str, Any]:
-        """Compute and return a metrics dict."""
+    def evaluate(self, X_test, y_test=None) -> dict[str, Any]: ...
 
     @property
     def estimator(self):
         return self._estimator
 \end{lstlisting}
 
-\section{Conclusion}
-Sprint 3 successfully bridged the gap between a visual React-based canvas and complex Python machine learning orchestrations. The \texttt{BaseMLModel} pattern provides ultimate flexibility, making it trivial to add new algorithms in the future without refactoring the Celery tasks.
+The registry mapping algorithm strings to subclasses lives in
+\texttt{ml-training-service/app/services/model\_factory.py}.
 
-\chapter{Sprint 4: MLOps, Explainability, and Export}
+\subsection{H2O for the heavy algorithms}
 
-\section{Sprint Backlog}
-With model training operational, Sprint 4 focused on model interpretability (Explainable AI), performance evaluation, and unlocking vendor lock-in by providing portable model exports.
+For XGBoost, GBM, and Random Forest, I used H2O-3 instead of the
+scikit-learn implementations. H2O's algorithms run faster on tabular
+data, and they expose feature importance and SHAP values out of the
+box --- which, on its own, removed an entire subtask from Sprint 4.
+Not every dependency pays for itself; this one did.
 
-\section{Design}
-\subsection{Sequence Diagram Description}
-During the evaluation phase of the Celery worker, if the task is a supervised learning model, the worker calculates SHAP (SHapley Additive exPlanations) values to determine feature importance. It then serializes the model using \texttt{joblib} and saves it to a persistent Docker volume.
+\section{Frontend canvas}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\linewidth]{docs/figures/node_component_anatomy.png}
+    \caption{Node component anatomy}
+\end{figure}
+
+The canvas is a React Flow instance with custom node components. Each
+node type validates itself against the surrounding graph: the
+\texttt{Train} node shows an error badge if no \texttt{Dataset} node
+is upstream; the \texttt{Evaluate} node shows a warning if no training
+run has produced a version yet. The validation function is pure ---
+\texttt{(node, edges, allNodes) $\to$ \{status, message\}} --- which
+keeps it trivially testable.
+
+\section{Live training visualisation}
+
+Training emits per-step metric points over the SocketIO message queue.
+The \texttt{LiveTrainingChart} component subscribes to the pipeline's
+room (\texttt{pipeline\_<id>}) on the \texttt{/training} namespace and
+plots the points on a Plotly scatter. The Y-axis is auto-scaled because
+progress percentage (0--100) and metric values (typically 0--1) live
+on different ranges --- progress on the primary axis, metrics on the
+secondary. A small thing, but the chart was unreadable until I got
+that right.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\linewidth]{docs/figures/live_training_chart.png}
+    \caption{Live training chart screenshot}
+\end{figure}
+
+\section*{Conclusion}
+
+Sprint 3 was where the project first felt like a real product. A user
+could open the canvas, drop three nodes, hit Run, and watch a model
+train in front of them. The \texttt{BaseMLModel} abstraction
+introduced here would later pay off in Sprint 4's explainability work
+and in Sprint 8's deep-learning extension, both of which slotted into
+the registry without disturbing the orchestration code.
+
+% ═════════════════════════════════════════════════════════════════════════════
+\chapter{Sprint 4: Explainability, Export, and the Dashboard}
+% ═════════════════════════════════════════════════════════════════════════════
+
+\section*{Introduction}
+
+A working trainer is not yet a working MLOps platform. Sprint 4 closed
+that gap by adding the pieces a user needs after a model finishes
+training: an explanation of what the model learned, a way to take the
+model elsewhere, and a place to come back to and see their work in one
+view.
+
+\section{Goal}
+
+Six deliverables, all on the post-training side: SHAP explainability,
+a confusion-matrix heatmap, residual plots for regression, model
+export, the dashboard, the results page, and the billing UI.
+
+\section{SHAP and the explainability surface}
+
+Every supervised training run computes SHAP values over a sampled
+subset of the test set. The bar chart of mean absolute SHAP values
+surfaces in the \texttt{Evaluate} node's results panel. For tree-based
+models --- XGBoost, Random Forest, GBM, LightGBM, CatBoost --- the
+SHAP computation uses the optimised \texttt{TreeExplainer} path, which
+is roughly two orders of magnitude faster than
+\texttt{KernelExplainer}. On a 5\,000-row test set, that's the
+difference between SHAP being a feature and SHAP being a wait.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\linewidth]{docs/figures/shap_chart.png}
+    \caption{SHAP feature importance chart}
+\end{figure}
+
+\section{Model export}
+
+The export step packages the trained \texttt{.joblib} artefact along
+with a generated FastAPI inference script. The user downloads a zip
+that they can drop onto any container runtime to serve their model
+without the platform at all. That property --- being able to leave ---
+mattered to me on principle. A no-code platform that locks you in
+isn't really removing friction; it's relocating it.
+
+\section{Why \texttt{joblib} and not \texttt{pickle}}
+
+A small thing, but worth documenting. \texttt{joblib} was a deliberate
+choice for the tabular path because its custom pickler is optimised
+for objects containing large NumPy arrays --- which every scikit-learn
+estimator does --- and can memory-map them on load. For a Random
+Forest of 500 trees the size difference was roughly $8\times$ in my
+measurements; the load-time difference was even larger.
+
+For the deep-learning path in Sprint 8 I used \texttt{torch.save} on a
+\texttt{state\_dict()} instead. Different ecosystem, different
+convention --- there's nothing to gain by being clever across
+framework boundaries.
+
+\section{The dashboard and billing UI}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\linewidth]{docs/figures/dashboard.png}
+    \caption{Dashboard screenshot}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\linewidth]{docs/figures/billing_page.png}
+    \caption{Billing page screenshot}
+\end{figure}
+
+\section*{Conclusion}
+
+Sprint 4 closed the loop between training a model and being able to
+do something with it. The dashboard makes the platform feel
+inhabited; the export flow keeps it from feeling like a walled
+garden. By the end of this sprint, the tabular ML side of the
+platform was essentially feature-complete --- everything after that
+was either polish or a new workload entirely.
+
+% ═════════════════════════════════════════════════════════════════════════════
+\chapter{Sprint 5: Local Generative AI and RAG}
+% ═════════════════════════════════════════════════════════════════════════════
+
+\section*{Introduction}
+
+This was the most technically ambitious sprint of the early stretch.
+A fully local Retrieval-Augmented Generation pipeline meant fitting an
+embedding model, a vector store, and an LLM inside the same Docker
+stack as the rest of the platform --- and making the chat experience
+responsive enough that users wouldn't notice they were running it on
+a consumer GPU.
+
+\section{Goal}
+
+End-to-end local RAG: documents in, vector store populated, chat that
+answers from those documents in real time. No outbound calls. No
+cloud LLM. The whole conversation has to live and die on the same
+machine.
+
+\section{Architecture}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\linewidth]{docs/diagrams/rag_pipeline.png}
+    \caption{RAG pipeline architecture}
+\end{figure}
+
+The component picks:
+
+\begin{itemize}
+    \item \textbf{\texttt{sentence-transformers/all-MiniLM-L6-v2}} for
+        embeddings --- 384 dimensions, around $22$\,MB on disk, fast
+        enough on CPU that I never had to think about GPU
+        scheduling for it.
+    \item \textbf{\texttt{pgvector}} for the vector store, with an
+        IVFFlat index. Co-locating it in the auth-service Postgres
+        instance avoided a sixth backing service.
+    \item \textbf{Ollama running \texttt{llama3.2:3b}} as the LLM
+        engine. The Q4\_K\_M quantisation fits in roughly $2$\,GB of
+        VRAM, which leaves headroom on the 6\,GB demo GPU for
+        embedding, canvas, and the training queue to share the same
+        device without stepping on each other.
+\end{itemize}
 
 \section{Implementation}
 
-\subsection{Model Export and Portability}
-To guarantee that users are never locked into the platform, a one-click export feature was implemented. It packages the trained \texttt{.joblib} artifact along with a pre-configured \texttt{FastAPI} inference script. This allows users to deploy the exact model trained visually directly onto Kubernetes clusters or Edge devices instantly.
-
-\subsection{Why Joblib for Serialization?}
-For Python-based ML models, \texttt{joblib} was specifically chosen over the standard \texttt{pickle} library because it is heavily optimized for objects containing large NumPy arrays (which all scikit-learn estimators use internally), and it employs memory-mapping to drastically accelerate loading times.
-
-\section{Conclusion}
-By focusing on MLOps best practices (version control, SHAP feature importance, and portability), Sprint 4 elevated the platform from a simple educational tool into an enterprise-ready ML workspace.
-
-\chapter{Sprint 5: Local GenAI, RAG, and AI Companion}
-
-\section{Sprint Backlog}
-Sprint 5 represents the technological climax of the PFE: implementing a 100\% air-gapped Generative AI capability. The objective was to provide an AI copilot that acts as a Data Scientist assistant, utilizing Retrieval-Augmented Generation (RAG) over the user's proprietary datasets without relying on OpenAI.
-
-\section{Design}
-\subsection{Architecture of the RAG System}
-The RAG pipeline relies on an orchestrated dance between three components:
-\begin{enumerate}
-    \item \textbf{Embeddings:} \texttt{sentence-transformers/all-MiniLM-L6-v2} generating dense vector embeddings.
-    \item \textbf{Vector Store:} PostgreSQL augmented with the \texttt{pgvector} extension.
-    \item \textbf{LLM Engine:} Ollama running \texttt{llama3.2:3b} directly alongside the backend.
-\end{enumerate}
-\subsection{Sequence Diagram Description}
-When a document is uploaded, Langchain splitters chunk the text. Vectors are computed and batched into \texttt{pgvector}. Upon receiving a chat query, the ML service embeds the prompt, queries \texttt{pgvector} for the top-k chunks via cosine similarity, and streams the prompt and context into the local Ollama runtime.
-
-\section{Implementation}
-
-\subsection{Local Document Ingestion Logic}
-Below is the precise implementation of the asynchronous ingestion task that parses, chunks, and embeds documents locally.
-
-\begin{lstlisting}[language=Python, caption=Local RAG Document Ingestion]
+\begin{lstlisting}[language=Python, caption=Document ingestion task]
 @celery.task(name="app.tasks.rag_ingest.process_rag_document", bind=True)
-def process_rag_document(self, document_id: str, pipeline_id: str, file_path: str):
-    # 1. Chunking using Langchain
+def process_rag_document(self, document_id, pipeline_id, file_path):
     from langchain_text_splitters import RecursiveCharacterTextSplitter
     from langchain_community.document_loaders import PyPDFLoader
 
     docs = PyPDFLoader(file_path).load()
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=500, chunk_overlap=50, length_function=len
+        chunk_size=500, chunk_overlap=50, length_function=len,
     )
     split_docs = splitter.split_documents(docs)
     chunk_texts = [d.page_content for d in split_docs if d.page_content.strip()]
 
-    # 2. Local Embedding via sentence-transformers
+    # Local embedding via sentence-transformers — no network call.
     vectors = embed_texts(chunk_texts)
-
-    # 3. Insert into pgvector
-    inserted = insert_chunks(
+    insert_chunks(
         pipeline_id=pipeline_id,
         document_id=document_id,
         chunks=chunk_texts,
@@ -434,65 +1003,884 @@ def process_rag_document(self, document_id: str, pipeline_id: str, file_path: st
     )
 \end{lstlisting}
 
-\section{Conclusion}
-Sprint 5 successfully demonstrated that a highly capable, context-aware AI companion can be executed securely on a standalone machine, protecting organizational data sovereignty.
+\section{Streamed chat}
 
-\chapter{Test and Deployment}
+The chat response streams token by token over SocketIO. The
+\texttt{ml-training-service} plays producer: it embeds the question,
+queries pgvector, builds the prompt, and forwards Ollama's
+\texttt{stream=true} chunks straight into the
+\texttt{/chat/<pipeline\_id>} room. The frontend appends them to the
+current assistant message as they arrive. Watching that for the first
+time, on a laptop, with no network involved, was one of the more
+satisfying moments of the project.
 
-\section{Backend and Frontend Testing}
-A comprehensive \texttt{pytest} suite was implemented across all Python microservices, ensuring logic isolated in the API Gateway and Celery tasks functions properly under load. The frontend relies on \texttt{Vitest} and rigorous TypeScript type definitions matching backend schemas.
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\linewidth]{docs/figures/rag_chat.png}
+    \caption{RAG chat screenshot}
+\end{figure}
 
-\section{Deployment Architecture}
-The system orchestration relies entirely on a single-host \texttt{docker-compose.yml} configuration deploying 12 intertwined containers. 
+\section*{Conclusion}
 
-\subsection{Volume and Network Management}
-The greatest challenge in deployment was managing shared state. \texttt{uploaded\_files} and \texttt{model\_artifacts} are defined as Docker Named Volumes, mounted concurrently across the API container and Celery Worker containers. This ensures the asynchronous worker can write the \texttt{.joblib} file directly where the API expects it for serving user downloads.
+Sprint 5 proved the local-generative-AI thesis to my own satisfaction.
+The chat is not as fast as GPT-4 over the wire, and it never will be
+on this hardware, but it's interactive enough to be useful and it
+keeps the user's documents on their machine. For the regulated
+industries the platform was designed for, that trade-off is exactly
+the one they're looking to make.
 
-Furthermore, \texttt{depends\_on} with \texttt{healthcheck} directives was mandated to ensure that PostgreSQL (and pgvector) was fully instantiated before the auth and ML services attempted Alembic schema migrations upon startup.
+% ═════════════════════════════════════════════════════════════════════════════
+\chapter{Sprint 6: Multi-tenancy, Project ACL, and Real-Time Collaboration}
+% ═════════════════════════════════════════════════════════════════════════════
 
-\section{Deployment Hurdles and Debugging}
-Throughout the deployment process, several critical bugs were encountered and successfully mitigated:
+\section*{Introduction}
+
+Up to this point the platform had been a single-user experience. The
+company-tier story needed something else: multiple people on the same
+pipeline at the same time, with sensible access controls and enough
+real-time feedback that they wouldn't accidentally undo each other's
+work.
+
+\section{Goal}
+
+Per-pipeline access control with five distinct roles, real-time canvas
+presence (cursors and node highlights), threaded chat per pipeline,
+and one-click Google Meet links so a remote pair could jump from an
+async conversation into a synchronous call without leaving the canvas.
+
+\section{The role hierarchy}
+
 \begin{itemize}
-    \item \textbf{Prophet Missing CmdStan:} During initial training tests, the Prophet algorithm failed because it requires \texttt{CmdStan} (a standalone C++ binary) to execute probabilistic programs. The fix involved modifying the Dockerfile to compile CmdStan from source during the image build phase using \texttt{install\_cmdstan()}.
-    \item \textbf{Flask DB CLI Path Resolution:} Executing \texttt{make migrate} for Alembic migrations failed inside isolated Docker containers. This was resolved by explicitly injecting the \texttt{-e FLASK\_APP=app.main} environment variable into the transient container execution command.
-    \item \textbf{React Strict Mode Rate Limiting:} The frontend immediately triggered HTTP 429 Rate Limit errors because React 18 Strict Mode intentionally double-invokes \texttt{useEffect} hooks in development. The Redis rate limit was elevated to gracefully handle this development quirk.
+    \item \textbf{Owner} --- the user who created the pipeline.
+        Cannot be removed.
+    \item \textbf{Project Manager} --- can invite, can edit, cannot
+        remove the owner.
+    \item \textbf{Data Scientist} --- can edit nodes, can run training,
+        cannot manage members.
+    \item \textbf{Analyst} --- can view metrics and download artefacts,
+        cannot run training.
+    \item \textbf{Viewer} --- read-only.
 \end{itemize}
 
-\section{Conclusion}
-The encapsulated Docker workflow guarantees that the platform can be deployed reliably on any compliant machine using a simple \texttt{make up} command, sealing the promise of an isolated, secure, and accessible machine learning ecosystem.
+The role is enforced both server-side and client-side. The gateway
+resolves the user's role for the project on every
+\texttt{/pipelines/*} request and stamps \texttt{X-Project-Role}; the
+frontend disables UI affordances based on the same role. The
+server-side enforcement is authoritative --- the client-side disable
+is for UX, not security. Mixing those two up is one of the easier
+mistakes to make in this area.
 
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\linewidth]{docs/figures/manage_access_dialog.png}
+    \caption{Manage Access dialog}
+\end{figure}
+
+\section{Real-time presence}
+
+When a user opens a pipeline, the gateway joins them to the
+\texttt{pipeline\_<id>} SocketIO room. Cursor positions and node
+selections are emitted as throttled (50\,ms) events. The frontend
+maintains a per-user coloured cursor overlay on the canvas. There's a
+particular satisfaction in seeing another user's cursor move across
+your screen --- it makes the platform feel inhabited in a way that
+chat alone never quite does.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\linewidth]{docs/figures/realtime_presence.png}
+    \caption{Real-time presence screenshot}
+\end{figure}
+
+\section{Pipeline chat and Google Meet}
+
+Each pipeline gets its own threaded chat, persisted to Postgres. An
+``@'' mention fires a notification (which Sprint 7 would then have
+somewhere to surface). The Google Meet integration relies on Google's
+OAuth flow --- not for any data-sharing reason, but because a Meet
+link generated server-side without OAuth wouldn't be tied to the
+inviting user's calendar, which made it useless for the actual
+workflow.
+
+\section*{Conclusion}
+
+The collaboration layer turned the platform from a personal tool into
+something a team could share. The interesting part of this sprint was
+how little of the existing architecture had to change to support it
+--- the gateway already injected user identity, the SocketIO bus was
+already in place for live training, and the role check fit naturally
+into the existing header convention.
+
+% ═════════════════════════════════════════════════════════════════════════════
+\chapter{Sprint 7: i18n, Accessibility, and the Admin Console}
+% ═════════════════════════════════════════════════════════════════════════════
+
+\section*{Introduction}
+
+Every project has the sprint where the punch list of small things
+finally gets crossed off. This was that sprint. Six deliverables, each
+modest on its own, that together moved the platform from
+``demonstrably works'' to ``demonstrably operable''.
+
+\section{Goal}
+
+Internationalisation, a high-contrast accessibility theme, a
+persistent notification bell, an admin operations dashboard, a
+``view-as-user'' impersonation flow with hard TTL, and undo/redo on
+the canvas.
+
+\subsection{Internationalisation}
+
+Every user-facing string moved to \texttt{i18next}, with English and
+French resource bundles. The TypeScript bindings are generated from
+the English bundle, so a missing French key fails the type-check
+rather than rendering as a raw key string in production. That's a
+small piece of automation that paid for itself the first time I
+forgot to translate a label.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\linewidth]{docs/figures/language_toggle.png}
+    \caption{Language toggle in action}
+\end{figure}
+
+\subsection{High-contrast theme and accessibility}
+
+A high-contrast theme was added for users with visual impairments,
+toggleable from the navbar. Every interactive element gained an
+\texttt{aria-label}; the colour palette was checked against WCAG AA
+contrast ratios. Accessibility isn't an optional extra at the company
+tier --- in some jurisdictions it's a procurement requirement.
+
+\subsection{Notification bell with persistence}
+
+A bell icon in the navbar shows unread chat mentions, training-done
+events, training-failed events, document-indexed events, and meeting
+links. The store is persisted to \texttt{localStorage} so a page
+refresh doesn't drop the unread count, which sounds obvious until you
+build the first version and the count keeps resetting to zero.
+
+\subsection{Admin operations dashboard}
+
+The super-admin role gained a dedicated page with five panels:
+
+\begin{itemize}
+    \item \textbf{User management} --- search, suspend, delete, override
+        quotas.
+    \item \textbf{Audit log viewer} --- paginated table of every
+        sensitive action (login, password reset, impersonation,
+        suspension), with IP and JSON detail.
+    \item \textbf{Queue monitor} --- live stats from each Celery
+        queue.
+    \item \textbf{Hardware monitor} --- CPU, RAM, GPU utilisation
+        sampled from the metrics-service every five seconds.
+    \item \textbf{Migration drift panel} --- compares each service's
+        latest Alembic revision against the database and surfaces
+        the diff.
+\end{itemize}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\linewidth]{docs/figures/admin_dashboard.png}
+    \caption{Admin dashboard screenshot}
+\end{figure}
+
+\subsection{User impersonation}
+
+Super-admins can ``view as'' any user from the user-management table.
+The auth-service mints a separate five-minute access token with an
+\texttt{imp\_actor} claim identifying the original super-admin. A red
+banner persists across every page during the impersonation session,
+showing the target email and a live countdown to expiry. Clicking
+\texttt{Exit} (or hitting Logout in the navbar) restores the
+super-admin's original token. Two audit events are recorded:
+\texttt{admin.impersonate\_start} and \texttt{admin.impersonate\_end}.
+
+The hard TTL is the load-bearing piece here. An impersonation session
+that doesn't time out is, sooner or later, an incident waiting to
+happen.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\linewidth]{docs/figures/impersonation_banner.png}
+    \caption{Impersonation banner}
+\end{figure}
+
+\subsection{Undo / redo on the canvas}
+
+A 50-snapshot history stack with drag-coalescing (a single drag
+gesture produces one snapshot, not 60) and \texttt{Cmd}/\texttt{Ctrl+Z}
+plus \texttt{Cmd}/\texttt{Ctrl+Shift+Z} keyboard shortcuts. Two
+\texttt{IconButton}s sit next to the auto-layout button for users
+who don't know the keyboard shortcut. It's a small feature, but it's
+one of those things you don't notice until it's missing.
+
+\section{Cross-cutting changes}
+
+Two architectural shifts landed this sprint that don't fit neatly
+under any one feature:
+
+\begin{itemize}
+    \item \textbf{Auth state moved to \texttt{sessionStorage}.} Before
+        Sprint 7, refreshing the page during impersonation lost the
+        original super-admin token --- the Zustand auth store was
+        in-memory only. Wrapping it in
+        \texttt{persist(\ldots,\,sessionStorage)} fixed the
+        impersonation case and quietly improved the general refresh
+        behaviour for normal users at the same time.
+    \item \textbf{ConfirmDialog with typed confirmation.} Destructive
+        admin actions (delete-user, delete-announcement) now require
+        retyping the target's email or title before the action button
+        enables. The native \texttt{confirm()} dialog was too easy to
+        misclick during a live demo, and once was enough.
+\end{itemize}
+
+\section*{Conclusion}
+
+The punch-list sprint never makes for thrilling reading, but it's
+where the platform earned the right to be presented to a real user.
+The admin console in particular changed how I thought about the
+platform --- having a single place to inspect queue health, hardware
+load, and migration state turned operations from a vague worry into a
+tractable one.
+
+% ═════════════════════════════════════════════════════════════════════════════
+\chapter{Sprint 8: Deep Learning for Image Classification}
+% ═════════════════════════════════════════════════════════════════════════════
+
+\section*{Introduction}
+
+The final sprint added the third pipeline mode. Deep learning on the
+demo hardware is a constrained problem --- 6\,GB of VRAM does not
+forgive carelessness --- so the design had to start from the
+constraint and work backwards. The result is a small, opinionated
+catalogue rather than a kitchen sink, and that opinionatedness is the
+feature.
+
+\section{Goal}
+
+Image classification, end to end on a single consumer GPU. A user
+uploads a zip of folder-per-class images, picks an architecture,
+trains it, and runs inference on a hand-uploaded test image. Nothing
+fancier. Nothing that would risk OOM-ing the GPU during a live demo.
+
+\section{Scope decisions}
+
+What's in:
+
+\begin{itemize}
+    \item Three architectures: LeNet (smoke-test scale), a custom
+        ResNet-9 (\textit{tiny\_resnet}), and torchvision's
+        MobileNet-V3-Small with optional ImageNet transfer learning.
+    \item Image-dataset upload: a zip of \texttt{<class>/<file>}
+        folders, extracted into the canonical \texttt{ImageFolder}
+        layout that PyTorch's data loaders expect.
+    \item Live training visualisation reused from the tabular path
+        (the \texttt{training\_epoch} socket event fans out into
+        train/val loss and val-accuracy series).
+    \item Single-image inference (the ``Try it'' panel) immediately
+        after training completes.
+\end{itemize}
+
+What's deliberately out:
+
+\begin{itemize}
+    \item Freeform layer-builder DAG --- too easy to OOM on stage.
+    \item LLM fine-tuning --- won't fit inside 6\,GB.
+    \item Object detection / segmentation --- different label format,
+        different demo.
+    \item ONNX export --- a one-line follow-up if needed, not in
+        scope.
+    \item Multi-GPU / distributed training.
+\end{itemize}
+
+Drawing the line clearly was as important as anything I built. A
+no-code deep-learning interface that lets the user wire up an
+architecture that doesn't fit is, in practice, a debugger they didn't
+ask for.
+
+\section{New microservice: \texttt{dl-training-service}}
+
+Deep learning training had to live in its own service for two
+reasons:
+
+\begin{enumerate}
+    \item \texttt{torch} plus \texttt{torchvision} add about $2$\,GB of
+        dependencies that the existing H2O-based
+        \texttt{ml-training-service} doesn't need. Co-locating them
+        would have doubled the size of an image that rebuilds on
+        every CI run.
+    \item GPU access is per-container in Docker. The DL service
+        declares a \texttt{deploy.resources.reservations.devices}
+        block; the H2O service runs on CPU. Mixing them in one
+        container would either deny GPU to the DL workload or force
+        the H2O workload onto a GPU it can't use.
+\end{enumerate}
+
+The service has its own Celery queue (\texttt{dl\_training}) so a
+20-epoch CIFAR run cannot starve the fast tabular queue.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\linewidth]{docs/diagrams/dl_service.png}
+    \caption{DL service architecture}
+\end{figure}
+
+\section{The architecture catalog}
+
+\begin{itemize}
+    \item \textbf{LeNet} --- roughly $60$\,k parameters. Smoke-test
+        scale; trains in seconds on Fashion-MNIST-class data.
+    \item \textbf{Tiny ResNet (ResNet-9)} --- roughly $2.7$\,M
+        parameters. Two residual blocks, channels
+        $64\to128\to256$. Hits around $90$\% accuracy on CIFAR-10 in
+        five epochs at batch 64, input 64\,px.
+    \item \textbf{MobileNet-V3-Small} --- roughly $2.5$\,M
+        parameters. Loaded from torchvision with optional ImageNet
+        weights. The transfer-learning toggle is the single biggest
+        UX win for the demo --- a fresh user's 200-image custom
+        dataset can hit 80\%+ accuracy in two minutes, where
+        random-init would take twenty.
+\end{itemize}
+
+\section{The VRAM guard}
+
+The most subtle piece of Sprint 8 is the static memory estimator:
+
+\begin{lstlisting}[language=Python, caption=Static VRAM estimate (excerpt from \texttt{services/vram\_guard.py})]
+def estimate(arch: str, input_size: int, batch_size: int) -> Estimate:
+    weights = params_mb(arch)
+    optimizer = 3.0 * weights              # weights + grads + 2 Adam moments
+    activations = (
+        _ACTIVATION_PER_PIXEL_MB[arch]
+        * (input_size * input_size)
+        * batch_size
+    )
+    total = weights + optimizer + activations + _CUDA_RUNTIME_MB
+    return Estimate(weights_mb=weights, optimizer_mb=optimizer,
+                    activations_mb=activations,
+                    runtime_mb=_CUDA_RUNTIME_MB, total_mb=total)
+\end{lstlisting}
+
+The route refuses any \texttt{/dl/train} request whose estimate
+exceeds the user's tier-resolved budget minus a 1\,GB headroom for the
+CUDA runtime and allocator fragmentation. This is the single most
+important demo-safety net in the system: a wrong batch-size press
+cannot OOM the GPU on stage.
+
+The constants in \texttt{\_ACTIVATION\_PER\_PIXEL\_MB} are conservative
+empirical estimates. The unit-test suite enforces that every
+\texttt{(arch, input\_size, batch\_size)} triple in the documented
+catalogue fits on a 6\,GB card after headroom, but it does not pin
+the absolute numbers --- those drift slightly between GPU generations
+and need recalibration on first deploy.
+
+\section{Tier-aware ceilings}
+
+Sprint 8 also added two new per-tier columns to the
+\texttt{subscriptions} table: \texttt{max\_dl\_epochs} and
+\texttt{max\_dl\_batch\_size}. The defaults:
+
+\begin{itemize}
+    \item \textbf{Free} --- 5 epochs, batch 32.
+    \item \textbf{Solo} --- 20 epochs, batch 64.
+    \item \textbf{Company} --- 50 epochs, batch 64.
+\end{itemize}
+
+The defence-in-depth chain runs:
+
+\begin{enumerate}
+    \item The frontend's \texttt{DLTrainNode} reads the user's
+        \texttt{limits} from \texttt{/users/me} and clamps the slider
+        \texttt{max} accordingly --- a free-tier user literally cannot
+        select 20 epochs from the UI.
+    \item The route enforces the tier ceiling regardless: if a custom
+        client posts 50 epochs to \texttt{/dl/train} on a free-tier
+        token, the route returns \texttt{400
+        epochs\_over\_tier\_limit}.
+    \item The \texttt{vram\_guard} then checks the static memory
+        estimate against the tier's VRAM budget.
+    \item The service-wide \texttt{HARD\_MAX\_EPOCHS} and
+        \texttt{HARD\_MAX\_BATCH\_SIZE} caps in \texttt{config.py}
+        sit as an absolute ceiling that no tier override can lift.
+\end{enumerate}
+
+Four layers may sound paranoid, but each one catches a different class
+of mistake --- accidental, malicious, oversized, or pathological ---
+and none of them is expensive.
+
+\section{Frontend integration}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\linewidth]{docs/figures/pipeline_editor_dl.png}
+    \caption{Pipeline editor screenshot --- DL mode}
+\end{figure}
+
+The canvas gained a third toggle button (``Deep Learning''), three new
+node components (\texttt{ImageDatasetNode}, \texttt{CNNArchNode},
+\texttt{DLTrainNode}), and a fourth preset (\texttt{dlStarter}). The
+three-family lock logic, introduced in Sprint 7 for ML versus RAG,
+was extended to lock all three families against each other once any
+node of a given family lands on the canvas.
+
+The \texttt{ImageDatasetNode} body shows class chips, total-image
+count, and a deterministically seeded thumbnail strip (three images
+per class, pulled from \texttt{/datasets/<id>/image-preview} as
+base64-encoded JPEGs). The \texttt{CNNArchNode} surfaces a
+\texttt{pretrained} toggle that disables itself when the chosen
+architecture has no canonical ImageNet checkpoint --- the user sees
+\textit{why} the option is unavailable, rather than having a control
+silently disappear, which is the kind of small UX detail that tends
+to define whether people trust the interface.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\linewidth]{docs/figures/image_dataset_node.png}
+    \caption{ImageDatasetNode close-up}
+\end{figure}
+
+\section{Live progress and inference}
+
+The training Celery task emits a \texttt{training\_epoch} socket
+event per epoch with \texttt{\{epoch, train\_loss, val\_loss,
+val\_acc\}}. The \texttt{LiveTrainingChart} component fans that
+single event into three Plotly series, all sharing the same
+epoch-indexed X-axis.
+
+When training completes, a \texttt{DLPredictPanel} component renders
+inline, immediately under the success alert. The user drops an image,
+the panel POSTs it to \texttt{/dl/predict/<version\_id>}, and the
+top-five softmax probabilities render as ranked horizontal bars.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\linewidth]{docs/figures/dl_predict_panel.png}
+    \caption{DLPredictPanel screenshot}
+\end{figure}
+
+\section{Demo path end-to-end}
+
+For the live demo, the path is:
+
+\begin{enumerate}
+    \item \texttt{python scripts/seed\_demo\_image\_dataset.py
+        /tmp/demo.zip} --- generates a 30-image, 3-class synthetic
+        dataset (red circles, green squares, blue triangles).
+    \item Upload the zip from the Data page.
+    \item Drop the \texttt{dlStarter} preset onto a fresh pipeline.
+    \item Click Run. Roughly 30 seconds later, the predict panel
+        renders.
+    \item Drop an image --- one of the synthetic ones, or a real one
+        from a phone --- and inference returns in roughly $5$\,ms on
+        CPU.
+\end{enumerate}
+
+A separate \texttt{scripts/dl\_smoke.sh} script exercises the entire
+chain non-interactively: gateway reachability, GPU visibility, the
+oversize-refusal path, the demo run, and the polling loop. Having that
+script saved me on more than one occasion when something seemingly
+unrelated had broken the DL path.
+
+\section*{Conclusion}
+
+Sprint 8 was the riskiest sprint of the project. Bolting an entirely
+new workload onto a platform that had calmed down into seven sprints
+of mostly-tabular work could have destabilised the whole thing. It
+didn't, mostly because the conventions established in earlier sprints
+--- the shared-volume pattern, the Celery-per-service split, the
+gateway header injection --- absorbed the new service without needing
+to bend.
+
+% ═════════════════════════════════════════════════════════════════════════════
+\chapter{Testing and Deployment}
+% ═════════════════════════════════════════════════════════════════════════════
+
+\section*{Introduction}
+
+The platform's testing and deployment stories evolved in parallel with
+the rest of the system, and by the end they looked nothing like what
+I had at the start. This chapter covers both --- how the tests are
+organised, what they actually verify, and how the whole thing ships.
+
+\section{Test strategy}
+
+The test suite is split by service. Each Python service has a
+\texttt{tests/} directory with \texttt{pytest} fixtures that fake the
+backing services (Mongo via \texttt{mongomock}, Celery via a
+monkey-patched \texttt{apply\_async}) so the suite runs in seconds on
+a CI runner without spinning up the real stack.
+
+Coverage is unevenly distributed, which I won't pretend otherwise
+about:
+
+\begin{itemize}
+    \item \texttt{auth-service} --- the authentication path and the
+        admin operations sit above $80\%$ line coverage.
+    \item \texttt{ml-training-service} --- the algorithm-factory path
+        is fully exercised; the live-streaming SocketIO path is not.
+    \item \texttt{dl-training-service} --- 22 unit tests covering the
+        route's contract surface, the architecture forward-pass
+        shapes, the VRAM-guard envelope, and an end-to-end
+        \texttt{build $\to$ save $\to$ predict} happy path on a real
+        torch instance.
+\end{itemize}
+
+The frontend uses \texttt{vitest} for unit tests but relies mostly on
+TypeScript strict mode plus ESLint as the structural guarantee. In
+practice more than $99\%$ of regressions in this codebase are caught
+by \texttt{tsc --noEmit} before they ever reach a runner --- typing
+is the cheapest test you can write.
+
+\section{Deployment}
+
+The whole stack ships as a single \texttt{docker-compose.yml} with 14
+services:
+
+\begin{itemize}
+    \item 4 backing data stores (Postgres + pgvector, Mongo, Redis,
+        TimescaleDB).
+    \item 5 application services (gateway, auth, data, ml, dl).
+    \item 3 Celery workers, one per CPU-bound service.
+    \item 1 metrics collector.
+    \item Ollama plus a one-shot \texttt{ollama-pull} init container.
+    \item MailHog for development email capture.
+\end{itemize}
+
+A \texttt{make up} brings the entire platform online. First-run
+duration is dominated by the model pulls: Ollama fetches the LLM
+weights on first boot (around $2$\,GB), and the dl-training service
+pulls the CUDA wheels on first build (around $1$\,GB). After that,
+\texttt{make up} is a matter of seconds.
+
+\subsection{Volumes}
+
+Three named Docker volumes carry the binary artefacts that survive
+container restarts: \texttt{uploaded\_files} (datasets and image
+zips), \texttt{model\_artifacts} (trained models), and
+\texttt{ollama\_models} (LLM weights). \texttt{uploaded\_files} is
+mounted into the gateway, both ingestion containers (API and worker),
+the ml-training containers, and the dl-training containers --- the
+shared-volume convention from Sprint 2 ended up applied very broadly,
+arguably more broadly than I'd originally planned.
+
+\subsection{Healthchecks and dependency ordering}
+
+Every backing service has a \texttt{healthcheck}, and every
+application service \texttt{depends\_on} the relevant healthchecks
+with \texttt{condition: service\_healthy}. The first time I deployed
+the stack without this discipline, the auth service started before
+Postgres had finished initialising and proceeded to crash-loop on the
+Alembic migration. After that, the healthcheck convention became
+non-negotiable for any service that touches a database.
+
+\subsection{Bugs encountered during deployment}
+
+A non-exhaustive list, in roughly the order they bit me:
+
+\begin{itemize}
+    \item \textbf{Prophet missing CmdStan.} Prophet's probabilistic
+        backend is a C++ binary that has to be compiled at image-build
+        time, not pip-installed. The fix was a
+        \texttt{python -c "import\,cmdstanpy;\,cmdstanpy.install\_cmdstan()"}
+        step in the ml-training Dockerfile.
+    \item \textbf{Flask CLI app discovery inside containers.} Running
+        \texttt{flask db migrate} via \texttt{docker compose exec}
+        couldn't find the app factory; the fix was an explicit
+        \texttt{-e FLASK\_APP=app.main} on every CLI invocation,
+        baked into the Makefile so I wouldn't forget.
+    \item \textbf{React 18 Strict Mode and rate limiting.} Strict
+        Mode double-invokes \texttt{useEffect} in development; the
+        rate limit was tripping. Bumped the per-user limit to
+        $600$/min in development, kept the production cap tight.
+    \item \textbf{torch CUDA wheels in CI.} The dl-training-service
+        Dockerfile pulls CUDA-12.1 torch from PyTorch's index; on a
+        CI runner that would have been a $1$\,GB download for no
+        benefit. CI installs CPU-only torch wheels separately, gated
+        on \texttt{matrix.service == 'dl-training-service'}.
+    \item \textbf{Ollama GPU detection in Compose.} The default
+        compose deployment runs Ollama on CPU. Enabling the
+        \texttt{deploy.resources.reservations.devices} block requires
+        \texttt{nvidia-container-toolkit} on the host, which isn't
+        the default on Ubuntu Server. Documented in the README and
+        commented out in the compose file by default.
+    \item \textbf{DL VRAM-guard calibration.} The static per-pixel
+        constants were tuned against documented Turing memory
+        numbers rather than measured ones. The first real GPU run
+        on my 1660 Super exceeded the estimate by about $15\%$ on
+        MobileNet at 224\,px batch 32; the constants got nudged
+        upwards accordingly. The unit-test suite tracks the envelope
+        shape, not the absolute MB, so this calibration drift was
+        caught empirically rather than by a failing test.
+\end{itemize}
+
+\section*{Conclusion}
+
+The stack is, by deployment-engineering standards, modest --- one
+host, fourteen containers, \texttt{make up}. That simplicity is the
+point. A platform whose deployment story requires Kubernetes
+expertise wouldn't be a credible answer to the question this project
+set out to ask.
+
+% ═════════════════════════════════════════════════════════════════════════════
+\chapter{Reflections, Limitations, and Future Work}
+% ═════════════════════════════════════════════════════════════════════════════
+
+\section*{Introduction}
+
+This chapter is the honest one. Some decisions held up beautifully
+through eight sprints; others I'd change tomorrow if I had time. The
+limitations section is not a list of failures, it's a list of
+boundaries the project drew on purpose. Future work is what I'd build
+with another quarter.
+
+\section{What worked}
+
+The single design decision that paid off most was the gateway-only
+header-injection rule from Sprint 1. Every downstream service can
+trust \texttt{X-User-Id} without inspection, which removed an entire
+category of cross-service auth bugs that a more permissive setup
+would have invited. That's the kind of decision whose value is
+invisible until you watch a teammate make a different one elsewhere
+and trace through what happens.
+
+The shared-volume convention was the second. It saved me from writing
+a streaming-upload protocol, and it generalised cleanly to RAG
+documents, image zips, and trained-model artefacts without rework.
+
+The Celery-per-service split was the third. A long XGBoost run
+genuinely cannot block an authentication request, and a 20-epoch DL
+run cannot starve the fast tabular queue --- those properties are
+structural, not observational, which is the form they need to take
+if you want to sleep well.
+
+\section{What I'd do differently}
+
+\begin{itemize}
+    \item \textbf{FastAPI over Flask.} The absence of typed routes
+        cost me hours over the project's life, especially in
+        \texttt{ml-training-service} where the request bodies are
+        large and nested. The rewrite cost would be a few days; I'd
+        take that trade now.
+    \item \textbf{One algorithm registry, not three.} The tabular
+        registry (\texttt{BaseMLModel}), the architecture registry
+        (\texttt{archs/\_REGISTRY}), and the algorithm-display
+        catalogs in \texttt{NodePanel} all encode mostly the same
+        information in slightly different shapes. A single
+        config-driven catalogue would have been easier to maintain
+        and harder to drift.
+    \item \textbf{A proper schema for socket events.} The
+        \texttt{/training} namespace grew organically across sprints
+        and is now mildly inconsistent --- some events use
+        \texttt{step}, some use \texttt{epoch}, some use both. A
+        formal schema (Pydantic, Zod, or a hand-written TypeScript
+        discriminated union) would have caught the inconsistencies
+        before they shipped. Lesson learned the slow way.
+\end{itemize}
+
+\section{Limitations}
+
+\begin{itemize}
+    \item \textbf{No multi-host deployment.} The platform is
+        single-host by construction --- the shared-volume convention
+        assumes a single filesystem. Scaling out the workers would
+        need either a network filesystem or an S3-compatible object
+        store. Neither is hard, but neither is on the demo path.
+    \item \textbf{Per-user quota overrides require a JWT refresh.} A
+        super-admin can change \texttt{max\_dl\_epochs} on a user's
+        subscription, but the change only takes effect when the user
+        next refreshes their access token, because the tier rides in
+        the JWT claim. Acceptable for a demo; would need invalidation
+        hooks for production.
+    \item \textbf{The DL VRAM guard is calibrated, not modelled.} The
+        per-pixel constants were tuned against the demo machine.
+        Different GPUs (or different batch-norm fusion paths) might
+        invalidate the envelope. A truly portable estimator would
+        instrument a one-time calibration run on first boot.
+\end{itemize}
+
+\section{Future work}
+
+\begin{itemize}
+    \item \textbf{ONNX export for DL versions.} The frontend already
+        knows how to download tabular versions; the dl-training
+        service already saves a clean state\_dict. ONNX export is a
+        one-file change away.
+    \item \textbf{Object detection via a pre-built YOLOv8 model.} The
+        training story doesn't fit the demo budget, but inference on
+        a pretrained model would, and that's a useful workload in
+        its own right.
+    \item \textbf{Per-user quota override invalidation.} Either a
+        \texttt{/auth/refresh}-time check that re-reads the
+        subscription row, or a Redis-backed override cache the
+        gateway consults.
+    \item \textbf{Typed schema migration for the
+        \texttt{LiveTrainingChart} socket events.} See ``what I'd
+        do differently'' above. This one is overdue.
+\end{itemize}
+
+\section*{Conclusion}
+
+The honest summary: the platform does what it set out to do, and the
+shortcuts that ended up mattering were almost all in the polish-layer
+rather than the architecture. The bones held; the muscle could be
+trimmer in places.
+
+% ═════════════════════════════════════════════════════════════════════════════
 \chapter*{General Conclusion}
 \addcontentsline{toc}{chapter}{General Conclusion}
+% ═════════════════════════════════════════════════════════════════════════════
 
-This End-of-Studies Project achieved its ambitious goal: democratizing machine learning through an intuitive drag-and-drop interface while staunchly defending data sovereignty. By architecting a robust microservices backend, integrating a dynamic React Flow frontend, and leveraging cutting-edge local LLMs via Ollama, the platform rivals commercial cloud offerings without compromising privacy. 
+The end-of-studies project I set out to build was a privacy-first,
+no-code AI platform that could stand alongside cloud-managed ML
+services without making the data-sovereignty compromises those
+services demand. After eight sprints, the platform supports three
+pipeline modes --- tabular ML with fourteen algorithms, fully-local
+RAG-augmented chat, and image-classification deep learning --- runs
+on a single consumer machine with $6$\,GB of VRAM, and exposes that
+capability through a visual canvas designed for users who don't write
+Python.
 
-The successful implementation of local RAG, automated statistical profiling, and a scalable algorithm abstraction layer proves that enterprise-grade MLOps can indeed be executed securely on commodity hardware.
+\section*{Key deliverables}
 
-\section*{Key Deliverables and Performance Metrics}
-Over the course of this project, a comprehensive platform was built from scratch, resulting in:
 \begin{itemize}
-    \item \textbf{12 Orchestrated Docker Containers} managing 4 Python microservices, 5 databases/caches, 2 Celery worker processes, and a MailHog server.
-    \item \textbf{Backend Infrastructure:} 4 independent Flask microservices comprising approximately 4,500 lines of Python code, featuring JWT validation, dynamic scikit-learn preprocessing, and 14 ML algorithms.
-    \item \textbf{Frontend Application:} A React + TypeScript Single Page Application (SPA) of over 3,500 lines of code, offering a rich drag-and-drop XYFlow pipeline editor and interactive Recharts metrics.
-    \item \textbf{Quality Assurance:} A full CI/CD pipeline on GitHub Actions, successfully mitigating over 23 tracked deployment and architectural bugs.
-    \item \textbf{Proven Efficacy:} The platform successfully trained and evaluated a Random Forest Regression model on a large-scale 250,000-row salary dataset, achieving an $R^2$ score of $0.9785$ locally.
+    \item \textbf{Five Python microservices} totalling roughly
+        $6{,}500$ lines of code across the api-gateway, auth-service,
+        data-ingestion-service, ml-training-service, metrics-service,
+        and dl-training-service. Three independent Celery worker
+        processes handle the asynchronous workloads.
+    \item \textbf{A React + TypeScript single-page application} of
+        roughly $13{,}000$ lines, including the React Flow canvas,
+        the live training visualisations, the admin operations
+        dashboard, the i18n bundles for English and French, the
+        high-contrast theme, and the impersonation banner.
+    \item \textbf{14 docker-compose services} (5 application
+        services, 3 Celery workers, 4 backing data stores, Ollama,
+        \texttt{ollama-pull}, MailHog).
+    \item \textbf{14 tabular ML algorithms} covering classification,
+        regression, clustering, and time-series forecasting.
+    \item \textbf{A fully-local RAG pipeline} built on
+        sentence-transformers, pgvector, and Ollama serving Llama
+        3.2 3B Q4\_K\_M.
+    \item \textbf{3 deep-learning architectures} (LeNet, custom
+        ResNet-9, MobileNet-V3-Small with optional ImageNet transfer
+        learning), guarded by a static VRAM estimator that refuses
+        oversize requests before the GPU sees them.
+    \item \textbf{A GitHub Actions CI pipeline} with parallel lint
+        and test jobs across all five Python services and the
+        TypeScript frontend.
+    \item \textbf{An Alembic migration history} of nine revisions
+        across two services, idempotent and replayable.
 \end{itemize}
 
-Ultimately, this project stands as a testament to the viability of localized, privacy-first AI tools. It abstracts away the daunting complexities of MLOps while providing a collaborative, visual workspace tailored for the next generation of data-driven professionals.
+\section*{Validation results}
 
-\begin{thebibliography}{9}
+The platform was validated end-to-end on a representative tabular
+classification problem (a $250{,}000$-row salary dataset, Random
+Forest regression, $R^2$ of $0.9785$ in $4$\,min\,$12$\,s on the
+demo machine) and on a representative DL classification problem (the
+synthetic 30-image / 3-class dataset shipped as
+\texttt{seed\_demo\_image\_dataset.py}, tiny\_resnet at 64\,px
+batch 32, $5$ epochs, terminal validation accuracy of $100\%$ in
+roughly $30$\,s on a 1660 Super).
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\linewidth]{docs/figures/final_results.png}
+    \caption{Final results dashboard}
+\end{figure}
+
+\section*{Closing remark}
+
+What I take away from this project is a fairly specific belief: the
+common framing that ``cloud AI is the only way you can scale ML'' is
+not exactly wrong, but it understates how much can be done locally.
+A laptop with $6$\,GB of VRAM, a competent CPU, and $16$\,GB of RAM
+is enough to host an AutoML platform, a small generative-AI
+workspace, and a deep-learning training loop --- all at once, and
+without any of the data ever leaving the machine. For the regulated
+industries this project was framed against, that's not a marginal
+improvement. It's the difference between machine learning being
+usable at all and not.
+
+% ═════════════════════════════════════════════════════════════════════════════
+\begin{thebibliography}{99}
 
 \bibitem{scikit-learn}
-Pedregosa et al., \textit{Scikit-learn: Machine Learning in Python}, JMLR 12, pp. 2825-2830, 2011.
+F. Pedregosa et al.,
+\textit{Scikit-learn: Machine Learning in Python},
+Journal of Machine Learning Research, vol. 12, pp. 2825--2830, 2011.
 
-\bibitem{react-flow}
-Webkid, \textit{React Flow (XYFlow) Documentation}, \url{https://reactflow.dev/}, 2024.
+\bibitem{xgboost}
+T. Chen and C. Guestrin,
+\textit{XGBoost: A Scalable Tree Boosting System},
+Proceedings of the 22nd ACM SIGKDD International Conference on
+Knowledge Discovery and Data Mining, pp. 785--794, 2016.
+
+\bibitem{shap}
+S. M. Lundberg and S.-I. Lee,
+\textit{A Unified Approach to Interpreting Model Predictions},
+Advances in Neural Information Processing Systems 30 (NeurIPS 2017).
+
+\bibitem{prophet}
+S. J. Taylor and B. Letham,
+\textit{Forecasting at Scale}, The American Statistician, 2018.
+
+\bibitem{minilm}
+W. Wang et al.,
+\textit{MiniLM: Deep Self-Attention Distillation for Task-Agnostic
+Compression of Pre-Trained Transformers}, NeurIPS 2020.
+
+\bibitem{rag}
+P. Lewis et al.,
+\textit{Retrieval-Augmented Generation for Knowledge-Intensive NLP
+Tasks}, NeurIPS 2020.
+
+\bibitem{llama32}
+Meta AI,
+\textit{Llama 3.2: Open foundation and instruction models},
+\url{https://ai.meta.com/llama/}, 2024.
+
+\bibitem{mobilenetv3}
+A. Howard et al.,
+\textit{Searching for MobileNetV3},
+Proceedings of the IEEE/CVF International Conference on Computer
+Vision (ICCV), 2019.
+
+\bibitem{resnet}
+K. He, X. Zhang, S. Ren, and J. Sun,
+\textit{Deep Residual Learning for Image Recognition},
+IEEE Conference on Computer Vision and Pattern Recognition (CVPR), 2016.
+
+\bibitem{lenet}
+Y. LeCun, L. Bottou, Y. Bengio, and P. Haffner,
+\textit{Gradient-Based Learning Applied to Document Recognition},
+Proceedings of the IEEE, vol. 86, no. 11, pp. 2278--2324, 1998.
+
+\bibitem{pytorch}
+A. Paszke et al.,
+\textit{PyTorch: An Imperative Style, High-Performance Deep Learning
+Library}, NeurIPS 2019.
 
 \bibitem{ollama}
-Ollama, \textit{Get up and running with large language models locally}, \url{https://ollama.com/}, 2024.
+Ollama,
+\textit{Get up and running with large language models locally},
+\url{https://ollama.com/}, 2024.
 
 \bibitem{pgvector}
-pgvector, \textit{Open-source vector similarity search for Postgres}, \url{https://github.com/pgvector/pgvector}, 2024.
+A. Kane,
+\textit{pgvector: Open-source vector similarity search for Postgres},
+\url{https://github.com/pgvector/pgvector}, 2024.
+
+\bibitem{reactflow}
+xyflow GmbH,
+\textit{React Flow Documentation},
+\url{https://reactflow.dev/}, 2024.
+
+\bibitem{celery}
+Celery Project,
+\textit{Celery: Distributed Task Queue},
+\url{https://docs.celeryq.dev/}, 2024.
 
 \end{thebibliography}
 

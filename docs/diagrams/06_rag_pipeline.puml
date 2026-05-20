@@ -1,0 +1,35 @@
+@startuml rag_pipeline
+' Replaces \figureplaceholder{RAG pipeline architecture}.
+
+skinparam shadowing false
+skinparam componentStyle rectangle
+
+package "Ingestion (one-shot per document)" {
+  [PDF / TXT\nupload] as DOC
+  [RecursiveCharacterTextSplitter\nchunk_size=500, overlap=50] as SPL
+  [sentence-transformers\nall-MiniLM-L6-v2\n(384-dim)] as EMB
+  database "pgvector\n(IVFFlat index)" as PGV
+  DOC --> SPL : load_documents()
+  SPL --> EMB : chunk texts
+  EMB --> PGV : INSERT (text, embedding)
+}
+
+package "Query (per chat turn)" {
+  actor "User\nquestion" as Q
+  [Embed question] as QE
+  [pgvector\ncosine search] as SR
+  [Prompt builder\n(top-K + context)] as PB
+  [Ollama\nllama3.2:3b\n(Q4_K_M)] as L
+  [SocketIO stream] as S
+  actor "Browser\nUI" as UI
+
+  Q --> QE
+  QE --> SR
+  PGV ..> SR : top-K chunks
+  SR --> PB
+  PB --> L : prompt
+  L --> S : token stream
+  S --> UI : append message
+}
+
+@enduml

@@ -131,10 +131,12 @@ def override_subscription(
     status: str = "active",
     max_chunks=_UNSET,
     max_vram_mb=_UNSET,
+    max_dl_epochs=_UNSET,
+    max_dl_batch_size=_UNSET,
 ) -> Subscription:
     """Apply a super-admin override.
 
-    `max_chunks` / `max_vram_mb`:
+    `max_chunks` / `max_vram_mb` / `max_dl_epochs` / `max_dl_batch_size`:
       - omitted (sentinel)  → leave existing value untouched
       - explicit None       → clear the override
       - integer             → store as the new ceiling
@@ -158,6 +160,10 @@ def override_subscription(
         sub.max_chunks = max_chunks
     if max_vram_mb is not _UNSET:
         sub.max_vram_mb = max_vram_mb
+    if max_dl_epochs is not _UNSET:
+        sub.max_dl_epochs = max_dl_epochs
+    if max_dl_batch_size is not _UNSET:
+        sub.max_dl_batch_size = max_dl_batch_size
 
     # Sync user tier
     user.tier = PLAN_TO_TIER.get(plan, "free")

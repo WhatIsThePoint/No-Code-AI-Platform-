@@ -222,6 +222,7 @@ export const fr: TranslationKeys = {
     mode: {
       ml: "ML traditionnel",
       rag: "IA générative",
+      dl: "Apprentissage profond",
       lockedHint: "Videz le canevas pour changer de mode.",
     },
     addNode: {
@@ -231,6 +232,9 @@ export const fr: TranslationKeys = {
       document: "Document",
       vectorStore: "Base vectorielle",
       ragConfig: "Config RAG",
+      imageDataset: "Jeu d'images",
+      cnnArch: "Architecture CNN",
+      dlTrain: "Entraînement DL",
     },
     actions: {
       templates: "Modèles",
@@ -258,6 +262,10 @@ export const fr: TranslationKeys = {
         label: "Démarrage RAG",
         description: "Document → Base vectorielle → Config RAG, déjà reliés.",
       },
+      dlStarter: {
+        label: "Démarrage DL",
+        description: "Jeu d'images → Architecture CNN (Tiny ResNet) → Entraînement DL, déjà reliés.",
+      },
       inserted: "Modèle inséré — disposition automatique appliquée.",
     },
     progress: {
@@ -269,6 +277,8 @@ export const fr: TranslationKeys = {
       saved: "Pipeline enregistré",
       saveFailed: "Échec de l'enregistrement",
       missingNodes: "Ajoutez d'abord un nœud Jeu de données et un nœud Entraînement",
+      missingDLNodes: "Ajoutez un nœud Jeu d'images, Architecture CNN et Entraînement DL d'abord",
+      dlMissingDataset: "Sélectionnez un jeu d'images sur le nœud Jeu d'images avant de lancer",
       runFailed: "Impossible de démarrer l'entraînement",
     },
   },

@@ -7,19 +7,139 @@ from flask_jwt_extended import create_access_token
 
 from ..extensions import bcrypt, db
 from ..models.user import RefreshToken, User
+from . import mail_service
 
 
-def register_user(email: str, password: str, full_name: str | None, role: str) -> User:
+def register_user(
+    email: str, password: str, full_name: str | None, role: str
+) -> tuple[User, str | None]:
+    """Create a user. When email verification is required, also generate a
+    one-time token, persist its SHA-256 hash on the user row, and email the
+    raw token-bearing link to MailHog. Returns (user, raw_token | None)."""
     if User.query.filter_by(email=email).first():
         raise ValueError("email_taken")
 
+    cfg = current_app.config
+    require_verify = cfg.get("EMAIL_VERIFICATION_REQUIRED", True)
+
     password_hash = bcrypt.generate_password_hash(password).decode("utf-8")
     user = User(
-        email=email, password_hash=password_hash, full_name=full_name, role=role
+        email=email,
+        password_hash=password_hash,
+        full_name=full_name,
+        role=role,
+        email_verified=not require_verify,
     )
+
+    raw_token = None
+    if require_verify:
+        raw_token = secrets.token_urlsafe(32)
+        user.email_verification_token_hash = _hash_token(raw_token)
+        user.email_verification_sent_at = datetime.now(timezone.utc)
+
     db.session.add(user)
     db.session.commit()
+
+    if raw_token:
+        link = f"{cfg['FRONTEND_URL']}/verify-email?token={raw_token}"
+        try:
+            mail_service.send_verification_email(
+                to=email, full_name=full_name, link=link
+            )
+        except Exception:
+            # Never let a mail failure break the registration response.
+            pass
+
+    return user, raw_token
+
+
+def verify_email_token(raw_token: str) -> User | None:
+    """Validate a verification token. Returns the user on success, clears the
+    token on the row so it can't be replayed."""
+    if not raw_token:
+        return None
+    token_hash = _hash_token(raw_token)
+    user = User.query.filter_by(email_verification_token_hash=token_hash).first()
+    if not user:
+        return None
+
+    sent_at = user.email_verification_sent_at
+    if sent_at:
+        sent_at = sent_at.replace(tzinfo=timezone.utc) if sent_at.tzinfo is None else sent_at
+        age = (datetime.now(timezone.utc) - sent_at).total_seconds()
+        if age > 24 * 3600:
+            return None
+
+    user.email_verified = True
+    user.email_verification_token_hash = None
+    db.session.commit()
     return user
+
+
+def start_password_reset(email: str) -> bool:
+    """Mint a fresh password-reset token and email the link. Always best-effort,
+    never reveals whether the account exists. Returns whether a mail was sent."""
+    user = User.query.filter(db.func.lower(User.email) == email.lower()).first()
+    if not user:
+        return False
+    raw_token = secrets.token_urlsafe(32)
+    user.password_reset_token_hash = _hash_token(raw_token)
+    user.password_reset_sent_at = datetime.now(timezone.utc)
+    db.session.commit()
+    link = f"{current_app.config['FRONTEND_URL']}/reset-password?token={raw_token}"
+    try:
+        return mail_service.send_password_reset_email(
+            to=user.email, full_name=user.full_name, link=link
+        )
+    except Exception:
+        return False
+
+
+def complete_password_reset(raw_token: str, new_password: str) -> User | None:
+    """Validate a reset token, set the new bcrypt-hashed password, invalidate the
+    token, and revoke every outstanding refresh token for that user."""
+    if not raw_token:
+        return None
+    token_hash = _hash_token(raw_token)
+    user = User.query.filter_by(password_reset_token_hash=token_hash).first()
+    if not user:
+        return None
+
+    sent_at = user.password_reset_sent_at
+    if sent_at:
+        sent_at = sent_at.replace(tzinfo=timezone.utc) if sent_at.tzinfo is None else sent_at
+        age = (datetime.now(timezone.utc) - sent_at).total_seconds()
+        if age > 30 * 60:  # 30-minute TTL
+            return None
+
+    user.password_hash = bcrypt.generate_password_hash(new_password).decode("utf-8")
+    user.password_reset_token_hash = None
+    user.password_reset_sent_at = None
+    # Any refresh token a session was sitting on becomes void — a stolen-laptop
+    # scenario is the whole reason the user is resetting in the first place.
+    for rt in RefreshToken.query.filter_by(user_id=user.id, revoked=False).all():
+        rt.revoked = True
+    db.session.commit()
+    return user
+
+
+def resend_verification_email(email: str) -> bool:
+    """Mint a fresh verification token and re-email it. No-op if the account
+    does not exist or is already verified. Returns whether a mail was sent."""
+    user = User.query.filter(db.func.lower(User.email) == email.lower()).first()
+    if not user or user.email_verified:
+        return False
+    raw_token = secrets.token_urlsafe(32)
+    user.email_verification_token_hash = _hash_token(raw_token)
+    user.email_verification_sent_at = datetime.now(timezone.utc)
+    db.session.commit()
+    link = f"{current_app.config['FRONTEND_URL']}/verify-email?token={raw_token}"
+    try:
+        return mail_service.send_verification_email(
+            to=user.email, full_name=user.full_name, link=link
+        )
+    except Exception:
+        return False
 
 
 def authenticate_user(email: str, password: str) -> User | None:

@@ -46,7 +46,14 @@ export function RegisterPage() {
     setApiError(null);
     try {
       await authApi.register(data);
-      navigate("/login", { state: { message: "Account created! Please sign in." } });
+      navigate("/login", {
+        state: {
+          message:
+            "Account created. We just sent a verification link to " +
+            data.email +
+            " — open it (MailHog at http://localhost:8025 in dev) to activate the account.",
+        },
+      });
     } catch (e: unknown) {
       const err = e as { response?: { data?: { error?: string } } };
       setApiError(

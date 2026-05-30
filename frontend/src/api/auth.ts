@@ -31,4 +31,19 @@ export const authApi = {
   confirm2FA: (code: string) => api.post("/auth/2fa/confirm", { code }),
 
   disable2FA: () => api.delete("/auth/2fa/disable"),
+
+  verifyEmail: (token: string) =>
+    api.post<{ email: string; verified: true }>("/auth/verify-email", { token }),
+
+  resendVerification: (email: string) =>
+    api.post<{ message: string }>("/auth/resend-verification", { email }),
+
+  forgotPassword: (email: string) =>
+    api.post<{ message: string }>("/auth/forgot-password", { email }),
+
+  resetPassword: (token: string, password: string) =>
+    api.post<{ email: string; reset: true }>("/auth/reset-password", {
+      token,
+      password,
+    }),
 };

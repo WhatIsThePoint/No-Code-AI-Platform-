@@ -8,6 +8,9 @@ import { DashboardPage } from "../pages/DashboardPage";
 import { LoginPage } from "../pages/LoginPage";
 import { RegisterPage } from "../pages/RegisterPage";
 import { TotpPage } from "../pages/TotpPage";
+import { VerifyEmailPage } from "../pages/VerifyEmailPage";
+import { ForgotPasswordPage } from "../pages/ForgotPasswordPage";
+import { ResetPasswordPage } from "../pages/ResetPasswordPage";
 import { ProfilePage } from "../pages/ProfilePage";
 import { CompanyPage } from "../pages/CompanyPage";
 
@@ -52,6 +55,9 @@ export const router = createBrowserRouter(
   { path: "/", element: <LandingPage /> },
   { path: "/login", element: <LoginPage /> },
   { path: "/register", element: <RegisterPage /> },
+  { path: "/verify-email", element: <VerifyEmailPage /> },
+  { path: "/forgot-password", element: <ForgotPasswordPage /> },
+  { path: "/reset-password", element: <ResetPasswordPage /> },
   { path: "/2fa", element: <TotpPage /> },
   {
     path: "/dashboard",

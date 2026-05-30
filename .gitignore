@@ -53,14 +53,24 @@ logs/
 .claude/
 PFE Imp
 
-# LaTeX build artefacts (keep report.tex and report.pdf, drop the rest)
-report.aux
-report.out
-report.toc
-report.fls
-report.fdb_latexmk
+# LaTeX build artefacts (keep .tex sources + .pdf outputs, drop the rest)
+*.aux
+*.lof
+*.lot
+*.toc
+*.out
+*.fdb_latexmk
+*.fls
+*.bbl
+*.blg
+*.dvi
 *.synctex.gz
 
 # Reference PDFs and demo datasets (kept locally, not committed)
 Lina Yassine.pdf
 images.zip
+
+# Peer PFE reports — other authors' copyrighted work, kept local for reference
+report22.pdf
+report41.pdf
+report45.pdf

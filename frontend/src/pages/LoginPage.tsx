@@ -34,12 +34,21 @@ export function LoginPage() {
         navigate(result.user?.role === "super_admin" ? "/admin" : "/dashboard");
       }
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { error?: string } } };
-      setApiError(
-        err.response?.data?.error === "invalid_credentials"
-          ? "Invalid email or password"
-          : "Login failed. Please try again."
-      );
+      const err = e as {
+        response?: { status?: number; data?: { error?: string; email?: string } };
+      };
+      const code = err.response?.data?.error;
+      if (code === "email_not_verified") {
+        setApiError(
+          "This email is not verified yet. Open the link we sent to " +
+            (err.response?.data?.email || data.email) +
+            " (check MailHog at http://localhost:8025 in dev)."
+        );
+      } else if (code === "invalid_credentials") {
+        setApiError("Invalid email or password");
+      } else {
+        setApiError("Login failed. Please try again.");
+      }
     }
   };
 
@@ -122,12 +131,21 @@ export function LoginPage() {
                 error={!!errors.password}
                 helperText={errors.password?.message}
               />
+              <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 0.5 }}>
+                <Button
+                  size="small"
+                  sx={{ textTransform: "none", color: "text.secondary" }}
+                  onClick={() => navigate("/forgot-password")}
+                >
+                  Forgot your password?
+                </Button>
+              </Box>
               <Button
                 type="submit"
                 fullWidth
                 variant="contained"
                 size="large"
-                sx={{ mt: 3, py: 1.4 }}
+                sx={{ mt: 2, py: 1.4 }}
                 disabled={isSubmitting}
               >
                 {isSubmitting ? "Signing in..." : "Sign In"}

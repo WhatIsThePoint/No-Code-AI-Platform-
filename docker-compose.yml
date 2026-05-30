@@ -207,6 +207,10 @@ services:
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       GOOGLE_OAUTH_REDIRECT_URI: ${GOOGLE_OAUTH_REDIRECT_URI:-http://localhost:8000/auth/google/callback}
       SOCKETIO_MESSAGE_QUEUE: redis://redis:6379/2
+      MAIL_SERVER: mailhog
+      MAIL_PORT: "1025"
+      MAIL_FROM: ${MAIL_FROM:-no-reply@nocode-ai.local}
+      EMAIL_VERIFICATION_REQUIRED: ${EMAIL_VERIFICATION_REQUIRED:-true}
     depends_on:
       postgres:
         condition: service_healthy
@@ -335,6 +339,17 @@ services:
   mailhog:
     image: mailhog/mailhog:v1.0.1
     restart: unless-stopped
+    # Zero out the chaos monkey: vanilla MailHog v1.0.1 ships with Jim's
+    # sender-reject / recipient-reject percentages high enough to drop
+    # transactional mail during a live demo. Bring every chance to 0 so
+    # MailHog always accepts.
+    command: >-
+      MailHog -invite-jim=false
+      -jim-disconnect=0 -jim-accept=1.0
+      -jim-linkspeed-affect=0
+      -jim-reject-sender=0
+      -jim-reject-recipient=0
+      -jim-reject-auth=0
     networks:
       - backend
     ports:

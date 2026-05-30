@@ -19,7 +19,7 @@ def register():
         return jsonify({"error": "validation_error", "detail": e.messages}), 400
 
     try:
-        user = auth_service.register_user(
+        user, _ = auth_service.register_user(
             email=data["email"],
             password=data["password"],
             full_name=data.get("full_name"),
@@ -35,10 +35,71 @@ def register():
 
     return (
         jsonify(
-            {"user_id": str(user.id), "email": user.email, "message": "registered"}
+            {
+                "user_id": str(user.id),
+                "email": user.email,
+                "email_verified": user.email_verified,
+                "message": "registered" if user.email_verified else "verify_email_sent",
+            }
         ),
         201,
     )
+
+
+@auth_bp.post("/verify-email")
+def verify_email():
+    """Consume a verification token. Body: {"token": "..."}.
+    Returns 200 on success, 400 on missing/invalid/expired token."""
+    body = request.get_json() or {}
+    token = body.get("token", "").strip()
+    if not token:
+        return jsonify({"error": "missing_token"}), 400
+    user = auth_service.verify_email_token(token)
+    if not user:
+        return jsonify({"error": "invalid_or_expired_token"}), 400
+    return jsonify({"email": user.email, "verified": True}), 200
+
+
+@auth_bp.post("/resend-verification")
+def resend_verification():
+    """Best-effort: never reveal whether the email exists, always 200."""
+    body = request.get_json() or {}
+    email = (body.get("email") or "").strip().lower()
+    if email:
+        try:
+            auth_service.resend_verification_email(email)
+        except Exception:
+            pass
+    return jsonify({"message": "if_account_exists_mail_sent"}), 200
+
+
+@auth_bp.post("/forgot-password")
+def forgot_password():
+    """Trigger a password-reset email. Anti-enumeration: always 200."""
+    body = request.get_json() or {}
+    email = (body.get("email") or "").strip().lower()
+    if email:
+        try:
+            auth_service.start_password_reset(email)
+        except Exception:
+            pass
+    return jsonify({"message": "if_account_exists_mail_sent"}), 200
+
+
+@auth_bp.post("/reset-password")
+def reset_password():
+    """Consume a reset token + new password. Body: {token, password}."""
+    body = request.get_json() or {}
+    token = (body.get("token") or "").strip()
+    password = body.get("password") or ""
+    if not token:
+        return jsonify({"error": "missing_token"}), 400
+    if len(password) < 8:
+        return jsonify({"error": "weak_password", "message": "Password must be at least 8 characters."}), 400
+    user = auth_service.complete_password_reset(token, password)
+    if not user:
+        return jsonify({"error": "invalid_or_expired_token"}), 400
+    return jsonify({"email": user.email, "reset": True}), 200
 
 
 @auth_bp.post("/login")
@@ -70,6 +131,18 @@ def login():
                 {"error": "invalid_credentials", "message": "Invalid email or password"}
             ),
             401,
+        )
+
+    if not user.email_verified:
+        return (
+            jsonify(
+                {
+                    "error": "email_not_verified",
+                    "message": "Please verify your email before signing in.",
+                    "email": user.email,
+                }
+            ),
+            403,
         )
 
     if user.totp_enabled:

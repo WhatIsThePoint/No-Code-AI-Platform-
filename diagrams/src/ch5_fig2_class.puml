@@ -1,0 +1,70 @@
+@startuml ch5_fig2
+!include _style.iuml
+title Class diagram --- BaseMLModel hierarchy + algorithm registry
+
+abstract class BaseMLModel {
+  +hyperparams: dict
+  #_estimator
+  --
+  {abstract} +train(X, y)
+  {abstract} +predict(X)
+  {abstract} +evaluate(X, y): dict
+  +estimator
+}
+
+class ModelFactory {
+  -REGISTRY: dict[str, type[BaseMLModel]]
+  +build(algorithm: str, hyperparams: dict): BaseMLModel
+  +list_algorithms(): list[str]
+}
+
+package "Linear baselines" #fff5e6 {
+  class LogisticReg
+  class LinearReg
+}
+package "Tree-based (H2O-3)" #f5f7fb {
+  class H2OXGBoost
+  class H2ORandomForest
+  class H2OGBM
+}
+package "Boosters (sklearn API)" #f5f7fb {
+  class LightGBMModel
+  class CatBoostModel
+}
+package "Distance-based" #fff5e6 {
+  class KNNModel
+  class SVMModel
+}
+package "Clustering" #e6f0ff {
+  class KMeansModel
+  class DBSCANModel
+  class HierarchicalModel
+}
+package "Forecasting" #e6f0ff {
+  class ProphetModel
+  class ARIMAModel
+}
+
+BaseMLModel <|-- LogisticReg
+BaseMLModel <|-- LinearReg
+BaseMLModel <|-- H2OXGBoost
+BaseMLModel <|-- H2ORandomForest
+BaseMLModel <|-- H2OGBM
+BaseMLModel <|-- LightGBMModel
+BaseMLModel <|-- CatBoostModel
+BaseMLModel <|-- KNNModel
+BaseMLModel <|-- SVMModel
+BaseMLModel <|-- KMeansModel
+BaseMLModel <|-- DBSCANModel
+BaseMLModel <|-- HierarchicalModel
+BaseMLModel <|-- ProphetModel
+BaseMLModel <|-- ARIMAModel
+
+ModelFactory ..> BaseMLModel : constructs
+
+note right of BaseMLModel
+  Single signature for the
+  algorithm-agnostic Celery task.
+  Adding an algorithm is a one-file change.
+end note
+@enduml

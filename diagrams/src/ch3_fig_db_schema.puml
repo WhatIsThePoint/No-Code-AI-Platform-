@@ -1,0 +1,131 @@
+@startuml ch3_fig_db_schema
+!include _style.iuml
+title Postgres schema --- auth, billing, collaboration, RAG (every relation)
+
+hide methods
+hide circle
+
+entity "users" as users {
+  * id : UUID <<PK>>
+  --
+  email : VARCHAR(255) <<UQ>>
+  password_hash : VARCHAR(255)
+  full_name : VARCHAR(255)
+  role : VARCHAR(50)
+  tier : VARCHAR(50)
+  totp_secret : VARCHAR(64)
+  totp_enabled : BOOLEAN
+  is_active : BOOLEAN
+  email_verified : BOOLEAN
+  email_verification_token_hash : VARCHAR(255)
+  email_verification_sent_at : TIMESTAMPTZ
+  password_reset_token_hash : VARCHAR(255)
+  password_reset_sent_at : TIMESTAMPTZ
+  google_oauth_refresh_token : TEXT
+  created_at : TIMESTAMPTZ
+}
+
+entity "refresh_tokens" as rt {
+  * id : UUID <<PK>>
+  --
+  user_id : UUID <<FK>>
+  token_hash : VARCHAR(255) <<UQ>>
+  expires_at : TIMESTAMPTZ
+  revoked : BOOLEAN
+}
+
+entity "subscriptions" as sub {
+  * id : UUID <<PK>>
+  --
+  user_id : UUID <<FK>>
+  tier : VARCHAR(50)
+  stripe_customer_id : VARCHAR(255)
+  stripe_subscription_id : VARCHAR(255)
+  max_dl_epochs : INTEGER
+  max_dl_batch_size : INTEGER
+  max_chunks : INTEGER
+  max_vram_mb : INTEGER
+}
+
+entity "companies" as comp {
+  * id : UUID <<PK>>
+  --
+  name : VARCHAR(255)
+  owner_id : UUID <<FK>>
+}
+
+entity "memberships" as mem {
+  * id : UUID <<PK>>
+  --
+  company_id : UUID <<FK>>
+  user_id : UUID <<FK>>
+  role : VARCHAR(50)
+}
+
+entity "invitations" as inv {
+  * id : UUID <<PK>>
+  --
+  company_id : UUID <<FK>>
+  email : VARCHAR(255)
+  token : VARCHAR(255)
+  accepted : BOOLEAN
+}
+
+entity "pipeline_members" as pm {
+  * id : UUID <<PK>>
+  --
+  pipeline_id : VARCHAR(64)
+  user_id : UUID <<FK>>
+  role : VARCHAR(50)
+}
+
+entity "audit_logs" as audit {
+  * id : UUID <<PK>>
+  --
+  actor_id : UUID
+  action : VARCHAR(100)
+  target_type : VARCHAR(50)
+  target_id : VARCHAR(100)
+  detail : JSONB
+  ip_address : VARCHAR(64)
+  created_at : TIMESTAMPTZ
+}
+
+entity "announcements" as ann {
+  * id : UUID <<PK>>
+  --
+  title : VARCHAR(255)
+  body : TEXT
+  created_by : UUID <<FK>>
+  published_at : TIMESTAMPTZ
+}
+
+entity "rag_documents" as ragdoc {
+  * id : UUID <<PK>>
+  --
+  pipeline_id : VARCHAR(64)
+  filename : VARCHAR(255)
+  uploaded_at : TIMESTAMPTZ
+}
+
+entity "rag_chunks" as ragchk {
+  * id : UUID <<PK>>
+  --
+  document_id : UUID <<FK>>
+  pipeline_id : VARCHAR(64)
+  chunk_index : INTEGER
+  content : TEXT
+  embedding : VECTOR(384)
+}
+
+users ||--o{ rt
+users ||--o| sub
+users ||--o{ comp : owns
+users ||--o{ mem
+users ||--o{ pm
+users ||--o{ audit
+users ||--o{ ann
+comp ||--o{ mem
+comp ||--o{ inv
+ragdoc ||--o{ ragchk
+@enduml

@@ -1,0 +1,77 @@
+@startuml ch9_fig3
+!include _style.iuml
+title Class diagram --- notifications, audit log, impersonation, announcements
+
+class Notification {
+  +id: UUID
+  +user_id: UUID
+  +kind: NotificationKind
+  +payload: dict
+  +read: bool
+  +created_at: datetime
+}
+
+enum NotificationKind {
+  CHAT_MENTION
+  TRAINING_DONE
+  TRAINING_FAILED
+  DOCUMENT_INDEXED
+  MEET_INVITE
+}
+
+class NotificationStore <<frontend>> {
+  -items: list[Notification]
+  -unread_count: int
+  --
+  +push(notification)
+  +mark_read(id)
+  +persist(): localStorage
+  +hydrate(): localStorage
+}
+
+class AuditLogEntry {
+  +id: UUID
+  +actor_id: UUID
+  +action: str
+  +target_type: str
+  +target_id: str
+  +detail: dict
+  +ip_address: str
+  +created_at: datetime
+}
+
+class ImpersonationToken {
+  +access_token: str
+  +imp_actor: UUID
+  +target_id: UUID
+  +issued_at: datetime
+  +expires_at: datetime  (5 min)
+  --
+  +remaining_seconds(): int
+}
+
+class Announcement {
+  +id: UUID
+  +title: str
+  +body: str
+  +created_by: UUID
+  +published_at: datetime
+  +dismissed_by: list[UUID]
+}
+
+class QuotaOverride {
+  +id: UUID
+  +user_id: UUID
+  +max_chunks: int
+  +max_vram_mb: int
+  +max_dl_epochs: int
+  +max_dl_batch_size: int
+  +overridden_by: UUID
+  +overridden_at: datetime
+}
+
+Notification --> NotificationKind
+NotificationStore "1" o-- "*" Notification
+AuditLogEntry "*" -- "1" Notification : may produce
+ImpersonationToken ..> AuditLogEntry : emits start + end
+@enduml

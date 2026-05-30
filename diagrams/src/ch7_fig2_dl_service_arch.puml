@@ -1,0 +1,42 @@
+@startuml ch7_fig2
+!include _style.iuml
+title dl-training-service architecture --- API, worker, GPU allocation
+
+skinparam componentStyle rectangle
+
+actor "Browser" as ui
+component "api-gateway\n:8000" as gw
+
+package "dl-training-service container" #fff5e6 {
+  component "Flask API\n:8005" as api
+  component "vram_guard\n(static estimator)" as guard
+  component "architecture catalog\n(LeNet / TinyResNet /\nMobileNet-V3)" as cat
+}
+
+package "dl-worker container" #fff5e6 {
+  component "Celery worker\nqueue=dl_training\nconcurrency=1" as worker
+  component "PyTorch\n+ torchvision" as torch
+  component "GPU reservation\n(deploy.devices)" as gpu
+}
+
+queue "Redis (broker DB 0,\nresults DB 1, socket DB 2)" as redis
+database "Mongo\n(dl_versions, task_results)" as mongo
+folder "model_artifacts\n(.pt state_dict)" as artvol
+folder "uploaded_files/images\n(ImageFolder layout)" as imgvol
+
+ui --> gw : POST /dl/train
+gw --> api : forward
+api --> guard : check estimate
+guard --> cat : params_mb()
+api --> redis : enqueue
+api --> mongo : insert task_results
+api --> ui : 202 / 400
+
+worker --> redis : dequeue
+worker --> torch
+torch --> gpu : CUDA tensors
+worker --> imgvol : read dataset
+worker --> artvol : torch.save(state_dict)
+worker --> mongo : insert dl_versions
+worker --> redis : SocketIO emit
+@enduml

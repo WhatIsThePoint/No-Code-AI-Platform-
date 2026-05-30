@@ -1,0 +1,40 @@
+@startuml ch3_fig1
+!include _style.iuml
+title Scrum framework --- roles, artefacts, events
+
+skinparam packageStyle rectangle
+
+package "Roles" #fff5e6 {
+  actor "Product Owner" as PO
+  actor "Scrum Master" as SM
+  actor "Developer" as DEV
+}
+
+package "Artefacts" #f5f7fb {
+  rectangle "Product Backlog" as PB
+  rectangle "Sprint Backlog" as SB
+  rectangle "Increment\n(git tag + demo)" as INC
+}
+
+package "Events" #fdfbf7 {
+  rectangle "Sprint Planning\n(½ day)" as SP
+  rectangle "Daily check-in\n(written log)" as DC
+  rectangle "Sprint Review\n(live demo)" as SR
+  rectangle "Sprint Retrospective\n(written retro)" as RETRO
+}
+
+PO --> PB : owns
+PO --> SP : prioritises slice
+SM --> RETRO : facilitates
+DEV --> SB : commits
+DEV --> INC : produces
+SP --> SB : produces
+DC --> SB : updates
+SR --> INC : inspects
+RETRO --> PB : feeds back into
+
+note bottom of INC
+  Sprint cadence: 2--3 weeks.
+  Six sprints in total.
+end note
+@enduml

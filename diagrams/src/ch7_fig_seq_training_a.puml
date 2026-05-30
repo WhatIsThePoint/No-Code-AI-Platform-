@@ -1,0 +1,46 @@
+@startuml ch7_fig_seq_training_a
+!include _style.iuml
+title (a) DL training --- validation phase (tier + VRAM guard)
+
+actor User
+participant "Browser\n(DLTrainNode)" as ui
+participant "api-gateway" as gw
+participant "dl-training-service" as dl
+participant "vram_guard" as guard
+database "Postgres\n(subscriptions)" as pg
+
+User -> ui : Click Run\n(arch, input_size, batch_size, epochs)
+ui -> ui : slider clamp (Layer 1)\nepochs <= user.limits.max_dl_epochs
+ui -> gw : POST /dl/train
+
+gw -> dl : forward (auth required)
+dl -> pg : SELECT subscriptions WHERE user_id
+pg --> dl : limits {max_dl_epochs, max_dl_batch_size, max_vram_mb}
+
+== Layer 2 — tier ceiling ==
+alt epochs > max_dl_epochs OR batch_size > max_dl_batch_size
+  dl --> ui : 400 epochs_over_tier_limit
+  ui --> User : snackbar "Reduce epochs to N"
+end
+
+== Layer 3 — static VRAM estimator ==
+dl -> guard : estimate(arch, input_size, batch_size)
+guard -> guard : weights = params_mb(arch)\noptimizer = 3 * weights\nactivations = act_per_pixel * input² * batch\ntotal = weights + optimizer + activations + 1 GB runtime
+guard --> dl : Estimate{total_mb, breakdown}
+
+alt total_mb > max_vram_mb - 1 GB headroom
+  dl --> ui : 400 vram_budget_exceeded\n{estimate, budget_mb}
+  ui --> User : snackbar with reason + breakdown
+end
+
+== Layer 4 — hard cap (config) ==
+alt epochs > HARD_MAX_EPOCHS OR batch > HARD_MAX_BATCH
+  dl --> ui : 400 hard_cap_exceeded
+end
+
+dl -> dl : All guards passed --> proceed to (b)
+note right
+  Continued in figure (b):
+  task enqueue + training loop + result.
+end note
+@enduml

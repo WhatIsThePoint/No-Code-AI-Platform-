@@ -1,0 +1,68 @@
+@startuml ch3_fig3
+!include _style.iuml
+title Microservice topology --- ports, queues, data stores
+
+skinparam componentStyle rectangle
+
+actor "Browser" as user
+
+cloud "Host\n(GTX 1660 Super, 16 GB RAM)" {
+  component "api-gateway\n:8000" as gw
+
+  package "Application services" {
+    component "auth-service\n:8001" as auth
+    component "data-ingestion-service\n:8002" as data
+    component "ml-training-service\n:8003" as ml
+    component "metrics-service\n:8004" as metrics
+    component "dl-training-service\n:8005 (GPU)" as dl
+  }
+
+  package "Celery workers" {
+    component "data-worker\n(ingestion + rag)" as dataW
+    component "ml-worker\n(training)" as mlW
+    component "dl-worker\n(GPU training)" as dlW
+  }
+
+  database "Postgres\n+ pgvector" as pg
+  database "MongoDB" as mongo
+  database "Redis\n(0=broker, 1=results,\n2=socket)" as redis
+  database "TimescaleDB" as tsdb
+  component "Ollama\n(llama3.2:3b)" as ollama
+  component "MailHog\n:1025 / :8025" as mh
+}
+
+user --> gw : HTTPS
+gw --> auth
+gw --> data
+gw --> ml
+gw --> metrics
+gw --> dl
+
+auth --> pg
+auth --> redis
+auth --> mh : SMTP
+
+data --> mongo
+data --> dataW
+data --> pg : pgvector chunks
+
+ml --> mongo
+ml --> mlW
+ml --> ollama : RAG completion
+ml --> pg : pgvector lookup
+
+dl --> mongo
+dl --> dlW
+
+metrics --> tsdb
+
+dataW --> redis
+mlW --> redis
+dlW --> redis
+
+note right of gw
+  Strips X-User-*, X-Company-*,
+  X-Project-* then re-injects
+  from the decoded JWT.
+end note
+@enduml

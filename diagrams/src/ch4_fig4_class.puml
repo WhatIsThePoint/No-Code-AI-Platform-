@@ -1,0 +1,99 @@
+@startuml ch4_fig4
+!include _style.iuml
+title Class diagram --- auth-service + data-ingestion-service core entities
+
+class User {
+  +id: UUID
+  +email: str
+  +password_hash: str
+  +full_name: str
+  +role: str
+  +tier: str
+  +totp_secret: str
+  +totp_enabled: bool
+  +email_verified: bool
+  +email_verification_token_hash: str
+  +password_reset_token_hash: str
+  --
+  +register(email, password): User
+  +verify_password(plain): bool
+  +enable_totp(): str
+}
+
+class RefreshToken {
+  +id: UUID
+  +user_id: UUID
+  +token_hash: str
+  +expires_at: datetime
+  +revoked: bool
+  --
+  +rotate(raw): (access, raw_new)
+}
+
+class Subscription {
+  +id: UUID
+  +user_id: UUID
+  +tier: str
+  +max_chunks: int
+  +max_vram_mb: int
+  +max_dl_epochs: int
+  +max_dl_batch_size: int
+}
+
+class AuditLog {
+  +id: UUID
+  +actor_id: UUID
+  +action: str
+  +target_type: str
+  +target_id: str
+  +detail: dict
+  +ip_address: str
+}
+
+class Dataset {
+  +dataset_id: str
+  +user_id: str
+  +file_path: str
+  +file_type: str
+  +status: str
+  +row_count: int
+  +column_count: int
+  +profiling_summary: dict
+}
+
+class TaskResult {
+  +task_id: str
+  +status: str
+  +progress_pct: int
+  +result: dict
+}
+
+class SQLConnector {
+  +connector_id: str
+  +user_id: str
+  +kind: str
+  +host: str
+  +port: int
+  +db: str
+  +creds_encrypted: bytes
+  --
+  +test_connection(): bool
+  +probe_table(name): dict
+}
+
+User "1" -- "*" RefreshToken
+User "1" -- "0..1" Subscription
+User "1" -- "*" AuditLog : actor
+User "1" -- "*" Dataset : owns
+Dataset "1" -- "*" TaskResult : profile + preprocess
+User "1" -- "*" SQLConnector : configures
+
+note bottom of RefreshToken
+  token_hash = sha256(raw token)
+  Raw token never stored.
+end note
+note bottom of SQLConnector
+  creds_encrypted via Fernet
+  (AES-128-CBC + HMAC).
+end note
+@enduml

@@ -1,0 +1,31 @@
+' Shared PlantUML style for the No-Code AI Platform PFE report.
+' Include with: !include _style.iuml
+skinparam dpi 150
+skinparam defaultFontName "Helvetica"
+skinparam defaultFontSize 12
+skinparam shadowing false
+skinparam roundCorner 6
+skinparam ArrowColor #333
+skinparam ArrowFontColor #333
+skinparam ActorBackgroundColor #fff5e6
+skinparam ActorBorderColor #d2541c
+skinparam UsecaseBackgroundColor #fdfbf7
+skinparam UsecaseBorderColor #555
+skinparam ClassBackgroundColor #f5f7fb
+skinparam ClassBorderColor #3344aa
+skinparam ParticipantBackgroundColor #fff5e6
+skinparam ParticipantBorderColor #d2541c
+skinparam DatabaseBackgroundColor #e6f0ff
+skinparam DatabaseBorderColor #3344aa
+skinparam ComponentBackgroundColor #fff5e6
+skinparam ComponentBorderColor #d2541c
+skinparam ActivityBackgroundColor #f5f7fb
+skinparam ActivityBorderColor #3344aa
+skinparam ActivityDiamondBackgroundColor #fff5e6
+skinparam ActivityDiamondBorderColor #d2541c
+skinparam NoteBackgroundColor #fffaf0
+skinparam NoteBorderColor #d2541c
+skinparam StateBackgroundColor #fdfbf7
+skinparam StateBorderColor #d2541c
+skinparam packageBackgroundColor #fafafa
+skinparam packageBorderColor #888

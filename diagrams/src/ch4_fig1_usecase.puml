@@ -1,0 +1,45 @@
+@startuml ch4_fig1
+!include _style.iuml
+left to right direction
+title Sprint 1 use case --- Authentication, Gateway, Ingestion
+
+actor "Visitor" as visitor
+actor "Authenticated user" as user
+actor "Super-admin" as admin
+actor "MailHog\n(SMTP)" as mail <<system>>
+
+rectangle "Auth + Ingestion" {
+  usecase "Sign up" as UC1
+  usecase "Verify email" as UC2
+  usecase "Sign in" as UC3
+  usecase "Enable TOTP 2FA" as UC4
+  usecase "Forgot password" as UC5
+  usecase "Reset password" as UC6
+  usecase "Refresh token\n(silent)" as UC7
+  usecase "Sign out\n(revoke JTI)" as UC8
+  usecase "Upload CSV/Excel" as UC9
+  usecase "Configure SQL\nconnector" as UC10
+  usecase "Profile dataset\n(async)" as UC11
+  usecase "Enforce per-user\nrate limit" as UC12
+}
+
+visitor --> UC1
+visitor --> UC2
+visitor --> UC3
+visitor --> UC5
+visitor --> UC6
+user --> UC3
+user --> UC4
+user --> UC7
+user --> UC8
+user --> UC9
+user --> UC10
+user --> UC11
+admin --> UC12
+
+UC1 ..> UC2 : <<extends>>
+UC2 ..> mail
+UC5 ..> mail
+UC3 ..> UC4 : <<includes if enabled>>
+UC9 ..> UC11 : <<includes>>
+@enduml

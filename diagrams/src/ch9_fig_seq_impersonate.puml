@@ -1,0 +1,46 @@
+@startuml ch9_fig_seq_impersonate
+!include _style.iuml
+title Sequence --- super-admin "view as user" impersonation (hard 5-min TTL)
+
+actor "Super-admin" as admin
+participant "Admin Console UI" as adminUI
+participant "api-gateway" as gw
+participant "auth-service" as auth
+database "Postgres\n(audit_logs)" as audit
+database "Redis\n(JTI blacklist)" as redis
+
+== Start impersonation ==
+admin -> adminUI : click eye-icon on user X row
+adminUI -> gw : POST /admin/impersonate/<X> (super-admin JWT)
+gw -> auth : forward (role checked: super-admin)
+auth -> auth : create_access_token(identity=X,\n  additional_claims={imp_actor: admin.id,\n                     ttl: 300s})
+auth -> audit : INSERT audit_logs\n  action='admin.impersonate_start',\n  actor_id=admin.id,\n  target_id=X
+auth --> adminUI : 200 {access_token (X), expires_in: 300}
+adminUI -> adminUI : Zustand store.swapToken(\n  original=admin_token,\n  active=imp_token)
+adminUI --> admin : red banner "Acting as X — 4:59 remaining"
+
+== Browse as X ==
+loop while imp_token active
+  adminUI -> gw : ANY request with imp_token
+  gw -> gw : decode JWT, set X-User-Id = X,\n  X-Imp-Actor = admin.id
+  gw --> adminUI : as if X
+  adminUI --> admin : pages render under X's identity
+end
+
+alt admin clicks "Exit"
+  admin -> adminUI : click Exit on banner
+  adminUI -> gw : POST /admin/impersonate/exit (imp_token)
+  gw -> auth : forward
+  auth -> redis : blacklist imp_token JTI
+  auth -> audit : INSERT audit_logs\n  action='admin.impersonate_end',\n  actor_id=admin.id
+  auth --> adminUI : 200 OK
+  adminUI -> adminUI : restore original admin_token
+  adminUI --> admin : back at /admin
+else 5 minutes elapse
+  adminUI -> adminUI : countdown reaches 0
+  adminUI -> auth : auto-exit POST /admin/impersonate/exit
+  auth -> redis : blacklist
+  auth -> audit : impersonate_end (reason=ttl)
+  adminUI -> adminUI : restore original admin_token
+end
+@enduml

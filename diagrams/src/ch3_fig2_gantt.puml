@@ -1,0 +1,32 @@
+@startgantt
+title Project Gantt --- planned vs actual durations (six sprints)
+Project starts the 2025-12-01
+
+[S1 planned] lasts 14 days
+[S1 actual] lasts 14 days
+
+[S2 planned] lasts 17 days
+[S2 planned] starts 14 days after [S1 planned]'s start
+[S2 actual] lasts 24 days
+[S2 actual] starts 14 days after [S1 actual]'s start
+
+[S3 planned] lasts 14 days
+[S3 planned] starts 31 days after [S1 planned]'s start
+[S3 actual] lasts 14 days
+[S3 actual] starts 38 days after [S1 actual]'s start
+
+[S4 planned] lasts 17 days
+[S4 planned] starts 45 days after [S1 planned]'s start
+[S4 actual] lasts 24 days
+[S4 actual] starts 52 days after [S1 actual]'s start
+
+[S5 planned] lasts 14 days
+[S5 planned] starts 62 days after [S1 planned]'s start
+[S5 actual] lasts 14 days
+[S5 actual] starts 76 days after [S1 actual]'s start
+
+[S6 planned] lasts 17 days
+[S6 planned] starts 76 days after [S1 planned]'s start
+[S6 actual] lasts 17 days
+[S6 actual] starts 90 days after [S1 actual]'s start
+@endgantt

@@ -1,0 +1,78 @@
+@startuml ch7_fig3
+!include _style.iuml
+title Class diagram --- architecture catalogue + VRAM guard
+
+abstract class CNNArchitecture {
+  +name: str
+  +input_size: int
+  +num_classes: int
+  --
+  {abstract} +build_model(): nn.Module
+  {abstract} +pretrained_supported(): bool
+  +params_mb(): float
+}
+
+class LeNetArch {
+  +input_size = 32
+}
+class TinyResNetArch {
+  +input_size = 64
+  +base_channels = 64
+}
+class MobileNetV3Arch {
+  +input_size = 224
+  +pretrained: bool
+}
+
+class ArchitectureCatalog <<registry>> {
+  -REGISTRY: dict[str, type[CNNArchitecture]]
+  +build(name, **kwargs): CNNArchitecture
+  +list(): list[str]
+}
+
+class VRAMGuard <<service>> {
+  -ACTIVATION_PER_PIXEL_MB: dict[str, float]
+  -CUDA_RUNTIME_MB: int = 1024
+  --
+  +estimate(arch, input_size, batch): Estimate
+  +check_or_reject(estimate, budget_mb)
+}
+
+class Estimate <<value>> {
+  +weights_mb: float
+  +optimizer_mb: float
+  +activations_mb: float
+  +runtime_mb: int
+  +total_mb: float
+}
+
+class TrainRequest {
+  +pipeline_id: str
+  +dataset_id: str
+  +arch: str
+  +input_size: int
+  +batch_size: int
+  +epochs: int
+  +pretrained: bool
+  +lr: float
+}
+
+class DLTrainResult {
+  +version_id: UUID
+  +final_train_loss: float
+  +final_val_loss: float
+  +final_val_acc: float
+  +epoch_history: list[dict]
+  +state_dict_path: str
+  +class_names: list[str]
+}
+
+CNNArchitecture <|-- LeNetArch
+CNNArchitecture <|-- TinyResNetArch
+CNNArchitecture <|-- MobileNetV3Arch
+ArchitectureCatalog ..> CNNArchitecture
+VRAMGuard ..> Estimate
+TrainRequest ..> ArchitectureCatalog
+TrainRequest ..> VRAMGuard : checked before enqueue
+TrainRequest --> DLTrainResult : produces
+@enduml

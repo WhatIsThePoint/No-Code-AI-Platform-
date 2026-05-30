@@ -1,0 +1,26 @@
+@startuml ch5_fig_state_pipeline
+!include _style.iuml
+title State diagram --- pipeline lifecycle
+
+[*] --> draft : create
+draft : nodes editable
+draft : Run button enabled\nwhen valid graph
+draft --> draft : Save / drag / edit
+draft --> running : Run
+
+running : worker dequeued
+running : SocketIO room joined
+running : live metrics streaming
+
+running --> done : worker success\n(emit training_complete)
+running --> error : exception or VRAM refusal
+
+done : artefact persisted
+done : results page accessible
+done --> draft : Edit
+done --> [*] : Archive
+
+error : detail stored in task_results
+error --> running : Retry
+error --> draft : Edit + Retry
+@enduml

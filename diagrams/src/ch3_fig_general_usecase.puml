@@ -1,0 +1,75 @@
+@startuml ch3_fig_general_usecase
+!include _style.iuml
+left to right direction
+title General use-case --- platform-wide actors and use cases
+
+actor "Visitor" as visitor
+actor "Free user" as free
+actor "Solo user" as solo
+actor "Company user" as company
+actor "Project Manager" as pm
+actor "Data Scientist" as ds
+actor "Analyst" as analyst
+actor "Viewer" as viewer
+actor "Super-admin" as admin
+
+rectangle "No-Code AI Platform" {
+  usecase "Sign up" as UC_signup
+  usecase "Verify email\n(MailHog round-trip)" as UC_verify
+  usecase "Reset password\n(MailHog round-trip)" as UC_reset
+  usecase "Sign in\n(optional 2FA)" as UC_signin
+  usecase "Upload tabular dataset" as UC_upload_tab
+  usecase "Connect SQL source\n(Fernet-encrypted)" as UC_sql
+  usecase "Upload image dataset" as UC_upload_img
+  usecase "Profile dataset" as UC_profile
+  usecase "Build ML pipeline" as UC_ml
+  usecase "Build RAG pipeline" as UC_rag
+  usecase "Build DL pipeline" as UC_dl
+  usecase "Train + evaluate" as UC_train
+  usecase "Export model\n(joblib + FastAPI)" as UC_export
+  usecase "Chat with documents\n(streamed)" as UC_chat
+  usecase "Manage pipeline\nmembership" as UC_members
+  usecase "Real-time canvas\ncollaboration" as UC_collab
+  usecase "Upgrade tier\n(Stripe)" as UC_billing
+  usecase "Use AI Companion" as UC_companion
+  usecase "View admin console" as UC_admin
+  usecase "Impersonate user\n(5-min TTL)" as UC_imp
+  usecase "Publish announcement" as UC_ann
+}
+
+visitor --> UC_signup
+visitor --> UC_verify
+visitor --> UC_reset
+
+free --> UC_signin
+solo --> UC_signin
+company --> UC_signin
+
+solo --> UC_upload_tab
+solo --> UC_sql
+solo --> UC_upload_img
+solo --> UC_profile
+solo --> UC_ml
+solo --> UC_rag
+solo --> UC_dl
+solo --> UC_train
+solo --> UC_export
+solo --> UC_chat
+solo --> UC_companion
+solo --> UC_billing
+
+pm --> UC_members
+pm --> UC_collab
+ds --> UC_train
+ds --> UC_collab
+analyst --> UC_profile
+viewer --> UC_collab
+
+admin --> UC_admin
+admin --> UC_imp
+admin --> UC_ann
+
+UC_signin ..> UC_verify : <<precedes>>
+UC_train ..> UC_export : <<extends>>
+UC_chat ..> UC_rag : <<requires>>
+@enduml

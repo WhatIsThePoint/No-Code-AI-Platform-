@@ -1,0 +1,33 @@
+@startuml ch7_fig1
+!include _style.iuml
+left to right direction
+title Sprint 4 use case --- Deep Learning for Image Classification
+
+actor "Authenticated user" as user
+actor "Super-admin\n(tier override)" as admin
+
+rectangle "DL pipeline" {
+  usecase "Upload image dataset\n(zip of class folders)" as UC1
+  usecase "Open canvas in\nDL mode" as UC2
+  usecase "Pick architecture\n(LeNet / ResNet-9 / MobileNet-V3)" as UC3
+  usecase "Toggle pretrained\n(ImageNet)" as UC4
+  usecase "Set epochs + batch\n(tier-clamped)" as UC5
+  usecase "Train (VRAM-guarded)" as UC6
+  usecase "Watch live curves\n(loss + val_acc)" as UC7
+  usecase "Run inline inference\n(Try-It panel)" as UC8
+  usecase "Override per-user\nDL ceilings" as UC9
+}
+
+user --> UC1
+user --> UC2
+user --> UC3
+user --> UC4
+user --> UC5
+user --> UC6
+user --> UC7
+user --> UC8
+admin --> UC9
+
+UC6 ..> UC7 : <<includes>>
+UC6 ..> UC8 : <<extends>>
+@enduml

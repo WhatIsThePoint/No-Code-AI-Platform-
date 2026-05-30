@@ -1,0 +1,60 @@
+@startuml ch5_fig_crispdm
+!include _style.iuml
+title CRISP-DM lifecycle mapped onto the canvas pipeline
+
+skinparam packageStyle rectangle
+skinparam linetype ortho
+
+() "Pipeline\n(canvas)" as core
+
+rectangle "1. Business\nUnderstanding" as B
+rectangle "2. Data\nUnderstanding" as D
+rectangle "3. Data\nPreparation" as P
+rectangle "4. Modelling" as M
+rectangle "5. Evaluation" as E
+rectangle "6. Deployment" as DEP
+
+B -down-> D
+D -down-> P
+P -right-> M
+M -up-> E
+E -up-> B
+E -right-> DEP
+
+B .. core
+D .. core
+P .. core
+M .. core
+E .. core
+DEP .. core
+
+note right of B
+  Identify the supervised tasks
+  a non-technical user can describe.
+  Surface 14 algorithms behind
+  a single Train node.
+end note
+note right of D
+  Reuse the profile produced by the
+  ingestion service: missing, skew,
+  imbalance, correlations.
+end note
+note right of P
+  Celery task: 70/15/15 split,
+  column-wise imputation, scaling,
+  one-hot vs target encoding.
+end note
+note right of M
+  BaseMLModel subclasses, one
+  signature across sklearn / H2O /
+  XGB / LightGBM / CatBoost / Prophet.
+end note
+note right of E
+  Accuracy/F1/AUC or R²/MAE/RMSE.
+  TreeSHAP for tree-based models.
+end note
+note right of DEP
+  Model registry with versioning.
+  Downloadable joblib + FastAPI zip.
+end note
+@enduml

@@ -1,0 +1,48 @@
+@startuml ch6_fig2
+!include _style.iuml
+title Sequence --- document to embed to store to streamed chat (fully local)
+
+actor User
+participant "Browser" as ui
+participant "api-gateway" as gw
+participant "data-ingestion-service" as data
+participant "ml-training-service" as ml
+participant "Celery worker\n(rag queue)" as worker
+database "pgvector\n(rag_chunks)" as pgv
+participant "sentence-transformers\nMiniLM-L6-v2 (CPU)" as emb
+participant "Ollama\nllama3.2:3b (GPU)" as ollama
+queue "Redis DB 2\n(SocketIO bus)" as redis
+
+== Ingestion ==
+User -> ui : drop handbook.pdf onto Document node
+ui -> gw : POST /pipelines/<id>/documents (multipart)
+gw -> data : forward (public prefix)
+data -> data : save to shared volume
+data -> worker : enqueue process_rag_document
+worker -> worker : PyPDFLoader.load()
+worker -> worker : RecursiveCharacterTextSplitter\nchunk=500, overlap=50
+worker -> emb : embed_texts(chunks)
+emb --> worker : vectors (384-d each)
+worker -> pgv : INSERT rag_chunks (pipeline_id, content, embedding)
+worker --> ui : SocketIO chunk_count update
+
+== Chat ==
+User -> ui : "What does the handbook say about week one?"
+ui -> gw : POST /pipelines/<id>/chat (stream=true)
+gw -> ml : forward
+ml -> emb : embed_texts([question])
+emb --> ml : query_vector
+ml -> pgv : SELECT content, 1 - (embedding <=> query_vector) AS sim\nORDER BY sim DESC LIMIT 4
+pgv --> ml : top-4 chunks + scores
+ml -> ml : build_prompt(system + chunks + question)
+ml -> ollama : POST /api/generate {model, prompt, stream:true}
+loop while ollama emits tokens
+  ollama --> ml : chunk {"response":"...token..."}
+  ml -> redis : emit token to /chat/<pipeline_id> room
+  redis -> ui : SocketIO token
+  ui --> User : append to current message
+end
+ollama --> ml : {"done":true}
+ml -> redis : emit chat_done {sources:[...]}
+ui --> User : "n sources used" chip + similarity scores
+@enduml

@@ -1,0 +1,81 @@
+@startuml ch6_fig3
+!include _style.iuml
+title Class diagram --- RAG ingestion + chat orchestrator
+
+class RAGPipeline {
+  +pipeline_id: str
+  +chunk_size: int = 500
+  +chunk_overlap: int = 50
+  +top_k: int = 4
+}
+
+class Document {
+  +document_id: UUID
+  +pipeline_id: str
+  +filename: str
+  +file_path: str
+  +uploaded_at: datetime
+  +chunk_count: int
+  --
+  +load(): list[str]
+}
+
+class DocumentChunk {
+  +id: UUID
+  +document_id: UUID
+  +pipeline_id: str
+  +chunk_index: int
+  +content: str
+  +embedding: Vector(384)
+}
+
+class Embedder <<service>> {
+  +model_name: str = "all-MiniLM-L6-v2"
+  +dim: int = 384
+  --
+  +embed_texts(texts): list[Vector]
+}
+
+class VectorStore <<service>> {
+  +dsn: str
+  --
+  +insert_chunks(pipeline_id, chunks, embeddings)
+  +top_k(pipeline_id, query_vector, k): list[(chunk, score)]
+}
+
+class ChatOrchestrator <<service>> {
+  -embedder: Embedder
+  -store: VectorStore
+  -llm_url: str
+  --
+  +handle(pipeline_id, question)
+  -build_prompt(chunks, question): str
+  -stream_tokens(prompt): Iterator[str]
+}
+
+class ChatMessage {
+  +id: UUID
+  +pipeline_id: str
+  +role: "user" | "assistant"
+  +content: str
+  +sources: list[ChunkRef]
+  +created_at: datetime
+}
+
+RAGPipeline "1" -- "*" Document
+Document "1" -- "*" DocumentChunk
+ChatOrchestrator ..> Embedder
+ChatOrchestrator ..> VectorStore
+ChatOrchestrator ..> ChatMessage : emits
+VectorStore "1" -- "*" DocumentChunk : pgvector index
+
+note bottom of Embedder
+  CPU-only. ~22 MB on disk.
+  No outbound network call.
+end note
+note bottom of ChatOrchestrator
+  Forwards Ollama stream=true
+  tokens to SocketIO room
+  /chat/<pipeline_id>.
+end note
+@enduml

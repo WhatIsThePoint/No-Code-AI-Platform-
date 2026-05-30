@@ -1,0 +1,52 @@
+@startuml ch10_fig_cicd_flow
+!include _style.iuml
+title CI/CD pipeline --- GitHub Actions parallel jobs + merge gate
+
+skinparam linetype ortho
+
+actor "Developer" as dev
+
+rectangle "GitHub" {
+  rectangle "feature/branch\npush or PR" as push
+}
+
+rectangle "GitHub Actions" {
+  rectangle "Job: backend-lint\n(black + isort + flake8)" as L1
+  rectangle "Job: frontend-lint\n(tsc --noEmit + eslint)" as L2
+  rectangle "Job: backend-tests\n(pytest x4 services,\nPG+Mongo+Redis as services)" as T1
+  rectangle "Job: frontend-tests\n(vitest + coverage upload)" as T2
+}
+
+rectangle "Aggregation" {
+  rectangle "All 4 green?" as gate
+}
+
+rectangle "Merge to main" as merge
+rectangle "Block PR\n(checks failed)" as block
+
+dev --> push : git push
+push --> L1
+push --> L2
+push --> T1
+push --> T2
+
+L1 --> gate
+L2 --> gate
+T1 --> gate
+T2 --> gate
+
+gate --> merge : yes
+gate --> block : no
+
+note bottom of T1
+  matrix.service ∈ { auth, gateway,
+  data, ml, dl }.
+  dl-training installs CPU-only torch
+  separately to avoid the 1 GB CUDA wheel.
+end note
+note bottom of merge
+  ~6 min frontend-only
+  ~9 min backend-only
+  ~14 min full-stack
+end note
+@enduml

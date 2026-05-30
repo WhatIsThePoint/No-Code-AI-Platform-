@@ -1,0 +1,44 @@
+@startuml ch7_fig_seq_training_b
+!include _style.iuml
+title (b) DL training --- training phase (reached only when validation passed)
+
+participant "Browser" as ui
+participant "dl-training-service" as dl
+participant "Celery worker\n(dl-worker, GPU)" as worker
+database "Mongo\n(dl_versions)" as mongo
+queue "Redis DB 2\n(SocketIO)" as redis
+collections "model_artifacts\n(named volume)" as vol
+collections "uploaded_files\n(image dataset)" as imgvol
+
+dl -> worker : enqueue train_dl(pipeline_id, cfg)
+dl --> ui : 202 {task_id}
+ui -> ui : SocketIO subscribe pipeline_<id>
+
+worker -> mongo : UPDATE dl_versions status=running
+worker -> imgvol : ImageFolder(/uploads/images/<id>)
+worker -> worker : DataLoader\n  transforms: resize, normalise,\n  random h-flip + small rotation
+worker -> worker : model = build(arch, pretrained?)
+worker -> worker : optimizer = Adam(lr)
+loop for each epoch
+  worker -> worker : train_epoch() -> train_loss
+  worker -> worker : val_epoch() -> val_loss, val_acc
+  worker -> redis : emit training_epoch\n{epoch, train_loss, val_loss, val_acc}
+  redis -> ui : event training_epoch
+  ui -> ui : LiveTrainingChart.update()
+end
+worker -> vol : torch.save(state_dict, /artifacts/<ver>.pt)
+worker -> mongo : INSERT dl_versions {final_metrics, file_path, class_names}
+worker -> mongo : UPDATE dl_versions status=done
+worker -> redis : emit training_complete {version_id}
+redis -> ui : event training_complete
+ui --> ui : render DLPredictPanel inline
+
+== Inline inference ==
+actor User
+User -> ui : drop image into Try-It
+ui -> dl : POST /dl/predict/<version_id> (multipart)
+dl -> vol : torch.load(state_dict)
+dl -> dl : model.eval(); softmax(logits)
+dl --> ui : top-5 {label, probability}
+ui --> User : ranked horizontal bars
+@enduml

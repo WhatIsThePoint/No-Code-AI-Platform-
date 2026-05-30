@@ -1,0 +1,43 @@
+@startuml ch8_fig1
+!include _style.iuml
+left to right direction
+title Sprint 5 use case --- Multi-tenancy, Project ACL, Real-time Collaboration
+
+actor "Owner" as owner
+actor "Project Manager" as pm
+actor "Data Scientist" as ds
+actor "Analyst" as analyst
+actor "Viewer" as viewer
+
+rectangle "Pipeline collaboration" {
+  usecase "Invite member\n(by email)" as UC1
+  usecase "Change member role" as UC2
+  usecase "Remove member" as UC3
+  usecase "Open pipeline\n(join SocketIO room)" as UC4
+  usecase "Edit canvas" as UC5
+  usecase "Run training" as UC6
+  usecase "Send chat message\n(+ @mention)" as UC7
+  usecase "Start Google Meet" as UC8
+  usecase "View metrics\n(read-only)" as UC9
+  usecase "Download artefacts" as UC10
+}
+
+owner --> UC1
+owner --> UC2
+owner --> UC3
+owner --> UC8
+pm --> UC1
+pm --> UC2
+pm --> UC4
+pm --> UC5
+pm --> UC8
+ds --> UC4
+ds --> UC5
+ds --> UC6
+ds --> UC7
+analyst --> UC4
+analyst --> UC9
+analyst --> UC10
+viewer --> UC4
+viewer --> UC9
+@enduml

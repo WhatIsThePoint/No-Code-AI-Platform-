@@ -1,0 +1,57 @@
+@startuml ch10_fig6
+!include _style.iuml
+title Network topology --- gateway as single ingress
+
+skinparam linetype ortho
+
+actor "Browser" as ui
+cloud "Internet" as net
+
+rectangle "Host" {
+  rectangle "Exposed on host (only)" #fff5e6 {
+    component "api-gateway :8000" as gw
+    component "mailhog :8025 (dev only)" as mh
+  }
+
+  rectangle "internal Docker network: backend" #f5f7fb {
+    component "auth-service :8001" as auth
+    component "data-ingestion-service :8002" as data
+    component "ml-training-service :8003" as ml
+    component "metrics-service :8004" as metrics
+    component "dl-training-service :8005" as dl
+    database "postgres :5432" as pg
+    database "mongo :27017" as mongo
+    database "redis :6379" as redis
+    database "timescaledb :5432" as tsdb
+    component "ollama :11434" as oll
+  }
+}
+
+ui --> net : HTTPS
+net --> gw : 8000 only
+gw --> auth
+gw --> data
+gw --> ml
+gw --> metrics
+gw --> dl
+auth --> pg
+ml --> pg
+ml --> oll
+data --> mongo
+ml --> mongo
+dl --> mongo
+auth --> redis
+metrics --> tsdb
+
+note bottom of gw
+  Single ingress.
+  Strips X-User-*, X-Company-*,
+  X-Project-* and re-injects
+  from the decoded JWT.
+end note
+note bottom of mh
+  Only exposed in dev compose.
+  Production deployments
+  comment out the port mapping.
+end note
+@enduml

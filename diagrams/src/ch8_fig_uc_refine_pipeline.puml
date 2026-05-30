@@ -1,0 +1,31 @@
+@startuml ch8_fig_uc_refine_pipeline
+!include _style.iuml
+left to right direction
+title Use case refinement --- "Manage Pipeline membership"
+
+actor "Owner" as owner
+actor "Project Manager" as pm
+
+rectangle "Manage Pipeline membership (refined)" {
+  usecase "Invite by email" as A
+  usecase "Resend invite\n(email expired)" as B
+  usecase "Cancel pending invite" as C
+  usecase "Change member role" as D
+  usecase "Remove member" as E
+  usecase "Transfer ownership" as F
+  usecase "View members audit log" as G
+}
+
+owner --> A
+owner --> D
+owner --> E
+owner --> F
+owner --> G
+pm --> A
+pm --> B
+pm --> C
+pm --> D
+pm --> G
+A ..> B : <<extends>>
+F ..> G : <<includes>>
+@enduml

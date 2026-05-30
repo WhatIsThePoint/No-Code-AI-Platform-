@@ -1,0 +1,38 @@
+@startuml ch5_fig1
+!include _style.iuml
+left to right direction
+title Sprint 2 use case --- Visual canvas + Tabular ML
+
+actor "Data Scientist" as ds
+actor "Analyst" as analyst
+
+rectangle "Pipeline canvas (ML mode)" {
+  usecase "Open canvas" as UC1
+  usecase "Drop ML starter\ntemplate" as UC2
+  usecase "Pick algorithm\n(14 choices)" as UC3
+  usecase "Set hyperparameters" as UC4
+  usecase "Set target column" as UC5
+  usecase "Save pipeline" as UC6
+  usecase "Run training\n(emits live metrics)" as UC7
+  usecase "View results\n(matrix, SHAP, residuals)" as UC8
+  usecase "Compare models" as UC9
+  usecase "Promote default" as UC10
+  usecase "Export model\n(.joblib + FastAPI)" as UC11
+}
+
+ds --> UC1
+ds --> UC2
+ds --> UC3
+ds --> UC4
+ds --> UC5
+ds --> UC6
+ds --> UC7
+ds --> UC8
+ds --> UC9
+ds --> UC10
+ds --> UC11
+analyst --> UC8
+
+UC7 ..> UC8 : <<extends>>
+UC8 ..> UC11 : <<extends>>
+@enduml

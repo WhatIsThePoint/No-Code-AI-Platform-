@@ -1,0 +1,45 @@
+@startuml ch7_fig_activity_vram_guard
+!include _style.iuml
+title Activity --- 4-layer VRAM-guard defence chain
+
+|Frontend (DLTrainNode)|
+start
+:user picks arch + input_size + epochs + batch;
+:read user.limits from /users/me;
+:clamp slider max\nto tier ceilings (Layer 1);
+if (user tried to exceed?) then (no — clamped silently)
+  :submit POST /dl/train;
+else (yes — UI prevents it)
+  stop
+endif
+
+|Route handler (dl-training-service)|
+:lookup user.limits in Postgres;
+if (epochs > max_dl_epochs\nOR batch > max_dl_batch_size?) then (yes)
+  #ffd6c2:return 400\nepochs_over_tier_limit;
+  stop
+else (no)
+  :pass to VRAM guard (Layer 3);
+endif
+
+|VRAM guard (static estimator)|
+:weights = params_mb(arch);
+:optimizer = 3 * weights\n(weights + grads + 2 Adam moments);
+:activations = act_per_pixel * input² * batch;
+:total_mb = weights + optimizer\n + activations + 1 GB runtime;
+if (total_mb > tier.max_vram_mb - 1 GB?) then (yes)
+  #ffd6c2:return 400 vram_budget_exceeded\n{estimate, budget_mb};
+  stop
+else (no)
+endif
+
+|config.py hard cap (Layer 4)|
+if (epochs > HARD_MAX_EPOCHS\nOR batch > HARD_MAX_BATCH_SIZE?) then (yes)
+  #ffd6c2:return 400 hard_cap_exceeded;
+  stop
+else (no)
+  #c5e8a8:enqueue Celery task\non dl_training queue;
+  :return 202 {task_id};
+endif
+stop
+@enduml

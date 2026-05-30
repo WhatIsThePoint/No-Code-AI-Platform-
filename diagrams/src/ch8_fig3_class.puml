@@ -1,0 +1,87 @@
+@startuml ch8_fig3
+!include _style.iuml
+title Class diagram --- pipeline membership, chat, Meet integration
+
+class Pipeline {
+  +pipeline_id: str
+  +owner_id: UUID
+  +type: "ml" | "rag" | "dl"
+  +nodes: list[dict]
+  +edges: list[dict]
+  +status: str
+}
+
+class PipelineMembership {
+  +id: UUID
+  +pipeline_id: str
+  +user_id: UUID
+  +role: PipelineRole
+  +invited_by: UUID
+  +invited_at: datetime
+}
+
+enum PipelineRole {
+  OWNER
+  PROJECT_MANAGER
+  DATA_SCIENTIST
+  ANALYST
+  VIEWER
+}
+
+class PipelineInvitation {
+  +id: UUID
+  +pipeline_id: str
+  +email: str
+  +role: PipelineRole
+  +token: str
+  +accepted: bool
+  +expires_at: datetime
+}
+
+class ChatThread {
+  +id: UUID
+  +pipeline_id: str
+  +created_at: datetime
+}
+
+class ChatMessage {
+  +id: UUID
+  +thread_id: UUID
+  +author_id: UUID
+  +body: str
+  +mentions: list[UUID]
+  +created_at: datetime
+}
+
+class MeetLink {
+  +id: UUID
+  +pipeline_id: str
+  +created_by: UUID
+  +meet_url: str
+  +created_at: datetime
+}
+
+class PresenceSession <<transient>> {
+  +user_id: UUID
+  +pipeline_id: str
+  +colour: str
+  +cursor_x: int
+  +cursor_y: int
+  +selected_node: str
+  +last_seen: datetime
+}
+
+Pipeline "1" -- "*" PipelineMembership
+Pipeline "1" -- "*" PipelineInvitation
+Pipeline "1" -- "1" ChatThread
+ChatThread "1" -- "*" ChatMessage
+Pipeline "1" -- "*" MeetLink
+Pipeline "1" -- "*" PresenceSession : SocketIO room
+
+PipelineMembership --> PipelineRole
+
+note bottom of PresenceSession
+  In-memory, throttled to 50 ms.
+  Never persisted.
+end note
+@enduml

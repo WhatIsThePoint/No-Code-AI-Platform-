@@ -1,0 +1,36 @@
+@startuml ch4_fig3
+!include _style.iuml
+title Sequence --- async CSV upload + profiling via shared volume
+
+actor User
+participant "Browser" as ui
+participant "api-gateway" as gw
+participant "data-ingestion-service" as data
+participant "Celery worker\n(data-ingestion-worker)" as worker
+database "Mongo\n(datasets, task_results)" as mongo
+queue "Redis\n(broker)" as redis
+collections "uploaded_files\n(named Docker volume)" as vol
+
+User -> ui : drag & drop titanic.csv
+ui -> gw : POST /datasets (multipart)
+gw -> data : forward
+data -> vol : write /uploads/<id>.csv
+data -> mongo : INSERT datasets {status:'uploading'}
+data -> redis : enqueue profile_dataset(dataset_id)
+data --> gw : 201 {dataset_id}
+gw --> ui : 201
+ui -> ui : poll /datasets/<id> every 2s
+
+worker -> redis : dequeue profile_dataset
+worker -> mongo : UPDATE task_results {status:'running'}
+worker -> vol : read /uploads/<id>.csv
+worker -> worker : compute_profile_summary()\n  - dtypes\n  - missing %, skew, outliers\n  - imbalance, correlations
+worker -> mongo : UPDATE datasets {\n  status:'ready',\n  profiling_summary:{...},\n  row_count, column_count\n}
+worker -> mongo : UPDATE task_results {status:'success'}
+
+ui -> gw : GET /datasets/<id>
+gw -> data : forward
+data -> mongo : SELECT
+data --> ui : 200 {status:'ready', profile}
+ui --> User : profile cards + correlation heatmap
+@enduml

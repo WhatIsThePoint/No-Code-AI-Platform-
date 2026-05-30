@@ -1,0 +1,72 @@
+@startuml ch10_fig5
+!include _style.iuml
+title Deployment diagram --- 14 containers, three named volumes, single host
+
+node "Host machine\n(Ubuntu 24.04, 16 GB RAM,\nGTX 1660 Super 6 GB VRAM)" {
+
+  node "Docker (compose stack)" {
+
+    component "api-gateway\n:8000" as gw
+
+    package "Application services" {
+      component "auth-service\n:8001" as auth
+      component "data-ingestion-service\n:8002" as data
+      component "ml-training-service\n:8003" as ml
+      component "metrics-service\n:8004" as metrics
+      component "dl-training-service\n:8005 [GPU]" as dl
+    }
+
+    package "Celery workers" {
+      component "data-worker" as dataW
+      component "ml-worker" as mlW
+      component "dl-worker [GPU]" as dlW
+    }
+
+    database "postgres\n+ pgvector" as pg
+    database "mongo" as mongo
+    database "redis" as redis
+    database "timescaledb" as tsdb
+    component "ollama" as oll
+    component "ollama-pull\n(init, one-shot)" as ollpull
+    component "mailhog\n:1025 / :8025" as mh
+
+    storage "uploaded_files" as vol1
+    storage "model_artifacts" as vol2
+    storage "ollama_models" as vol3
+  }
+}
+
+cloud "Stripe (test)" as stripe <<external>>
+
+gw .. auth
+gw .. data
+gw .. ml
+gw .. metrics
+gw .. dl
+auth -- pg
+auth -- redis
+auth -- mh : SMTP
+auth ..> stripe : optional
+data -- mongo
+data -- vol1
+dataW -- redis
+mlW -- redis
+mlW -- vol2
+dlW -- redis
+dlW -- vol2
+ml -- mongo
+ml -- pg
+ml -- oll
+ml -- vol1
+dl -- mongo
+dl -- vol1
+dl -- vol2
+metrics -- tsdb
+ollpull --> oll : pulls llama3.2:3b once
+oll -- vol3
+
+note bottom of stripe
+  Optional. Without STRIPE_SECRET_KEY
+  the platform stays on the free tier.
+end note
+@enduml

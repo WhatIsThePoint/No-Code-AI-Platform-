@@ -1,0 +1,41 @@
+@startuml ch5_fig_seq_training
+!include _style.iuml
+title Sequence --- tabular ML training, browser to artefact
+
+actor User
+participant "Browser" as ui
+participant "api-gateway" as gw
+participant "ml-training-service" as ml
+participant "Celery worker\n(ml-worker)" as worker
+database "Mongo\n(pipelines, model_versions)" as mongo
+queue "Redis\nDB 0 broker / DB 2 socket" as redis
+collections "model_artifacts\n(named volume)" as vol
+
+User -> ui : click Run
+ui -> gw : POST /pipelines/<id>/run
+gw -> ml : forward
+ml -> mongo : SELECT pipelines WHERE id=?
+mongo --> ml : nodes + edges
+ml -> ml : extract algorithm + hyperparams + target
+ml -> redis : enqueue train_tabular(pipeline_id)
+ml --> ui : 202 {task_id}
+ui -> ui : SocketIO subscribe pipeline_<id>
+
+worker -> redis : dequeue train_tabular
+worker -> mongo : UPDATE pipelines status=running
+worker -> worker : load_dataset(parquet)
+worker -> worker : preprocess()\n  split 70/15/15,\n  impute, scale, encode
+worker -> redis : emit training_progress (stage=preparing_features)
+worker -> worker : model = model_factory(algorithm).build(hyperparams)
+worker -> worker : model.train(X_train, y_train)
+worker -> redis : emit training_metric per step
+worker -> worker : metrics = model.evaluate(X_test, y_test)
+worker -> worker : shap_values = TreeExplainer(model).shap_values(X_sample)
+worker -> vol : joblib.dump(model, /artifacts/<ver>.joblib)
+worker -> mongo : INSERT model_versions {metrics, shap_summary, file_path}
+worker -> mongo : UPDATE pipelines status=done
+worker -> redis : emit training_complete {version_id, metrics}
+
+redis -> ui : SocketIO event training_complete
+ui --> User : success toast + results panel\n  (confusion matrix, SHAP bar chart)
+@enduml

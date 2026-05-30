@@ -1,0 +1,32 @@
+@startuml ch5_fig_uc_refine_train
+!include _style.iuml
+left to right direction
+title Use case refinement --- "Train ML model"
+
+actor "Data Scientist" as ds
+
+rectangle "Train ML model (refined)" {
+  usecase "Pick algorithm" as A
+  usecase "Set hyperparameters" as B
+  usecase "Select target column" as C
+  usecase "Configure split\n(70 / 15 / 15)" as D
+  usecase "Trigger run" as E
+  usecase "Watch live metrics\n(SocketIO)" as F
+  usecase "Review SHAP" as G
+  usecase "Inspect confusion matrix" as H
+  usecase "Promote as default" as I
+  usecase "Export artefact" as J
+}
+
+ds --> A
+ds --> B
+ds --> C
+ds --> D
+ds --> E
+E ..> F : <<includes>>
+F ..> G : <<extends>>
+F ..> H : <<extends>>
+G ..> I : <<extends>>
+H ..> I : <<extends>>
+I ..> J : <<extends>>
+@enduml

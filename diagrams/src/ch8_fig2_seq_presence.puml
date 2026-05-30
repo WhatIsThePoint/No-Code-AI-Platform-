@@ -1,0 +1,52 @@
+@startuml ch8_fig2
+!include _style.iuml
+title Sequence --- real-time canvas presence over SocketIO
+
+actor "User A" as A
+actor "User B" as B
+participant "Browser A" as uiA
+participant "Browser B" as uiB
+participant "api-gateway\n(SocketIO server)" as gw
+queue "Redis DB 2\n(socket message bus)" as redis
+
+== Both users open the pipeline ==
+A -> uiA : open /pipelines/<id>
+uiA -> gw : connect /presence namespace
+gw -> redis : join room pipeline_<id>
+gw --> uiA : welcome
+B -> uiB : open /pipelines/<id>
+uiB -> gw : connect /presence
+gw -> redis : join room pipeline_<id>
+gw --> uiB : welcome
+gw -> redis : broadcast {event:presence_join, user:B}
+redis --> uiA : presence_join {user:B, colour}
+uiA -> uiA : add B's cursor overlay
+
+== User A moves cursor ==
+loop @ 60 Hz throttled to 1 / 50 ms
+  uiA -> gw : emit cursor_move {x, y}
+  gw -> redis : publish to pipeline_<id>
+  redis --> uiB : cursor_move
+  uiB -> uiB : update A's cursor at (x, y)
+end
+
+== User A selects a node ==
+A -> uiA : click node n2
+uiA -> gw : emit node_select {node_id:n2}
+gw -> redis : publish
+redis --> uiB : node_select
+uiB -> uiB : highlight n2 with A's colour
+
+== User B saves an edit ==
+B -> uiB : drag n3 to new position + save
+uiB -> gw : PUT /pipelines/<id> (REST, role-checked)
+gw -> redis : emit pipeline_updated to room
+redis --> uiA : pipeline_updated {nodes, edges}
+uiA -> uiA : reconcile canvas state
+
+== B disconnects ==
+uiB -> gw : disconnect
+gw -> redis : leave room + broadcast presence_leave
+redis --> uiA : presence_leave {user:B}
+uiA -> uiA : remove B's cursor
+@enduml

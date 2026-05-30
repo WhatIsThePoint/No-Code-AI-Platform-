@@ -1,0 +1,50 @@
+@startuml ch4_fig2
+!include _style.iuml
+title Sequence --- Sign in + JWT issuance + refresh-token rotation
+
+actor User
+participant "Browser\n(React SPA)" as ui
+participant "api-gateway\n:8000" as gw
+participant "auth-service\n:8001" as auth
+database "Postgres" as pg
+database "Redis\n(JTI blacklist)" as redis
+
+User -> ui : email + password
+ui -> gw : POST /auth/login\n{email, password}
+gw -> auth : forward (public prefix)
+auth -> pg : SELECT users WHERE email
+pg --> auth : user row
+auth -> auth : bcrypt.check_password_hash()
+
+alt email_verified == false
+  auth --> gw : 403 email_not_verified
+  gw --> ui : 403 + email hint
+  ui --> User : "Open the link in MailHog"
+else email_verified == true and totp_enabled == false
+  auth -> auth : create_access_token() (15 min)
+  auth -> auth : secrets.token_hex(64) — raw refresh
+  auth -> pg : INSERT refresh_tokens\n(token_hash = sha256(raw))
+  auth --> gw : 200 {access_token}\nSet-Cookie: refresh_token (HttpOnly)
+  gw --> ui : 200 + cookie
+  ui -> ui : sessionStorage.set(access_token)
+  User -> ui : navigates app
+else totp_enabled == true
+  auth -> auth : issue_2fa_session_token() (5 min)
+  auth --> ui : 200 requires_2fa\n{session_token}
+  User -> ui : enters 6-digit code
+  ui -> gw : POST /auth/2fa/verify
+  gw -> auth : forward
+  auth -> auth : pyotp.verify(code)
+  auth --> ui : 200 {access_token} + cookie
+end
+
+== silent refresh, ~15 min later ==
+ui -> gw : POST /auth/refresh\n(cookie carries old refresh_token)
+gw -> auth : forward
+auth -> pg : SELECT refresh_tokens\nWHERE token_hash = sha256(old)
+pg --> auth : row found, not revoked
+auth -> pg : UPDATE refresh_tokens SET revoked=true (old)
+auth -> pg : INSERT refresh_tokens (new)
+auth --> gw : 200 {access_token (new)} + new cookie
+gw --> ui : 200
+@enduml

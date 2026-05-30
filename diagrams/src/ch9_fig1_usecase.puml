@@ -1,0 +1,51 @@
+@startuml ch9_fig1
+!include _style.iuml
+left to right direction
+title Sprint 6 use case --- Dashboard, Admin Console, i18n / a11y
+
+actor "Authenticated user" as user
+actor "Super-admin" as admin
+actor "Stripe" as stripe <<system>>
+
+rectangle "User dashboard" {
+  usecase "View datasets / pipelines /\nmodel versions" as UC1
+  usecase "Open AI Companion" as UC2
+  usecase "Toggle EN ↔ FR" as UC3
+  usecase "Toggle high-contrast" as UC4
+  usecase "Open notification bell" as UC5
+  usecase "Upgrade tier\n(Stripe Checkout)" as UC6
+  usecase "Manage in Stripe Portal" as UC7
+  usecase "Undo / redo on canvas" as UC8
+}
+
+rectangle "Admin operations" {
+  usecase "Stats & Logs\n(audit + failed logins)" as A1
+  usecase "User Management" as A2
+  usecase "Override quotas" as A3
+  usecase "Suspend / delete user" as A4
+  usecase "Impersonate user\n(5-min TTL)" as A5
+  usecase "Queue + hardware\nmonitor" as A6
+  usecase "Migration drift panel" as A7
+  usecase "Publish announcement" as A8
+}
+
+user --> UC1
+user --> UC2
+user --> UC3
+user --> UC4
+user --> UC5
+user --> UC6
+user --> UC7
+user --> UC8
+UC6 ..> stripe
+UC7 ..> stripe
+
+admin --> A1
+admin --> A2
+admin --> A3
+admin --> A4
+admin --> A5
+admin --> A6
+admin --> A7
+admin --> A8
+@enduml

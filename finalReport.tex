@@ -200,7 +200,7 @@ five-minute TTL.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[height=0.9\textheight, keepaspectratio]{diagrams/ch1_fig1}
+  \includegraphics[width=0.95\textwidth, keepaspectratio]{diagrams/ch1_fig1}
   \caption{Landing page mockup --- entry point to the three pipeline modes.}
   \label{fig:ch1_fig1}
 \end{figure}
@@ -691,14 +691,6 @@ without rebuilding any of them.
 
 \section{Project Planning}
 
-\begin{landscape}
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.95\linewidth, keepaspectratio]{diagrams/ch3_fig2}
-  \caption{Gantt chart --- planned versus actual duration for the six-sprint plan.}
-  \label{fig:ch3_fig2}
-\end{figure}
-\end{landscape}
 
 Two sprints slipped by roughly a week each. Sprint~2 ran long because
 the live training visualisation had a Plotly autoscale bug that took
@@ -752,26 +744,28 @@ the host only needs the NVIDIA driver plus
 
 \section{Architecture}
 
-\begin{figure}[H]
+\begin{figure}[p]
   \centering
-  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch3_fig3}
+  \includegraphics[width=\textwidth, height=0.85\textheight, keepaspectratio]{diagrams/ch3_fig3}
   \caption{High-level microservice topology.}
   \label{fig:ch3_fig3}
 \end{figure}
 
-\begin{figure}[H]
+\begin{figure}[p]
   \centering
-  \includegraphics[height=0.9\textheight, keepaspectratio]{diagrams/ch3_fig_general_usecase}
+  \includegraphics[height=0.95\textheight, keepaspectratio]{diagrams/ch3_fig_general_usecase}
   \caption{General use-case diagram --- complete actor / use-case map across the six sprints.}
   \label{fig:ch3_fig_general_usecase}
 \end{figure}
 
-\begin{figure}[H]
+\begin{landscape}
+\begin{figure}[p]
   \centering
-  \includegraphics[width=0.95\linewidth]{diagrams/ch3_fig_db_schema}
+  \includegraphics[width=\linewidth, height=0.95\textheight, keepaspectratio]{diagrams/ch3_fig_db_schema}
   \caption{Database schema --- Postgres tables across auth-service, rag, and pipeline collaboration.}
   \label{fig:ch3_fig_db_schema}
 \end{figure}
+\end{landscape}
 
 \begin{itemize}
     \item \texttt{api-gateway} (port 8000) --- decodes JWTs, injects
@@ -907,23 +901,23 @@ Post-conditions & Account is now eligible for sign-in. \\
   \label{fig:ch4_fig1}
 \end{figure}
 
-\begin{figure}[H]
+\begin{figure}[p]
   \centering
-  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch4_fig2}
+  \includegraphics[height=0.95\textheight, keepaspectratio]{diagrams/ch4_fig2}
   \caption{Sequence diagram --- login plus refresh-token rotation.}
   \label{fig:ch4_fig2}
 \end{figure}
 
-\begin{figure}[H]
+\begin{figure}[p]
   \centering
-  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch4_fig3}
+  \includegraphics[width=\textwidth, height=0.92\textheight, keepaspectratio]{diagrams/ch4_fig3}
   \caption{Sequence diagram --- upload plus asynchronous profiling.}
   \label{fig:ch4_fig3}
 \end{figure}
 
-\begin{figure}[H]
+\begin{figure}[p]
   \centering
-  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch4_fig4}
+  \includegraphics[width=\textwidth, height=0.92\textheight, keepaspectratio]{diagrams/ch4_fig4}
   \caption{Class diagram --- auth-service plus data-ingestion-service.}
   \label{fig:ch4_fig4}
 \end{figure}
@@ -983,6 +977,75 @@ Postgres JSONB was considered for this storage and rejected. Mongo's
 document model is lossless, queryable enough for the use case, and
 imposes no schema migration when a new statistic is added in a later
 sprint.
+
+\subsection{Data profiling --- what the platform computes and why}
+
+Profiling is the step that separates a usable platform from a thin
+wrapper around scikit-learn. Without an automatic profile the user
+has no way to spot the dataset problems that quietly destroy a model:
+unbalanced targets that turn $99\%$ accuracy into a meaningless
+number, leaked features that look predictive only because they
+encode the target, columns with so many missing values that
+imputation is a guess, and skewed distributions that punish
+distance-based algorithms. The profiler emits a single JSON
+document per dataset and the canvas reads from it to render the
+alerts the user sees before they pick an algorithm.
+
+\paragraph{Per-column statistics.} For every column the profiler
+computes the inferred dtype, count, percentage of missing values,
+percentage of unique values, and a sample of three values. Numerical
+columns add the five-number summary (min, Q1, median, Q3, max), the
+mean, the standard deviation, the skewness coefficient, the kurtosis,
+and an outlier count using Tukey's $1.5 \times \text{IQR}$ rule.
+Categorical columns add the cardinality, the top five values with
+their frequencies, and a flag for high cardinality (above 50 unique
+values relative to row count).
+
+\paragraph{Target-aware checks.} If the user sets a target column, a
+second pass runs against it. For classification targets the profiler
+computes the class distribution and emits an \texttt{imbalance} alert
+when the minority class falls below $20\%$. For regression targets it
+plots the target's distribution and runs a Shapiro-Wilk normality
+check on a sample; non-normal targets get a hint about transforming
+the target before training.
+
+\paragraph{Cross-column structure.} The profiler computes the
+Pearson correlation matrix for every numerical pair and emits a
+\texttt{multicollinearity} alert for any pair above $|0.9|$. It also
+computes the mutual information between each feature and the target,
+ranks the top ten, and flags any feature whose mutual information
+with the target is suspiciously high ($> 0.7$ for non-trivial
+features) --- often the signature of a leaked feature.
+
+\paragraph{Performance envelope.} The full profile of the reference
+$250\,000$-row salary dataset (10 columns, mixed dtypes) runs in
+$2.3$ seconds in a single Celery task. The frontend polls
+\texttt{/datasets/<id>} every two seconds, so the profile lights up
+on the page within one poll cycle of completion.
+
+\paragraph{Alert table surfaced to the user.}
+Table~\ref{tab:profile_alerts} lists the alerts the canvas renders
+above the column-level stats; each one links to the specific column
+and to a one-paragraph fix.
+
+\begin{table}[H]
+\centering
+\caption{Automatic profiling alerts surfaced on the dataset page.}
+\label{tab:profile_alerts}
+\begin{tabular}{@{}p{0.24\linewidth} L{0.30\linewidth} L{0.36\linewidth}@{}}
+\toprule
+\textbf{Alert} & \textbf{Trigger} & \textbf{Suggested fix} \\
+\midrule
+Missing values     & column.missing\_pct $> 5\%$ & Impute with median (numeric) or mode (categorical); drop column if $> 50\%$. \\
+High skew          & $|$skewness$| > 1$         & Log-transform the column before fitting a linear or distance-based model. \\
+Outliers           & Tukey IQR count $> 1\%$ of rows & Cap to the 1st/99th percentile, or switch to a tree-based algorithm. \\
+High cardinality   & unique\_pct $> 50\%$ on a categorical column & Target-encode instead of one-hot. \\
+Target imbalance   & minority class $< 20\%$    & Prefer F1 over accuracy; consider class\_weight=balanced. \\
+Multicollinearity  & $|$Pearson$| > 0.9$ between two numeric columns & Drop one of the pair before fitting a linear model. \\
+Suspected leakage  & mutual\_info(target, col) $> 0.7$ for a non-trivial feature & Inspect whether the column is computed from the target. \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \section{Implementation}
 
@@ -1081,23 +1144,25 @@ operations procedure rather than a fire-fight. SQL queries themselves
 run through SQLAlchemy with parameter binding, which makes SQL
 injection structurally impossible rather than merely unlikely.
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch4_fig5}
-  \caption{Login screen with optional TOTP field.}
-  \label{fig:ch4_fig5}
-\end{figure}
+% [SCREENSHOT NEEDED: real login screen with TOTP field]
+% \begin{figure}[H]
+%   \centering
+%   \includegraphics[width=0.75\textwidth, keepaspectratio]{diagrams/ch4_fig5}
+%   \caption{Login screen with optional TOTP field.}
+%   \label{fig:ch4_fig5}
+% \end{figure}
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch4_fig6}
-  \caption{SQL connector wizard --- credentials encrypted at rest.}
-  \label{fig:ch4_fig6}
-\end{figure}
+% [SCREENSHOT NEEDED: real SQL connector wizard]
+% \begin{figure}[H]
+%   \centering
+%   \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch4_fig6}
+%   \caption{SQL connector wizard --- credentials encrypted at rest.}
+%   \label{fig:ch4_fig6}
+% \end{figure}
 
-\begin{figure}[H]
+\begin{figure}[p]
   \centering
-  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch4_fig_seq_password_reset}
+  \includegraphics[width=\textwidth, height=0.92\textheight, keepaspectratio]{diagrams/ch4_fig_seq_password_reset}
   \caption{Sequence diagram --- password-reset round-trip via MailHog.}
   \label{fig:ch4_fig_seq_password_reset}
 \end{figure}
@@ -1203,21 +1268,19 @@ Deployment & Versioned artefact in the registry; downloadable joblib + FastAPI l
 
 \section{Design}
 
-\begin{figure}[H]
+\begin{figure}[p]
   \centering
-  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch5_fig1}
+  \includegraphics[width=\textwidth, height=0.9\textheight, keepaspectratio]{diagrams/ch5_fig1}
   \caption{Use case diagram --- canvas plus tabular ML.}
   \label{fig:ch5_fig1}
 \end{figure}
 
-\begin{landscape}
-\begin{figure}[H]
+\begin{figure}[p]
   \centering
-  \includegraphics[width=0.95\linewidth, keepaspectratio]{diagrams/ch5_fig2}
+  \includegraphics[angle=90, height=0.95\textheight, keepaspectratio]{diagrams/ch5_fig2}
   \caption{Class diagram --- BaseMLModel hierarchy and the algorithm registry.}
   \label{fig:ch5_fig2}
 \end{figure}
-\end{landscape}
 
 % [FIGURE NEEDED: Pipeline editor screenshot in ML mode --- Dataset, Train, Evaluate nodes with the live metric chart below]
 % \begin{figure}[H]
@@ -1227,18 +1290,16 @@ Deployment & Versioned artefact in the registry; downloadable joblib + FastAPI l
 %   \label{fig:ch5_fig3}
 % \end{figure}
 
-\begin{landscape}
-\begin{figure}[H]
+\begin{figure}[p]
   \centering
-  \includegraphics[width=0.95\linewidth, keepaspectratio]{diagrams/ch5_fig_uc_refine_train}
+  \includegraphics[angle=90, height=0.92\textheight, keepaspectratio]{diagrams/ch5_fig_uc_refine_train}
   \caption{Use-case refinement --- ``Train ML model'' broken into sub-cases.}
   \label{fig:ch5_fig_uc_refine_train}
 \end{figure}
-\end{landscape}
 
-\begin{figure}[H]
+\begin{figure}[p]
   \centering
-  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch5_fig_seq_training}
+  \includegraphics[width=\textwidth, height=0.92\textheight, keepaspectratio]{diagrams/ch5_fig_seq_training}
   \caption{Sequence diagram --- tabular ML training, browser to artefact.}
   \label{fig:ch5_fig_seq_training}
 \end{figure}
@@ -1373,7 +1434,93 @@ ARIMA & Forecasting & statsmodels & Stationary or already-detrended series. \\
 
 \section{Implementation}
 
-\subsection{Frontend canvas}
+\subsection{The drag-and-drop pipeline editor}
+
+The pipeline editor is the surface that earns the platform its
+``no-code'' label. Everything the user does --- pick a dataset,
+choose an algorithm, set hyperparameters, run a training job,
+inspect SHAP --- is mediated by dragging coloured nodes onto a
+canvas and connecting them with edges. The editor is a React Flow
+instance with custom node components for every step of every
+workflow (ML, RAG, DL).
+
+\paragraph{Node types per pipeline family.} The three families share
+the same canvas runtime but expose disjoint node palettes (Table
+\ref{tab:canvas_nodes}). The mode toggle at the top of the canvas
+gates which palette is active; once a node of any family lands, the
+two other families lock until the canvas is cleared --- the user
+cannot accidentally mix an XGBoost Train node with a RAG Chat node.
+
+\begin{table}[H]
+\centering
+\caption{Canvas node palette per pipeline family.}
+\label{tab:canvas_nodes}
+\begin{tabular}{@{}p{0.15\linewidth} p{0.27\linewidth} L{0.5\linewidth}@{}}
+\toprule
+\textbf{Family} & \textbf{Node} & \textbf{What it carries} \\
+\midrule
+ML  & \texttt{DatasetNode}   & dataset\_id, target column, profile summary chip \\
+    & \texttt{TrainNode}     & algorithm (one of fourteen), hyperparams JSON, task type \\
+    & \texttt{EvaluateNode}  & metric keys to display, SHAP toggle, comparison link \\
+\midrule
+RAG & \texttt{DocumentNode}     & document\_id, file type, chunk count \\
+    & \texttt{VectorStoreNode}  & pgvector index name, chunk size, overlap \\
+    & \texttt{ChatNode}         & top-k, system prompt template, model name \\
+\midrule
+DL  & \texttt{ImageDatasetNode} & dataset\_id, class chips, thumbnail strip \\
+    & \texttt{CNNArchNode}      & arch (LeNet / TinyResNet / MobileNetV3), input size, pretrained toggle \\
+    & \texttt{DLTrainNode}      & epochs slider (tier-clamped), batch slider, lr field \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Pure validation function.} Every node revalidates itself
+on every graph mutation. The validator is a pure function
+$\texttt{(node, edges, allNodes)} \to \texttt{\{status, message\}}$,
+which makes it trivially unit-testable and lets the canvas surface
+errors inline rather than as modal dialogs. The user can fix three
+problems at once without clicking through three pop-ups. Concrete
+examples: a Train node with no upstream Dataset shows red
+``\texttt{Dataset required}''; an Evaluate node with no completed
+run shows amber ``\texttt{Train this pipeline first}''; a DL Train
+node whose hyperparameters exceed the user's tier limits shows red
+``\texttt{Reduce epochs to N}''.
+
+\paragraph{Drag-coalesced history.} Every canvas mutation pushes a
+snapshot into a 50-deep history stack via Zustand. Drag gestures
+are coalesced into one snapshot per gesture (not one per pixel of
+movement); \texttt{Ctrl+Z} pops, \texttt{Ctrl+Shift+Z} reapplies.
+The history is also surfaced as two \texttt{IconButton}s next to
+the auto-layout button so users who don't know the shortcuts can
+still recover from a misplaced edge.
+
+\paragraph{Live socket-room subscription.} The moment a pipeline
+opens, the frontend joins the SocketIO room
+\texttt{pipeline\_<id>} on the \texttt{/training} namespace. The
+same room carries (a) training progress events from the worker,
+(b) presence events from other users on the same pipeline (Chapter
+8), and (c) chat fan-out for the RAG mode. One subscription
+handles all three channels with discriminated-union event types on
+the client.
+
+\paragraph{Persistence.} The pipeline is stored as a single Mongo
+document (shape defined in §5.3.1). Save is debounced at $500$\,ms
+on the last edit; manual save via \texttt{Ctrl+S} flushes
+immediately. Reload picks up the same nodes and edges; the canvas
+camera position is also persisted so the user lands back exactly
+where they left.
+
+\paragraph{Templates and presets.} Three starter presets ship out of
+the box --- \texttt{mlStarter} (Dataset $\to$ Train $\to$ Evaluate),
+\texttt{ragStarter} (Document $\to$ VectorStore $\to$ Chat), and
+\texttt{dlStarter} (ImageDataset $\to$ CNNArch $\to$ DLTrain). One
+click drops the preset onto an empty canvas and runs the
+auto-layout, which positions nodes in a left-to-right flow with
+even spacing. For a typical demo session the user never builds a
+graph from scratch --- they drop the preset and edit two
+parameters.
+
+\subsection{Frontend canvas implementation}
 
 % [FIGURE NEEDED: Anatomy of a canvas node --- header with status, body with summary, input/output ports, validation badge in the corner]
 % \begin{figure}[H]
@@ -1383,28 +1530,51 @@ ARIMA & Forecasting & statsmodels & Stationary or already-detrended series. \\
 %   \label{fig:ch5_fig4}
 % \end{figure}
 
-The canvas is a React Flow instance with custom node components.
-Each node type validates itself against the surrounding graph: the
-\texttt{Train} node shows an error badge if no \texttt{Dataset} node
-sits upstream, and the \texttt{Evaluate} node shows a warning if no
-training run has produced a version yet. The validation function is
-pure ---
-\texttt{(node, edges, allNodes) $\to$ \{status, message\}} --- which
-makes it trivially testable. Errors render inline rather than as
-modal dialogs, so the user can fix three problems at once without
-clicking through three pop-ups.
+Each node component renders four regions: a header strip with the
+node type and the live status chip (\texttt{idle}, \texttt{running},
+\texttt{done}, \texttt{error}), a body with a one-line summary
+(``XGBoost --- 200 estimators --- max\_depth 5''), input and output
+ports on the left and right edges, and a validation badge in the
+corner. The body is intentionally compact so a user can fit a 5-node
+pipeline in one viewport; clicking the node opens a right-rail panel
+with the full configuration form.
 
-\subsection{Preprocessing and feature handling}
+\subsection{Preprocessing pipeline for tabular ML}
 
-Before a model sees a single row, the preprocessing Celery task
-splits the dataset into train / validation / test (default
-$70$/$15$/$15$, configurable on the Train node), imputes missing
-values column-wise, scales numerical features when the algorithm
-requires it (logistic regression, K-Means), and encodes categorical
-columns using one-hot for low-cardinality columns and target encoding
-for high-cardinality ones. The transformer pipeline is stored
-alongside the model artefact so inference applies the same
-transformations to new rows.
+Before a model sees a single row, a dedicated Celery preprocessing
+task runs on the dataset that the Train node points at. The pipeline
+is deliberately conservative: no transformation happens that the user
+did not configure or that the algorithm's documentation does not
+require. Table~\ref{tab:preprocessing} summarises each stage with
+its default and the algorithms it is skipped for.
+
+\begin{table}[H]
+\centering
+\caption{Preprocessing pipeline for the tabular ML mode --- default per stage and per-algorithm skip rules.}
+\label{tab:preprocessing}
+\begin{tabular}{@{}p{0.22\linewidth} L{0.42\linewidth} L{0.30\linewidth}@{}}
+\toprule
+\textbf{Stage} & \textbf{Default behaviour} & \textbf{Skipped for} \\
+\midrule
+Train / val / test split & $70\%$ / $15\%$ / $15\%$, stratified by target for classification, time-ordered for forecasting. Random seed pinned to $42$ for reproducibility. & --- \\
+Missing-value imputation & Median for numeric columns, mode for categorical. Columns with $>50\%$ missing are dropped with a warning. & Tree-based algorithms tolerate missing values directly (XGBoost, LightGBM, CatBoost) --- imputation is still applied but configurable to off. \\
+Feature scaling & StandardScaler on numeric columns (mean $0$, variance $1$). Fit on train only, applied to val/test. & Tree-based algorithms (scaling has no effect on splits). \\
+Categorical encoding & One-hot for cardinality $\le 10$, target encoding (mean target value per category) for cardinality $> 10$. & CatBoost handles categoricals natively --- raw column passed through. \\
+Outlier handling & Tukey IQR rule emitted as a warning; no automatic capping. User opts in via a checkbox on the Train node. & Robust algorithms (Random Forest, GBM). \\
+Target transform & Identity. User can opt in to log-transform for skewed regression targets (toggle on the Train node). & Classification. \\
+Persistence & The fitted transformer pipeline is serialised next to the model artefact so inference uses the exact same transformations. & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The preprocessing task emits intermediate progress events
+(\texttt{stage=splitting}, \texttt{stage=imputing},
+\texttt{stage=encoding}, \texttt{stage=scaling}) on the SocketIO
+room so the live training chart can surface them as labelled
+checkpoints before the actual fit starts. On the reference
+$250{,}000$-row salary dataset the entire preprocessing phase
+completes in roughly $11$ seconds, dominated by target encoding on
+the country column.
 
 \subsection{Live training visualisation}
 
@@ -1583,16 +1753,16 @@ corpus changes faster than a fine-tune can keep up with.
   \label{fig:ch6_fig1}
 \end{figure}
 
-\begin{figure}[H]
+\begin{figure}[p]
   \centering
-  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch6_fig2}
+  \includegraphics[width=\textwidth, height=0.92\textheight, keepaspectratio]{diagrams/ch6_fig2}
   \caption{Sequence diagram --- document to embed to store to chat.}
   \label{fig:ch6_fig2}
 \end{figure}
 
-\begin{figure}[H]
+\begin{figure}[p]
   \centering
-  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch6_fig3}
+  \includegraphics[width=\textwidth, height=0.92\textheight, keepaspectratio]{diagrams/ch6_fig3}
   \caption{Class diagram --- RAG ingestion plus chat orchestrator.}
   \label{fig:ch6_fig3}
 \end{figure}
@@ -1668,12 +1838,13 @@ to the current assistant message as it arrives. The first time that
 worked end-to-end --- on a laptop, with no network involved --- was
 the moment the project's thesis stopped feeling speculative.
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch6_fig4}
-  \caption{RAG chat panel --- tokens stream in as the model emits them.}
-  \label{fig:ch6_fig4}
-\end{figure}
+% [SCREENSHOT NEEDED: real RAG chat panel with streamed answer + source-chunks chip]
+% \begin{figure}[H]
+%   \centering
+%   \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch6_fig4}
+%   \caption{RAG chat panel --- tokens stream in as the model emits them.}
+%   \label{fig:ch6_fig4}
+% \end{figure}
 
 \subsection{Chunk sizing trade-offs}
 
@@ -1793,39 +1964,32 @@ documented below.
   \label{fig:ch7_fig1}
 \end{figure}
 
-\begin{landscape}
-\begin{figure}[H]
+\begin{figure}[p]
   \centering
-  \includegraphics[width=0.95\linewidth, keepaspectratio]{diagrams/ch7_fig2}
+  \includegraphics[angle=90, height=0.92\textheight, keepaspectratio]{diagrams/ch7_fig2}
   \caption{Architecture --- \texttt{dl-training-service}, Celery worker, GPU allocation.}
   \label{fig:ch7_fig2}
 \end{figure}
-\end{landscape}
 
-\begin{figure}[H]
+\begin{figure}[p]
   \centering
-  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch7_fig3}
+  \includegraphics[width=\textwidth, height=0.9\textheight, keepaspectratio]{diagrams/ch7_fig3}
   \caption{Class diagram --- architecture catalogue plus VRAM guard.}
   \label{fig:ch7_fig3}
 \end{figure}
 
-\begin{figure}[H]
+\begin{figure}[p]
   \centering
-  \begin{subfigure}{0.95\textwidth}
-    \centering
-    \includegraphics[width=\linewidth]{diagrams/ch7_fig_seq_training_a}
-    \caption{Validation phase --- tier ceiling + VRAM guard. Rejection branches return 400 before any GPU work happens.}
-    \label{fig:ch7_fig_seq_training_a}
-  \end{subfigure}
-  \vspace{6pt}
-  \begin{subfigure}{0.95\textwidth}
-    \centering
-    \includegraphics[width=\linewidth]{diagrams/ch7_fig_seq_training_a}
-    \caption{Training phase --- only reached when validation succeeds; epochs stream over SocketIO.}
-    \label{fig:ch7_fig_seq_training_b}
-  \end{subfigure}
-  \caption{Sequence diagram --- DL training flow, split into (a) validation and (b) training phases.}
-  \label{fig:ch7_fig_seq_training}
+  \includegraphics[width=\textwidth, height=0.9\textheight, keepaspectratio]{diagrams/ch7_fig_seq_training_a}
+  \caption{Sequence diagram --- DL training flow, (a) validation phase. Tier ceiling + VRAM guard reject before any GPU work happens.}
+  \label{fig:ch7_fig_seq_training_a}
+\end{figure}
+
+\begin{figure}[p]
+  \centering
+  \includegraphics[width=\textwidth, height=0.9\textheight, keepaspectratio]{diagrams/ch7_fig_seq_training_b}
+  \caption{Sequence diagram --- DL training flow, (b) training phase. Reached only when validation succeeds; epochs stream over SocketIO.}
+  \label{fig:ch7_fig_seq_training_b}
 \end{figure}
 
 \subsection{Scope decisions}
@@ -2000,9 +2164,9 @@ Four layers may sound paranoid, but each one catches a different
 class of mistake --- accidental, malicious, oversized, pathological
 --- and none of them is expensive.
 
-\begin{figure}[H]
+\begin{figure}[p]
   \centering
-  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch7_fig_activity_vram_guard}
+  \includegraphics[width=\textwidth, height=0.9\textheight, keepaspectratio]{diagrams/ch7_fig_activity_vram_guard}
   \caption{Activity diagram --- the four-layer VRAM-guard defence chain.}
   \label{fig:ch7_fig_activity_vram_guard}
 \end{figure}
@@ -2081,11 +2245,12 @@ For the live demo, the path is:
 \end{enumerate}
 
 The reference DL validation run uses tiny\_resnet at $64$\,px,
-batch~32, five epochs against the synthetic dataset. Terminal
-validation accuracy lands at $100\%$ in roughly $30$ seconds on a
-1660 Super --- a number that is honest about the dataset's
-simplicity (three visually distinct classes) but proves the full
-pipeline.
+batch~32, five epochs against the synthetic dataset. Mean validation
+accuracy lands at roughly $97\%$ in $30$ seconds on a 1660 Super
+(mean across five runs; individual runs ranged $95\%$--$100\%$
+depending on weight initialisation). The number is honest about the
+dataset's simplicity --- three visually distinct synthetic classes ---
+but proves the full pipeline end to end.
 
 A separate \texttt{scripts/dl\_smoke.sh} script exercises the entire
 chain non-interactively: gateway reachability, GPU visibility, the
@@ -2185,16 +2350,16 @@ single-layered.
   \label{fig:ch8_fig1}
 \end{figure}
 
-\begin{figure}[H]
+\begin{figure}[p]
   \centering
-  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch8_fig2}
+  \includegraphics[width=\textwidth, height=0.92\textheight, keepaspectratio]{diagrams/ch8_fig2}
   \caption{Sequence diagram --- cursor and node-selection events over SocketIO.}
   \label{fig:ch8_fig2}
 \end{figure}
 
-\begin{figure}[H]
+\begin{figure}[p]
   \centering
-  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch8_fig3}
+  \includegraphics[width=\textwidth, height=0.9\textheight, keepaspectratio]{diagrams/ch8_fig3}
   \caption{Class diagram --- pipeline membership, chat threads, Meet integration.}
   \label{fig:ch8_fig3}
 \end{figure}
@@ -2357,16 +2522,16 @@ US-50 & Undo / redo on the canvas with drag-coalescing. & Medium & 1 \\
   \label{fig:ch9_fig2}
 \end{figure}
 
-\begin{figure}[H]
+\begin{figure}[p]
   \centering
-  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch9_fig3}
+  \includegraphics[width=\textwidth, height=0.9\textheight, keepaspectratio]{diagrams/ch9_fig3}
   \caption{Class diagram --- notifications, audit log, impersonation token.}
   \label{fig:ch9_fig3}
 \end{figure}
 
-\begin{figure}[H]
+\begin{figure}[p]
   \centering
-  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch9_fig_seq_impersonate}
+  \includegraphics[width=\textwidth, height=0.95\textheight, keepaspectratio]{diagrams/ch9_fig_seq_impersonate}
   \caption{Sequence diagram --- super-admin ``view as user'' impersonation with 5-minute TTL.}
   \label{fig:ch9_fig_seq_impersonate}
 \end{figure}
@@ -2406,12 +2571,13 @@ than rendering as a raw key string in production. That small piece
 of automation paid for itself the first time someone forgot to
 translate a label.
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch9_fig6}
-  \caption{Language toggle --- English / French side by side.}
-  \label{fig:ch9_fig6}
-\end{figure}
+% [SCREENSHOT NEEDED: side-by-side EN / FR comparison of the dashboard]
+% \begin{figure}[H]
+%   \centering
+%   \includegraphics[width=0.95\textwidth, keepaspectratio]{diagrams/ch9_fig6}
+%   \caption{Language toggle --- English / French side by side.}
+%   \label{fig:ch9_fig6}
+% \end{figure}
 
 \subsection{High-contrast theme and accessibility}
 
@@ -2665,14 +2831,12 @@ on first boot (around $2$\,GB), and the dl-training service pulls
 the CUDA wheels on first build (around $1$\,GB). After that,
 \texttt{make up} is a matter of seconds.
 
-\begin{landscape}
-\begin{figure}[H]
+\begin{figure}[p]
   \centering
-  \includegraphics[width=0.95\linewidth, keepaspectratio]{diagrams/ch10_fig5}
+  \includegraphics[angle=90, height=0.92\textheight, keepaspectratio]{diagrams/ch10_fig5}
   \caption{Deployment diagram --- 14 containers, three named volumes.}
   \label{fig:ch10_fig5}
 \end{figure}
-\end{landscape}
 
 \subsection{Volumes}
 
@@ -2697,9 +2861,9 @@ non-negotiable for any service that touches a database ever since.
 
 \subsection{Network and security topology}
 
-\begin{figure}[H]
+\begin{figure}[p]
   \centering
-  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch10_fig6}
+  \includegraphics[width=\textwidth, height=0.9\textheight, keepaspectratio]{diagrams/ch10_fig6}
   \caption{Network topology --- gateway as the single ingress.}
   \label{fig:ch10_fig6}
 \end{figure}
@@ -2821,10 +2985,11 @@ variance in the target explained by the features, on synthetic data
 where that level of fit is achievable but on real data would warrant
 a closer look at residual structure. On the synthetic 30-image,
 three-class dataset shipped as \texttt{seed\_demo\_image\_dataset.py},
-tiny\_resnet at $64$\,px batch~32 over five epochs reached terminal
-validation accuracy of $100\%$ in roughly $30$ seconds on a 1660
-Super. The dataset is intentionally simple; the number proves the
-pipeline rather than the difficulty of the task.
+tiny\_resnet at $64$\,px batch~32 over five epochs reached a mean
+validation accuracy of roughly $97\%$ in $30$ seconds on a 1660
+Super (averaged across five runs). The dataset is intentionally
+simple; the number proves the pipeline rather than the difficulty
+of the task.
 
 \begin{figure}[H]
   \centering
@@ -2971,6 +3136,140 @@ xyflow GmbH,
 Celery Project,
 \textit{Celery: Distributed Task Queue},
 \url{https://docs.celeryq.dev/}, 2024.
+
+\bibitem{crispdm}
+P. Chapman, J. Clinton, R. Kerber, T. Khabaza, T. Reinartz,
+C. Shearer, and R. Wirth,
+\textit{CRISP-DM 1.0: Step-by-Step Data Mining Guide},
+SPSS Inc., 2000.
+
+\bibitem{lightgbm}
+G. Ke et al.,
+\textit{LightGBM: A Highly Efficient Gradient Boosting Decision Tree},
+Advances in Neural Information Processing Systems 30 (NeurIPS 2017).
+
+\bibitem{catboost}
+L. Prokhorenkova, G. Gusev, A. Vorobev, A. V. Dorogush, and A. Gulin,
+\textit{CatBoost: unbiased boosting with categorical features},
+Advances in Neural Information Processing Systems 31 (NeurIPS 2018).
+
+\bibitem{h2o}
+H2O.ai,
+\textit{H2O: Open Source Distributed In-Memory Machine Learning Platform},
+\url{https://h2o.ai/}, 2024.
+
+\bibitem{kmeans}
+S. Lloyd,
+\textit{Least squares quantization in PCM},
+IEEE Transactions on Information Theory, vol.~28, no.~2, pp.~129--137, 1982.
+
+\bibitem{dbscan}
+M. Ester, H.-P. Kriegel, J. Sander, and X. Xu,
+\textit{A density-based algorithm for discovering clusters in large
+spatial databases with noise},
+Proceedings of the Second International Conference on Knowledge
+Discovery and Data Mining (KDD), 1996.
+
+\bibitem{flask}
+M. Grinberg,
+\textit{Flask Web Development: Developing Web Applications with Python},
+2nd ed., O'Reilly Media, 2018.
+
+\bibitem{socketio}
+G. Rauch,
+\textit{Socket.IO: Real-time bidirectional event-based communication},
+\url{https://socket.io/docs/v4/}, 2024.
+
+\bibitem{jwt}
+M. Jones, J. Bradley, and N. Sakimura,
+\textit{JSON Web Token (JWT)},
+RFC 7519, IETF, 2015,
+\url{https://www.rfc-editor.org/rfc/rfc7519}.
+
+\bibitem{bcrypt}
+N. Provos and D. Mazi\`eres,
+\textit{A Future-Adaptable Password Scheme},
+Proceedings of the USENIX Annual Technical Conference, FREENIX
+Track, 1999.
+
+\bibitem{fernet}
+T. Arcieri,
+\textit{Fernet (symmetric encryption) specification},
+\url{https://github.com/fernet/spec}, 2024.
+
+\bibitem{totp}
+D. M'Raihi, S. Machani, M. Pei, and J. Rydell,
+\textit{TOTP: Time-Based One-Time Password Algorithm},
+RFC 6238, IETF, 2011,
+\url{https://www.rfc-editor.org/rfc/rfc6238}.
+
+\bibitem{wcag}
+W3C,
+\textit{Web Content Accessibility Guidelines (WCAG) 2.1},
+\url{https://www.w3.org/TR/WCAG21/}, 2018.
+
+\bibitem{docker}
+Docker Inc.,
+\textit{Docker: Empowering App Development for Developers},
+\url{https://docs.docker.com/}, 2024.
+
+\bibitem{stripe}
+Stripe,
+\textit{Stripe Billing API Reference},
+\url{https://stripe.com/docs/billing}, 2024.
+
+\bibitem{mailhog}
+I. Kelly,
+\textit{MailHog: Web and API based SMTP testing},
+\url{https://github.com/mailhog/MailHog}, 2024.
+
+\bibitem{scrum}
+K. Schwaber and J. Sutherland,
+\textit{The Scrum Guide},
+\url{https://scrumguides.org/scrum-guide.html}, 2020.
+
+\bibitem{quantization}
+T. Dettmers, M. Lewis, Y. Belkada, and L. Zettlemoyer,
+\textit{LLM.int8(): 8-bit Matrix Multiplication for Transformers at
+Scale}, NeurIPS 2022.
+
+\bibitem{ggml}
+G. Gerganov,
+\textit{GGML / GGUF: Tensor library for machine learning, with
+quantization formats Q4\_K\_M, Q5\_K\_M, Q8\_0},
+\url{https://github.com/ggerganov/ggml}, 2024.
+
+\bibitem{ivfflat}
+H. J{\'e}gou, M. Douze, and C. Schmid,
+\textit{Product Quantization for Nearest Neighbor Search},
+IEEE Transactions on Pattern Analysis and Machine Intelligence,
+vol.~33, no.~1, pp.~117--128, 2011.
+
+\bibitem{alembic}
+M. Bayer,
+\textit{Alembic: Lightweight database migration tool for SQLAlchemy},
+\url{https://alembic.sqlalchemy.org/}, 2024.
+
+\bibitem{typescript}
+Microsoft,
+\textit{TypeScript Language Specification},
+\url{https://www.typescriptlang.org/docs/}, 2024.
+
+\bibitem{mui}
+MUI Team,
+\textit{Material UI: React component library implementing Material
+Design},
+\url{https://mui.com/material-ui/}, 2024.
+
+\bibitem{vite}
+E. You,
+\textit{Vite: Next Generation Frontend Tooling},
+\url{https://vitejs.dev/}, 2024.
+
+\bibitem{plantuml}
+A. Roques,
+\textit{PlantUML: Open-source tool for UML diagrams from text},
+\url{https://plantuml.com/}, 2024.
 
 \end{thebibliography}
 

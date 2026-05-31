@@ -338,13 +338,13 @@ def conclusion_fig1_results():
     ax2.text(0.5, 0.82, "Synthetic 30 images · 3 classes", ha="center", va="top",
              transform=ax2.transAxes, fontsize=11, style="italic")
 
-    ax2.text(0.5, 0.62, "100%", ha="center", va="center",
+    ax2.text(0.5, 0.62, "~97%", ha="center", va="center",
              transform=ax2.transAxes, fontsize=42, weight="bold", color=PALETTE["secondary"])
-    ax2.text(0.5, 0.5, "validation accuracy", ha="center", va="center",
+    ax2.text(0.5, 0.5, "mean validation accuracy", ha="center", va="center",
              transform=ax2.transAxes, fontsize=14, color="#555")
 
     ax2.text(0.5, 0.35, "tiny_resnet · 64 px · batch 32", ha="center", transform=ax2.transAxes, fontsize=11)
-    ax2.text(0.5, 0.27, "5 epochs · ~30 s on GTX 1660 Super", ha="center", transform=ax2.transAxes, fontsize=10)
+    ax2.text(0.5, 0.27, "5 epochs · ~30 s on GTX 1660 Super (mean across 5 runs)", ha="center", transform=ax2.transAxes, fontsize=10)
     ax2.text(0.5, 0.18, "VRAM guard kept us at 1.4 GB / 6 GB", ha="center", transform=ax2.transAxes, fontsize=10)
     ax2.text(0.5, 0.09, "Inline Try-It panel · ~5 ms / image (CPU)",
              ha="center", transform=ax2.transAxes, fontsize=10, style="italic")

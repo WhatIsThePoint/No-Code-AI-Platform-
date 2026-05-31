@@ -198,13 +198,12 @@ own dashboard for user management, audit logs, queue health, hardware
 monitoring, and a ``view-as-user'' impersonation flow gated by a hard
 five-minute TTL.
 
-% [FIGURE NEEDED: Annotated mockup of the landing page showing the hero, three pillar cards (ML/RAG/DL), and primary call-to-action]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.85\textwidth]{figures/placeholder_ch1_fig1}
-%   \caption{Landing page mockup --- entry point to the three pipeline modes.}
-%   \label{fig:ch1_fig1}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[height=0.9\textheight, keepaspectratio]{diagrams/ch1_fig1}
+  \caption{Landing page mockup --- entry point to the three pipeline modes.}
+  \label{fig:ch1_fig1}
+\end{figure}
 
 \section{Requirements Specification}
 
@@ -301,13 +300,12 @@ up with a single \texttt{make up} on a clean machine, and continuous
 integration must complete in under fifteen minutes for a full-stack
 change. These limits shaped almost every later design choice.
 
-% [FIGURE NEEDED: High-level deployment diagram showing host machine, GPU, Docker network, named volumes, and the external Stripe boundary]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.85\textwidth]{figures/placeholder_ch1_fig2}
-%   \caption{Deployment envelope --- a single host, a single GPU, fourteen containers.}
-%   \label{fig:ch1_fig2}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch1_fig2}
+  \caption{Deployment envelope --- a single host, a single GPU, fourteen containers.}
+  \label{fig:ch1_fig2}
+\end{figure}
 
 \section{Deliverables and Evaluation Criteria}
 
@@ -371,21 +369,19 @@ active. The mockup made it explicit from day one that the admin
 console is a separate surface, not a privileged view of the user
 app.
 
-% [FIGURE NEEDED: Authentication screen mockup with email/password and an optional TOTP entry tile]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.85\textwidth]{figures/placeholder_ch1_fig3}
-%   \caption{Authentication interface --- email/password with optional TOTP.}
-%   \label{fig:ch1_fig3}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch1_fig3}
+  \caption{Authentication interface --- email/password with optional TOTP.}
+  \label{fig:ch1_fig3}
+\end{figure}
 
-% [FIGURE NEEDED: Authenticated home page mockup --- left sidebar, datasets and pipelines cards, quota panel]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.85\textwidth]{figures/placeholder_ch1_fig4}
-%   \caption{Home page interface for a signed-in user.}
-%   \label{fig:ch1_fig4}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch1_fig4}
+  \caption{Home page interface for a signed-in user.}
+  \label{fig:ch1_fig4}
+\end{figure}
 
 \section{Project Duration}
 
@@ -438,13 +434,12 @@ model training, and their LLM panels almost always route requests
 back through OpenAI. The locality story they tell only holds for the
 tabular path.
 
-% [FIGURE NEEDED: 2x2 positioning matrix --- axes are "Privacy (local vs cloud)" and "Approachability (code vs no-code)" --- shows the four families plus this project]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.85\textwidth]{figures/placeholder_ch2_fig1}
-%   \caption{Positioning of existing no-code ML solutions against this project's design intent.}
-%   \label{fig:ch2_fig1}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch2_fig1}
+  \caption{Positioning of existing no-code ML solutions against this project's design intent.}
+  \label{fig:ch2_fig1}
+\end{figure}
 
 \section{Observed Problems}
 
@@ -516,13 +511,12 @@ VRAM. A 1660 Super, with $6$\,GB of VRAM and $30$\,TFLOPS of FP16
 throughput, serves roughly $30$ tokens per second on a 3B model ---
 enough latency budget for an interactive RAG chat.
 
-% [FIGURE NEEDED: Bar chart showing FP16/Q8/Q5/Q4 quantisation footprints for a 3B model, with a horizontal line at 6 GB indicating the demo-box ceiling]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.85\textwidth]{figures/placeholder_ch2_fig2}
-%   \caption{Quantisation level versus VRAM footprint for a 3B-parameter model.}
-%   \label{fig:ch2_fig2}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch2_fig2}
+  \caption{Quantisation level versus VRAM footprint for a 3B-parameter model.}
+  \label{fig:ch2_fig2}
+\end{figure}
 
 \section{État de l'art technique}
 
@@ -623,13 +617,12 @@ feature falls through.
 
 \section{Scrum Methodology}
 
-% [FIGURE NEEDED: Scrum framework diagram with the three roles, three artefacts, and five events]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.85\textwidth]{figures/placeholder_ch3_fig1}
-%   \caption{The Scrum framework --- roles, artefacts, events.}
-%   \label{fig:ch3_fig1}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch3_fig1}
+  \caption{The Scrum framework --- roles, artefacts, events.}
+  \label{fig:ch3_fig1}
+\end{figure}
 
 \subsection{Scrum Roles}
 
@@ -698,13 +691,14 @@ without rebuilding any of them.
 
 \section{Project Planning}
 
-% [FIGURE NEEDED: Gantt chart showing planned vs actual duration for each of the six sprints, with overruns annotated]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.95\textwidth]{figures/placeholder_ch3_fig2}
-%   \caption{Gantt chart --- planned versus actual duration for the six-sprint plan.}
-%   \label{fig:ch3_fig2}
-% \end{figure}
+\begin{landscape}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\linewidth, keepaspectratio]{diagrams/ch3_fig2}
+  \caption{Gantt chart --- planned versus actual duration for the six-sprint plan.}
+  \label{fig:ch3_fig2}
+\end{figure}
+\end{landscape}
 
 Two sprints slipped by roughly a week each. Sprint~2 ran long because
 the live training visualisation had a Plotly autoscale bug that took
@@ -758,33 +752,26 @@ the host only needs the NVIDIA driver plus
 
 \section{Architecture}
 
-% [FIGURE NEEDED: Microservice topology diagram --- gateway, five services, three Celery workers, four data stores, Ollama, message bus, with port numbers]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.95\textwidth]{figures/placeholder_ch3_fig3}
-%   \caption{High-level microservice topology.}
-%   \label{fig:ch3_fig3}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch3_fig3}
+  \caption{High-level microservice topology.}
+  \label{fig:ch3_fig3}
+\end{figure}
 
-% [FIGURE NEEDED: General use-case diagram --- every actor (Visitor, Free user, Solo user, Company user, Project Manager, Data Scientist, Analyst, Viewer, Super-admin) connected to every major use case (Sign-up, Verify email, Reset password, Upload dataset, Build pipeline, Train ML, Train RAG, Train DL, Manage members, Admin operations). Landscape to fit.]
-% \begin{landscape}
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.95\linewidth]{figures/placeholder_ch3_fig_general_usecase}
-%   \caption{General use-case diagram --- complete actor / use-case map across the six sprints.}
-%   \label{fig:ch3_fig_general_usecase}
-% \end{figure}
-% \end{landscape}
+\begin{figure}[H]
+  \centering
+  \includegraphics[height=0.9\textheight, keepaspectratio]{diagrams/ch3_fig_general_usecase}
+  \caption{General use-case diagram --- complete actor / use-case map across the six sprints.}
+  \label{fig:ch3_fig_general_usecase}
+\end{figure}
 
-% [FIGURE NEEDED: Database schema --- ER-style diagram of every Postgres table (users, refresh_tokens, subscriptions, companies, memberships, invitations, pipeline_members, audit_logs, announcements, rag_documents, rag_chunks). Landscape to fit relationships without crossing.]
-% \begin{landscape}
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.95\linewidth]{figures/placeholder_ch3_fig_db_schema}
-%   \caption{Database schema --- Postgres tables across auth-service, rag, and pipeline collaboration.}
-%   \label{fig:ch3_fig_db_schema}
-% \end{figure}
-% \end{landscape}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\linewidth]{diagrams/ch3_fig_db_schema}
+  \caption{Database schema --- Postgres tables across auth-service, rag, and pipeline collaboration.}
+  \label{fig:ch3_fig_db_schema}
+\end{figure}
 
 \begin{itemize}
     \item \texttt{api-gateway} (port 8000) --- decodes JWTs, injects
@@ -913,37 +900,33 @@ Post-conditions & Account is now eligible for sign-in. \\
 
 \section{Design}
 
-% [FIGURE NEEDED: Use case diagram for Sprint 1 --- actors (user, super-admin) and the auth + ingestion use cases]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.85\textwidth]{figures/placeholder_ch4_fig1}
-%   \caption{Use case diagram --- authentication and ingestion.}
-%   \label{fig:ch4_fig1}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch4_fig1}
+  \caption{Use case diagram --- authentication and ingestion.}
+  \label{fig:ch4_fig1}
+\end{figure}
 
-% [FIGURE NEEDED: Sequence diagram for login + JWT issuance + refresh-token rotation through the gateway]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.85\textwidth]{figures/placeholder_ch4_fig2}
-%   \caption{Sequence diagram --- login plus refresh-token rotation.}
-%   \label{fig:ch4_fig2}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch4_fig2}
+  \caption{Sequence diagram --- login plus refresh-token rotation.}
+  \label{fig:ch4_fig2}
+\end{figure}
 
-% [FIGURE NEEDED: Sequence diagram for asynchronous CSV upload --- browser to API to shared volume to Celery worker to Mongo]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.85\textwidth]{figures/placeholder_ch4_fig3}
-%   \caption{Sequence diagram --- upload plus asynchronous profiling.}
-%   \label{fig:ch4_fig3}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch4_fig3}
+  \caption{Sequence diagram --- upload plus asynchronous profiling.}
+  \label{fig:ch4_fig3}
+\end{figure}
 
-% [FIGURE NEEDED: Class diagram covering User, RefreshToken, Subscription, Dataset, ProfilingResult]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.85\textwidth]{figures/placeholder_ch4_fig4}
-%   \caption{Class diagram --- auth-service plus data-ingestion-service.}
-%   \label{fig:ch4_fig4}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch4_fig4}
+  \caption{Class diagram --- auth-service plus data-ingestion-service.}
+  \label{fig:ch4_fig4}
+\end{figure}
 
 \subsection{Why an opaque-but-decoded gateway}
 
@@ -1098,29 +1081,26 @@ operations procedure rather than a fire-fight. SQL queries themselves
 run through SQLAlchemy with parameter binding, which makes SQL
 injection structurally impossible rather than merely unlikely.
 
-% [FIGURE NEEDED: Login screen screenshot with optional TOTP entry]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.75\textwidth]{figures/placeholder_ch4_fig5}
-%   \caption{Login screen with optional TOTP field.}
-%   \label{fig:ch4_fig5}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch4_fig5}
+  \caption{Login screen with optional TOTP field.}
+  \label{fig:ch4_fig5}
+\end{figure}
 
-% [FIGURE NEEDED: SQL connector wizard screenshot --- credentials, test connection, save]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.85\textwidth]{figures/placeholder_ch4_fig6}
-%   \caption{SQL connector wizard --- credentials encrypted at rest.}
-%   \label{fig:ch4_fig6}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch4_fig6}
+  \caption{SQL connector wizard --- credentials encrypted at rest.}
+  \label{fig:ch4_fig6}
+\end{figure}
 
-% [FIGURE NEEDED: Sequence diagram for the password-reset round-trip --- user requests forgot-password, auth-service mints token + persists hash, mail-service sends to MailHog, user clicks link, frontend POSTs token + new password, auth-service validates TTL and revokes refresh tokens, user signs in with new password.]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.85\textwidth]{figures/placeholder_ch4_fig_seq_password_reset}
-%   \caption{Sequence diagram --- password-reset round-trip via MailHog.}
-%   \label{fig:ch4_fig_seq_password_reset}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch4_fig_seq_password_reset}
+  \caption{Sequence diagram --- password-reset round-trip via MailHog.}
+  \label{fig:ch4_fig_seq_password_reset}
+\end{figure}
 
 \section{Unit Tests}
 
@@ -1196,13 +1176,12 @@ US-20 & Model export (joblib + generated FastAPI inference script). & Medium & 1
 We framed the ML work through the CRISP-DM lifecycle. The mapping
 makes it concrete what each phase delivered for this project.
 
-% [FIGURE NEEDED: CRISP-DM six-phase cycle diagram --- Business Understanding / Data Understanding / Data Preparation / Modelling / Evaluation / Deployment arranged in a circle with arrows. Centre node: the canvas pipeline.]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.7\textwidth]{figures/placeholder_ch5_fig_crispdm}
-%   \caption{CRISP-DM lifecycle mapped onto the Sprint~2 pipeline.}
-%   \label{fig:ch5_fig_crispdm}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch5_fig_crispdm}
+  \caption{CRISP-DM lifecycle mapped onto the Sprint~2 pipeline.}
+  \label{fig:ch5_fig_crispdm}
+\end{figure}
 
 \begin{table}[H]
 \centering
@@ -1224,21 +1203,21 @@ Deployment & Versioned artefact in the registry; downloadable joblib + FastAPI l
 
 \section{Design}
 
-% [FIGURE NEEDED: Use case diagram for Sprint 2 --- canvas, training, evaluation, comparison, export]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.85\textwidth]{figures/placeholder_ch5_fig1}
-%   \caption{Use case diagram --- canvas plus tabular ML.}
-%   \label{fig:ch5_fig1}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch5_fig1}
+  \caption{Use case diagram --- canvas plus tabular ML.}
+  \label{fig:ch5_fig1}
+\end{figure}
 
-% [FIGURE NEEDED: Class diagram showing BaseMLModel and its fourteen subclasses, grouped by ecosystem (sklearn / H2O / boosters / Prophet)]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.85\textwidth]{figures/placeholder_ch5_fig2}
-%   \caption{Class diagram --- BaseMLModel hierarchy and the algorithm registry.}
-%   \label{fig:ch5_fig2}
-% \end{figure}
+\begin{landscape}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\linewidth, keepaspectratio]{diagrams/ch5_fig2}
+  \caption{Class diagram --- BaseMLModel hierarchy and the algorithm registry.}
+  \label{fig:ch5_fig2}
+\end{figure}
+\end{landscape}
 
 % [FIGURE NEEDED: Pipeline editor screenshot in ML mode --- Dataset, Train, Evaluate nodes with the live metric chart below]
 % \begin{figure}[H]
@@ -1248,29 +1227,28 @@ Deployment & Versioned artefact in the registry; downloadable joblib + FastAPI l
 %   \label{fig:ch5_fig3}
 % \end{figure}
 
-% [FIGURE NEEDED: Use-case refinement diagram for "Train ML model" --- expanded into sub-cases: Pick algorithm, Set hyperparameters, Select target column, Configure split, Trigger run, Inspect live metrics, Review SHAP, Promote to default, Export.]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.85\textwidth]{figures/placeholder_ch5_fig_uc_refine_train}
-%   \caption{Use-case refinement --- ``Train ML model'' broken into sub-cases.}
-%   \label{fig:ch5_fig_uc_refine_train}
-% \end{figure}
+\begin{landscape}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\linewidth, keepaspectratio]{diagrams/ch5_fig_uc_refine_train}
+  \caption{Use-case refinement --- ``Train ML model'' broken into sub-cases.}
+  \label{fig:ch5_fig_uc_refine_train}
+\end{figure}
+\end{landscape}
 
-% [FIGURE NEEDED: Sequence diagram for tabular ML training --- browser POSTs /pipelines/<id>/run, gateway forwards to ml-training-service, service enqueues Celery task, worker loads dataset from shared volume, preprocesses (split, impute, scale, encode), instantiates BaseMLModel subclass, fits, computes metrics + SHAP, persists artefact to Mongo, emits training_complete on SocketIO, frontend renders results.]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.95\textwidth]{figures/placeholder_ch5_fig_seq_training}
-%   \caption{Sequence diagram --- tabular ML training, browser to artefact.}
-%   \label{fig:ch5_fig_seq_training}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch5_fig_seq_training}
+  \caption{Sequence diagram --- tabular ML training, browser to artefact.}
+  \label{fig:ch5_fig_seq_training}
+\end{figure}
 
-% [FIGURE NEEDED: State diagram for the pipeline lifecycle --- states: draft, running, done, error; transitions: Save (draft->draft), Run (draft->running), worker success (running->done), worker failure (running->error), Edit (done->draft), Retry (error->running).]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.7\textwidth]{figures/placeholder_ch5_fig_state_pipeline}
-%   \caption{State diagram --- pipeline lifecycle transitions.}
-%   \label{fig:ch5_fig_state_pipeline}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch5_fig_state_pipeline}
+  \caption{State diagram --- pipeline lifecycle transitions.}
+  \label{fig:ch5_fig_state_pipeline}
+\end{figure}
 
 \subsection{Graph schema}
 
@@ -1439,13 +1417,12 @@ values (typically $0$--$1$) live on different ranges --- progress on
 the primary axis, metrics on the secondary. A small detail, but the
 chart was unreadable until that split landed.
 
-% [FIGURE NEEDED: Live training chart screenshot --- dual Y axes, progress curve, metric curve]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.85\textwidth]{figures/placeholder_ch5_fig5}
-%   \caption{Live training chart --- progress on the primary axis, metric on the secondary.}
-%   \label{fig:ch5_fig5}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch5_fig5}
+  \caption{Live training chart --- progress on the primary axis, metric on the secondary.}
+  \label{fig:ch5_fig5}
+\end{figure}
 
 \subsection{Evaluation and metric interpretation}
 
@@ -1481,13 +1458,12 @@ faster than the general-purpose \texttt{KernelExplainer}. On a
 $5{,}000$-row test set that is the difference between SHAP being a
 feature and SHAP being a wait.
 
-% [FIGURE NEEDED: SHAP feature importance bar chart for the reference salary regression run]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.85\textwidth]{figures/placeholder_ch5_fig6}
-%   \caption{SHAP feature importance bar chart --- top contributors to the prediction.}
-%   \label{fig:ch5_fig6}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch5_fig6}
+  \caption{SHAP feature importance bar chart --- top contributors to the prediction.}
+  \label{fig:ch5_fig6}
+\end{figure}
 
 \subsection{Model export}
 
@@ -1600,29 +1576,26 @@ corpus changes faster than a fine-tune can keep up with.
 
 \section{Design}
 
-% [FIGURE NEEDED: Use case diagram for Sprint 3 --- ingest document, configure RAG, chat with context]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.85\textwidth]{figures/placeholder_ch6_fig1}
-%   \caption{Use case diagram --- RAG pipeline.}
-%   \label{fig:ch6_fig1}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch6_fig1}
+  \caption{Use case diagram --- RAG pipeline.}
+  \label{fig:ch6_fig1}
+\end{figure}
 
-% [FIGURE NEEDED: Sequence diagram for ingest-then-chat --- document upload, chunking, embedding, pgvector insert, question retrieval, Ollama generation, streamed reply]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.95\textwidth]{figures/placeholder_ch6_fig2}
-%   \caption{Sequence diagram --- document to embed to store to chat.}
-%   \label{fig:ch6_fig2}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch6_fig2}
+  \caption{Sequence diagram --- document to embed to store to chat.}
+  \label{fig:ch6_fig2}
+\end{figure}
 
-% [FIGURE NEEDED: Class diagram --- DocumentChunk, EmbeddingVector, RAGConfig, ChatThread, ChatMessage]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.85\textwidth]{figures/placeholder_ch6_fig3}
-%   \caption{Class diagram --- RAG ingestion plus chat orchestrator.}
-%   \label{fig:ch6_fig3}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch6_fig3}
+  \caption{Class diagram --- RAG ingestion plus chat orchestrator.}
+  \label{fig:ch6_fig3}
+\end{figure}
 
 A Retrieval-Augmented Generation pipeline grounds a language model in
 documents the user provides. The pipeline embeds each document chunk
@@ -1695,13 +1668,12 @@ to the current assistant message as it arrives. The first time that
 worked end-to-end --- on a laptop, with no network involved --- was
 the moment the project's thesis stopped feeling speculative.
 
-% [FIGURE NEEDED: RAG chat panel screenshot --- question, streamed answer, source-chunks chip with similarity scores]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.85\textwidth]{figures/placeholder_ch6_fig4}
-%   \caption{RAG chat panel --- tokens stream in as the model emits them.}
-%   \label{fig:ch6_fig4}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch6_fig4}
+  \caption{RAG chat panel --- tokens stream in as the model emits them.}
+  \label{fig:ch6_fig4}
+\end{figure}
 
 \subsection{Chunk sizing trade-offs}
 
@@ -1814,51 +1786,47 @@ documented below.
 
 \section{Design}
 
-% [FIGURE NEEDED: Use case diagram for Sprint 4 --- upload image dataset, configure architecture, train, predict]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.85\textwidth]{figures/placeholder_ch7_fig1}
-%   \caption{Use case diagram --- DL pipeline.}
-%   \label{fig:ch7_fig1}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch7_fig1}
+  \caption{Use case diagram --- DL pipeline.}
+  \label{fig:ch7_fig1}
+\end{figure}
 
-% [FIGURE NEEDED: DL service architecture --- API container, Celery worker with GPU reservation, model registry volume, VRAM guard]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.95\textwidth]{figures/placeholder_ch7_fig2}
-%   \caption{Architecture --- \texttt{dl-training-service}, Celery worker, GPU allocation.}
-%   \label{fig:ch7_fig2}
-% \end{figure}
+\begin{landscape}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\linewidth, keepaspectratio]{diagrams/ch7_fig2}
+  \caption{Architecture --- \texttt{dl-training-service}, Celery worker, GPU allocation.}
+  \label{fig:ch7_fig2}
+\end{figure}
+\end{landscape}
 
-% [FIGURE NEEDED: Class diagram --- ArchitectureCatalog (LeNet/TinyResNet/MobileNetV3), VRAMGuard, TrainRequest, TrainResult]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.85\textwidth]{figures/placeholder_ch7_fig3}
-%   \caption{Class diagram --- architecture catalogue plus VRAM guard.}
-%   \label{fig:ch7_fig3}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch7_fig3}
+  \caption{Class diagram --- architecture catalogue plus VRAM guard.}
+  \label{fig:ch7_fig3}
+\end{figure}
 
-% [FIGURE NEEDED: Sequence diagram for the DL training flow, split across two stacked subfigures.
-%   (a) Validation phase: POST /dl/train -> gateway -> dl-training-service -> tier-ceiling check -> VRAM-guard estimate; rejection branch returns 400 with structured payload.
-%   (b) Training phase (only reached on validation success): enqueue Celery task -> worker loads ImageFolder dataset -> instantiates arch from catalogue -> training loop emits training_epoch on SocketIO -> save state_dict -> emit training_complete -> Try-It panel renders.]
-% \begin{figure}[H]
-%   \centering
-%   \begin{subfigure}{0.95\textwidth}
-%     \centering
-%     \includegraphics[width=\linewidth]{figures/placeholder_ch7_fig_seq_training_a}
-%     \caption{Validation phase --- tier ceiling + VRAM guard. Rejection branches return 400 before any GPU work happens.}
-%     \label{fig:ch7_fig_seq_training_a}
-%   \end{subfigure}
-%   \vspace{6pt}
-%   \begin{subfigure}{0.95\textwidth}
-%     \centering
-%     \includegraphics[width=\linewidth]{figures/placeholder_ch7_fig_seq_training_b}
-%     \caption{Training phase --- only reached when validation succeeds; epochs stream over SocketIO.}
-%     \label{fig:ch7_fig_seq_training_b}
-%   \end{subfigure}
-%   \caption{Sequence diagram --- DL training flow, split into (a) validation and (b) training phases.}
-%   \label{fig:ch7_fig_seq_training}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}{0.95\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{diagrams/ch7_fig_seq_training_a}
+    \caption{Validation phase --- tier ceiling + VRAM guard. Rejection branches return 400 before any GPU work happens.}
+    \label{fig:ch7_fig_seq_training_a}
+  \end{subfigure}
+  \vspace{6pt}
+  \begin{subfigure}{0.95\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{diagrams/ch7_fig_seq_training_a}
+    \caption{Training phase --- only reached when validation succeeds; epochs stream over SocketIO.}
+    \label{fig:ch7_fig_seq_training_b}
+  \end{subfigure}
+  \caption{Sequence diagram --- DL training flow, split into (a) validation and (b) training phases.}
+  \label{fig:ch7_fig_seq_training}
+\end{figure}
 
 \subsection{Scope decisions}
 
@@ -2032,13 +2000,12 @@ Four layers may sound paranoid, but each one catches a different
 class of mistake --- accidental, malicious, oversized, pathological
 --- and none of them is expensive.
 
-% [FIGURE NEEDED: Activity diagram for the 4-layer VRAM-guard defence chain. Swimlanes: Frontend / Route / VRAM-Guard / Hard-Cap. Start: user drags slider. Decision diamond at each layer: (1) slider clamps to tier ceiling -> (2) route rejects if posted value exceeds tier -> (3) static estimator computes total_mb, rejects if > budget-1GB -> (4) HARD_MAX cap rejects regardless. Success path enqueues Celery task.]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.95\textwidth]{figures/placeholder_ch7_fig_activity_vram_guard}
-%   \caption{Activity diagram --- the four-layer VRAM-guard defence chain.}
-%   \label{fig:ch7_fig_activity_vram_guard}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch7_fig_activity_vram_guard}
+  \caption{Activity diagram --- the four-layer VRAM-guard defence chain.}
+  \label{fig:ch7_fig_activity_vram_guard}
+\end{figure}
 
 \subsection{Frontend integration}
 
@@ -2211,37 +2178,33 @@ single-layered.
 
 \section{Design}
 
-% [FIGURE NEEDED: Use case diagram for Sprint 5 --- owner, project manager, data scientist, analyst, viewer]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.85\textwidth]{figures/placeholder_ch8_fig1}
-%   \caption{Use case diagram --- collaboration roles and actions.}
-%   \label{fig:ch8_fig1}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[height=0.9\textheight, keepaspectratio]{diagrams/ch8_fig1}
+  \caption{Use case diagram --- collaboration roles and actions.}
+  \label{fig:ch8_fig1}
+\end{figure}
 
-% [FIGURE NEEDED: Sequence diagram --- two clients join a pipeline room, cursor and node-selection events fan out]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.95\textwidth]{figures/placeholder_ch8_fig2}
-%   \caption{Sequence diagram --- cursor and node-selection events over SocketIO.}
-%   \label{fig:ch8_fig2}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch8_fig2}
+  \caption{Sequence diagram --- cursor and node-selection events over SocketIO.}
+  \label{fig:ch8_fig2}
+\end{figure}
 
-% [FIGURE NEEDED: Class diagram --- Pipeline, PipelineMembership, ChatThread, ChatMessage, MeetLink]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.85\textwidth]{figures/placeholder_ch8_fig3}
-%   \caption{Class diagram --- pipeline membership, chat threads, Meet integration.}
-%   \label{fig:ch8_fig3}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch8_fig3}
+  \caption{Class diagram --- pipeline membership, chat threads, Meet integration.}
+  \label{fig:ch8_fig3}
+\end{figure}
 
-% [FIGURE NEEDED: Use-case refinement diagram for "Manage Pipeline membership" --- sub-cases: Invite by email, Change role, Remove member, Transfer ownership, View audit log. Actors: Owner, Project Manager.]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.85\textwidth]{figures/placeholder_ch8_fig_uc_refine_pipeline}
-%   \caption{Use-case refinement --- ``Manage Pipeline membership'' broken into sub-cases.}
-%   \label{fig:ch8_fig_uc_refine_pipeline}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch8_fig_uc_refine_pipeline}
+  \caption{Use-case refinement --- ``Manage Pipeline membership'' broken into sub-cases.}
+  \label{fig:ch8_fig_uc_refine_pipeline}
+\end{figure}
 
 \subsection{The role hierarchy}
 
@@ -2380,57 +2343,51 @@ US-50 & Undo / redo on the canvas with drag-coalescing. & Medium & 1 \\
 
 \section{Design}
 
-% [FIGURE NEEDED: Use case diagram for Sprint 6 --- user dashboard, admin operations]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.85\textwidth]{figures/placeholder_ch9_fig1}
-%   \caption{Use case diagram --- dashboard plus admin operations.}
-%   \label{fig:ch9_fig1}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[height=0.9\textheight, keepaspectratio]{diagrams/ch9_fig1}
+  \caption{Use case diagram --- dashboard plus admin operations.}
+  \label{fig:ch9_fig1}
+\end{figure}
 
-% [FIGURE NEEDED: Dashboard wireframe --- tabs for datasets/pipelines/models, quota panel, manage-plan link]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.85\textwidth]{figures/placeholder_ch9_fig2}
-%   \caption{Wireframe --- user dashboard with datasets, pipelines, versions.}
-%   \label{fig:ch9_fig2}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch9_fig2}
+  \caption{Wireframe --- user dashboard with datasets, pipelines, versions.}
+  \label{fig:ch9_fig2}
+\end{figure}
 
-% [FIGURE NEEDED: Class diagram --- Notification, AuditLogEntry, ImpersonationToken, Announcement]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.85\textwidth]{figures/placeholder_ch9_fig3}
-%   \caption{Class diagram --- notifications, audit log, impersonation token.}
-%   \label{fig:ch9_fig3}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch9_fig3}
+  \caption{Class diagram --- notifications, audit log, impersonation token.}
+  \label{fig:ch9_fig3}
+\end{figure}
 
-% [FIGURE NEEDED: Sequence diagram for admin impersonation --- super-admin clicks eye icon, auth-service mints a 5-min token with imp_actor claim, frontend swaps tokens in sessionStorage and shows the red banner, every subsequent request carries the impersonation token, on Exit or TTL expiry the original super-admin token is restored, audit_logs gets impersonate_start + impersonate_end entries.]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.95\textwidth]{figures/placeholder_ch9_fig_seq_impersonate}
-%   \caption{Sequence diagram --- super-admin ``view as user'' impersonation with 5-minute TTL.}
-%   \label{fig:ch9_fig_seq_impersonate}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch9_fig_seq_impersonate}
+  \caption{Sequence diagram --- super-admin ``view as user'' impersonation with 5-minute TTL.}
+  \label{fig:ch9_fig_seq_impersonate}
+\end{figure}
 
 \section{Implementation}
 
 \subsection{The user dashboard and billing UI}
 
-% [FIGURE NEEDED: User dashboard screenshot --- three tabs, paginated tables, quota panel]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.95\textwidth]{figures/placeholder_ch9_fig4}
-%   \caption{User dashboard --- datasets, pipelines, model versions, quota.}
-%   \label{fig:ch9_fig4}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch9_fig4}
+  \caption{User dashboard --- datasets, pipelines, model versions, quota.}
+  \label{fig:ch9_fig4}
+\end{figure}
 
-% [FIGURE NEEDED: Billing page screenshot --- tier comparison, current plan, manage-in-Stripe link]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.85\textwidth]{figures/placeholder_ch9_fig5}
-%   \caption{Billing page --- tier selection, Stripe checkout.}
-%   \label{fig:ch9_fig5}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch9_fig5}
+  \caption{Billing page --- tier selection, Stripe checkout.}
+  \label{fig:ch9_fig5}
+\end{figure}
 
 The dashboard is a single page with three tabs (Datasets, Pipelines,
 Models), each backed by a paginated table with server-side sorting.
@@ -2449,13 +2406,12 @@ than rendering as a raw key string in production. That small piece
 of automation paid for itself the first time someone forgot to
 translate a label.
 
-% [FIGURE NEEDED: Side-by-side screenshot --- the same page in English and in French]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.95\textwidth]{figures/placeholder_ch9_fig6}
-%   \caption{Language toggle --- English / French side by side.}
-%   \label{fig:ch9_fig6}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch9_fig6}
+  \caption{Language toggle --- English / French side by side.}
+  \label{fig:ch9_fig6}
+\end{figure}
 
 \subsection{High-contrast theme and accessibility}
 
@@ -2493,13 +2449,12 @@ The super-admin role gained a dedicated page with five panels:
         surfaces the diff.
 \end{itemize}
 
-% [FIGURE NEEDED: Admin operations dashboard screenshot --- five-panel layout]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.95\textwidth]{figures/placeholder_ch9_fig7}
-%   \caption{Admin operations dashboard --- five-panel layout.}
-%   \label{fig:ch9_fig7}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch9_fig7}
+  \caption{Admin operations dashboard --- five-panel layout.}
+  \label{fig:ch9_fig7}
+\end{figure}
 
 \subsection{User impersonation}
 
@@ -2622,13 +2577,12 @@ service.
 \end{tabular}
 \end{table}
 
-% [FIGURE NEEDED: Backend coverage report screenshot --- per-service line coverage]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.85\textwidth]{figures/placeholder_ch10_fig1}
-%   \caption{Backend coverage report --- per-service line coverage.}
-%   \label{fig:ch10_fig1}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch10_fig1}
+  \caption{Backend coverage report --- per-service line coverage.}
+  \label{fig:ch10_fig1}
+\end{figure}
 
 \subsection{Frontend Testing}
 
@@ -2638,13 +2592,12 @@ In practice more than $99\%$ of regressions in this codebase are
 caught by \texttt{tsc --noEmit} before they ever reach a runner.
 Typing is the cheapest test you can write.
 
-% [FIGURE NEEDED: Frontend coverage report screenshot --- vitest output with coverage percentages]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.85\textwidth]{figures/placeholder_ch10_fig2}
-%   \caption{Frontend coverage report --- vitest output.}
-%   \label{fig:ch10_fig2}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch10_fig2}
+  \caption{Frontend coverage report --- vitest output.}
+  \label{fig:ch10_fig2}
+\end{figure}
 
 \subsection{CI runs}
 
@@ -2668,13 +2621,12 @@ End-to-end CI runs in roughly six minutes for a frontend-only
 change, nine minutes for a backend change, and fourteen minutes
 when both sides move at once.
 
-% [FIGURE NEEDED: CI/CD pipeline flow diagram --- GitHub push triggers GitHub Actions; four parallel jobs (backend lint, frontend lint, backend tests with PG+Mongo+Redis services, frontend vitest); on green, image build step pushes to local registry; on red, PR check blocks merge. Show the matrix.service expansion for the dl-training-service CPU-wheel branch.]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.95\textwidth]{figures/placeholder_ch10_fig_cicd_flow}
-%   \caption{CI/CD pipeline flow --- GitHub Actions parallel jobs and merge gate.}
-%   \label{fig:ch10_fig_cicd_flow}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch10_fig_cicd_flow}
+  \caption{CI/CD pipeline flow --- GitHub Actions parallel jobs and merge gate.}
+  \label{fig:ch10_fig_cicd_flow}
+\end{figure}
 
 \section{Deployment}
 
@@ -2713,13 +2665,14 @@ on first boot (around $2$\,GB), and the dl-training service pulls
 the CUDA wheels on first build (around $1$\,GB). After that,
 \texttt{make up} is a matter of seconds.
 
-% [FIGURE NEEDED: Deployment diagram --- 14 containers laid out by role, three named volumes, single host boundary]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.95\textwidth]{figures/placeholder_ch10_fig5}
-%   \caption{Deployment diagram --- 14 containers, three named volumes.}
-%   \label{fig:ch10_fig5}
-% \end{figure}
+\begin{landscape}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\linewidth, keepaspectratio]{diagrams/ch10_fig5}
+  \caption{Deployment diagram --- 14 containers, three named volumes.}
+  \label{fig:ch10_fig5}
+\end{figure}
+\end{landscape}
 
 \subsection{Volumes}
 
@@ -2744,13 +2697,12 @@ non-negotiable for any service that touches a database ever since.
 
 \subsection{Network and security topology}
 
-% [FIGURE NEEDED: Network topology --- gateway as single ingress, internal Docker network, no direct access to data stores]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.85\textwidth]{figures/placeholder_ch10_fig6}
-%   \caption{Network topology --- gateway as the single ingress.}
-%   \label{fig:ch10_fig6}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch10_fig6}
+  \caption{Network topology --- gateway as the single ingress.}
+  \label{fig:ch10_fig6}
+\end{figure}
 
 The gateway is the only container exposed on the host. All other
 services bind to the internal Docker network. The Postgres instance
@@ -2874,13 +2826,12 @@ validation accuracy of $100\%$ in roughly $30$ seconds on a 1660
 Super. The dataset is intentionally simple; the number proves the
 pipeline rather than the difficulty of the task.
 
-% [FIGURE NEEDED: Final results dashboard --- tabular validation card on the left, DL validation card on the right]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.95\textwidth]{figures/placeholder_conclusion_fig1}
-%   \caption{Final results dashboard --- tabular plus DL validation runs.}
-%   \label{fig:conclusion_fig1}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/conclusion_fig1}
+  \caption{Final results dashboard --- tabular plus DL validation runs.}
+  \label{fig:conclusion_fig1}
+\end{figure}
 
 \section*{What worked, what we would change}
 

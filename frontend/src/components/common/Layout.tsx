@@ -10,9 +10,7 @@ import BusinessIcon from "@mui/icons-material/BusinessRounded";
 import PaymentIcon from "@mui/icons-material/PaymentRounded";
 import PersonIcon from "@mui/icons-material/PersonRounded";
 import LogoutIcon from "@mui/icons-material/LogoutRounded";
-import { PlatformCompanion } from "../companion/PlatformCompanion";
 import { LanguageToggle } from "./LanguageToggle";
-import { ContrastToggle } from "./ContrastToggle";
 import { NotificationBell } from "./NotificationBell";
 import { ImpersonationBanner } from "./ImpersonationBanner";
 
@@ -84,7 +82,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <Box sx={{ flexGrow: 1 }} />
 
           <LanguageToggle />
-          <ContrastToggle />
           <NotificationBell />
 
           {/* User info */}
@@ -204,7 +201,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </Box>
       </Box>
 
-      <PlatformCompanion />
       <ImpersonationBanner />
     </Box>
   );

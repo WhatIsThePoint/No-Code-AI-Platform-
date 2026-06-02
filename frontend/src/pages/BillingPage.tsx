@@ -16,6 +16,7 @@ import {
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import PaymentIcon from "@mui/icons-material/PaymentRounded";
 import { billingApi } from "../api/billing";
+import { authApi } from "../api/auth";
 import type { Plan, Subscription } from "../types/billing";
 import { useAuthStore } from "../store/authSlice";
 
@@ -157,7 +158,25 @@ export function BillingPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("success")) setSuccessMsg("Subscription activated! Thank you.");
+    if (params.get("success")) {
+      setSuccessMsg("Subscription activated! Thank you.");
+      // The Stripe checkout completed and the webhook flipped user.tier in the
+      // DB, but our access token still carries the pre-upgrade tier claim.
+      // Mint a fresh token, then re-pull /users/me so the UI reflects the new
+      // limits without forcing the user to log out.
+      (async () => {
+        try {
+          const refreshRes = await authApi.refresh();
+          useAuthStore.getState().setToken(refreshRes.data.access_token);
+          const meRes = await authApi.getMe();
+          const tok = useAuthStore.getState().accessToken;
+          if (tok) useAuthStore.getState().setAuth(meRes.data, tok);
+        } catch {
+          // If refresh fails, the user can still log out and back in manually;
+          // the DB tier is correct either way.
+        }
+      })();
+    }
     if (params.get("canceled")) setError("Checkout was canceled.");
   }, []);
 

@@ -1,8 +1,9 @@
-\documentclass[12pt, a4paper]{report}
+\documentclass[12pt, a4paper, oneside]{report}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
+\usepackage{lmodern}      % single, scalable font family — used consistently
 \usepackage{geometry}
-\geometry{a4paper, margin=1in}
+\geometry{a4paper, margin=2.5cm}
 \usepackage{graphicx}
 \usepackage{float}
 \usepackage{hyperref}
@@ -17,6 +18,35 @@
 \usepackage{array}
 \usepackage{subcaption}
 \usepackage{pdflscape}
+\usepackage{setspace}     % 1.5 line spacing
+\onehalfspacing
+
+% ── University-style heading sizes:
+%    chapter title 16 pt · section 14 pt · subsection 13 pt · body 12 pt
+%    Tight whitespace above chapter titles (no full blank top).
+\titleformat{\chapter}[hang]
+  {\normalfont\fontsize{16}{19}\bfseries}
+  {\thechapter}{1em}{}
+\titlespacing*{\chapter}{0pt}{-30pt}{18pt}
+\titleformat*{\section}{\normalfont\fontsize{14}{17}\bfseries}
+\titlespacing*{\section}{0pt}{12pt}{6pt}
+\titleformat*{\subsection}{\normalfont\fontsize{13}{15}\bfseries}
+\titlespacing*{\subsection}{0pt}{8pt}{4pt}
+\titleformat*{\subsubsection}{\normalfont\fontsize{12}{14}\bfseries}
+\titlespacing*{\subsubsection}{0pt}{6pt}{2pt}
+
+% ── Widow / orphan prevention — never strand 1 line of an idea on its own
+%    at the top or bottom of a page.
+\widowpenalty=10000
+\clubpenalty=10000
+\displaywidowpenalty=10000
+\raggedbottom              % fills white space at bottom rather than stretching
+
+% ── Fully-bordered tables — every cell enclosed; replaces booktabs minimal style
+\setlength{\arrayrulewidth}{0.4pt}
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.3}
+
 \newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
 
 % ─────────────────────────────────────────────────────────────────────────────
@@ -65,12 +95,27 @@
 }
 
 \title{End-of-Studies Project (PFE)\\[6pt] \Large A Privacy-First, No-Code AI Platform\\ \large for Tabular ML, Local Generative AI, and Deep Learning}
-\author{[Student Name]\\ \small Supervised by [Supervisor Name]}
-\date{\today}
+\author{}
+\date{}
 
 \begin{document}
 
 \maketitle
+
+\chapter*{Acknowledgements}
+\addcontentsline{toc}{chapter}{Acknowledgements}
+
+I would like to thank my academic supervisor for the steady guidance,
+the technical questions that sharpened the design, and the patience
+with the inevitable mid-sprint pivots. Thanks also to the jury for
+the time and attention given to reading this work, and to the
+classmates and friends who tested the platform during its rough
+weeks and reported the bugs that shaped the polish sprint. Finally,
+a thank you to my family for the support that made this
+end-of-studies project --- and the years that led up to it ---
+possible.
+
+\newpage
 
 \begin{abstract}
 This report documents the design and implementation of a no-code AI
@@ -213,19 +258,19 @@ five-minute TTL.
 \centering
 \caption{Functional requirements summary.}
 \label{tab:functional_reqs}
-\begin{tabular}{@{}p{0.18\linewidth} L{0.72\linewidth}@{}}
-\toprule
+\begin{tabular}{|p{0.18\linewidth}|L{0.72\linewidth}|}
+\hline
 \textbf{Area} & \textbf{Requirement} \\
-\midrule
-Tabular ML & Dataset $\to$ train $\to$ evaluate pipeline backed by fourteen algorithms (classification, regression, clustering, forecasting). \\
-RAG & Document $\to$ vector store $\to$ streamed chat, end to end on the local box. \\
-Deep Learning & Image dataset $\to$ CNN architecture $\to$ training loop, fully local. \\
-Authentication & Email/password, optional TOTP, email verification via MailHog, password reset round-trip. \\
-Billing & Stripe-backed free / solo / company tiers, with super-admin overrides on per-user quotas. \\
-Collaboration & Real-time presence and shared editing on the pipeline canvas. \\
-Access control & Per-pipeline ACL with five roles (Owner, Project Manager, Data Scientist, Analyst, Viewer). \\
+\hline
+Tabular ML & Dataset $\to$ train $\to$ evaluate pipeline backed by fourteen algorithms (classification, regression, clustering, forecasting). \\ \hline
+RAG & Document $\to$ vector store $\to$ streamed chat, end to end on the local box. \\ \hline
+Deep Learning & Image dataset $\to$ CNN architecture $\to$ training loop, fully local. \\ \hline
+Authentication & Email/password, optional TOTP, email verification via MailHog, password reset round-trip. \\ \hline
+Billing & Stripe-backed free / solo / company tiers, with super-admin overrides on per-user quotas. \\ \hline
+Collaboration & Real-time presence and shared editing on the pipeline canvas. \\ \hline
+Access control & Per-pipeline ACL with five roles (Owner, Project Manager, Data Scientist, Analyst, Viewer). \\ \hline
 Admin operations & User management, audit logs, queue and hardware monitoring, user impersonation with 5-minute TTL. \\
-\bottomrule
+\hline
 \end{tabular}
 \end{table}
 
@@ -235,19 +280,19 @@ Admin operations & User management, audit logs, queue and hardware monitoring, u
 \centering
 \caption{Non-functional requirements with concrete commitments.}
 \label{tab:nonfunctional_reqs}
-\begin{tabular}{@{}p{0.22\linewidth} L{0.68\linewidth}@{}}
-\toprule
+\begin{tabular}{|p{0.22\linewidth}|L{0.68\linewidth}|}
+\hline
 \textbf{Property} & \textbf{Commitment} \\
-\midrule
-Data sovereignty & No outbound calls to AI vendors. Stripe is the only third-party service in the deployment graph, and it is optional --- without an API key the platform still works on the free tier. \\
-Modularity & Five independent Python services so a long training run cannot block an authentication request. \\
-Reproducibility & Every dataset version is profiled, every training run is recorded, every model artefact is versioned and downloadable. \\
-Hardware envelope & Single consumer machine: $16$\,GB RAM, GTX~1660~Super (6\,GB VRAM). The platform runs on it, not just compiles on it. \\
-Accessibility & WCAG~AA contrast on the default theme; opt-in high-contrast theme; \texttt{aria-label} on every interactive element. \\
-Internationalisation & English and French i18next bundles, with TypeScript bindings generated from the English bundle so a missing key fails the type-check. \\
-Security & JWT decoded in-process at the gateway; \texttt{X-User-*} headers stripped then re-injected; Redis blacklist for refresh tokens; bcrypt-12 password hashing; Fernet-encrypted SQL credentials. \\
+\hline
+Data sovereignty & No outbound calls to AI vendors. Stripe is the only third-party service in the deployment graph, and it is optional --- without an API key the platform still works on the free tier. \\ \hline
+Modularity & Five independent Python services so a long training run cannot block an authentication request. \\ \hline
+Reproducibility & Every dataset version is profiled, every training run is recorded, every model artefact is versioned and downloadable. \\ \hline
+Hardware envelope & Single consumer machine: $16$\,GB RAM, GTX~1660~Super (6\,GB VRAM). The platform runs on it, not just compiles on it. \\ \hline
+Accessibility & WCAG~AA contrast on the default theme; opt-in high-contrast theme; \texttt{aria-label} on every interactive element. \\ \hline
+Internationalisation & English and French i18next bundles, with TypeScript bindings generated from the English bundle so a missing key fails the type-check. \\ \hline
+Security & JWT decoded in-process at the gateway; \texttt{X-User-*} headers stripped then re-injected; Redis blacklist for refresh tokens; bcrypt-12 password hashing; Fernet-encrypted SQL credentials. \\ \hline
 Performance & Live training events streamed over SocketIO at \textless50\,ms cadence; gateway adds \textless5\,ms latency per proxied request. \\
-\bottomrule
+\hline
 \end{tabular}
 \end{table}
 
@@ -259,34 +304,34 @@ Performance & Live training events streamed over SocketIO at \textless50\,ms cad
 \centering
 \caption{Technology stack by layer with the role of each component.}
 \label{tab:tech_stack}
-\begin{tabular}{@{}p{0.13\linewidth} L{0.36\linewidth} L{0.42\linewidth}@{}}
-\toprule
+\begin{tabular}{|p{0.13\linewidth}|L{0.36\linewidth}|L{0.42\linewidth}|}
+\hline
 \textbf{Layer} & \textbf{Component} & \textbf{Role in this project} \\
-\midrule
-Frontend & React~18 + Vite + TypeScript + MUI & SPA shell with strict-mode type checking. \\
-         & React Flow & Visual pipeline canvas with custom nodes. \\
+\hline
+Frontend & React~18 + Vite + TypeScript + MUI & SPA shell with strict-mode type checking. \\ \hline
+         & React Flow & Visual pipeline canvas with custom nodes. \\ \hline
          & Plotly + i18next + Zustand & Live charts, EN/FR i18n, state store. \\
-\midrule
+\hline
 Backend  & Flask + Celery + Flask-SocketIO & Five microservices, async queues, real-time channels. \\
-\midrule
-Data     & PostgreSQL + pgvector & Auth, ACL, billing, vector store (co-located). \\
-         & MongoDB & Datasets, pipelines, task results, anything schemaless. \\
-         & Redis & Celery broker / result backend / SocketIO message bus. \\
+\hline
+Data     & PostgreSQL + pgvector & Auth, ACL, billing, vector store (co-located). \\ \hline
+         & MongoDB & Datasets, pipelines, task results, anything schemaless. \\ \hline
+         & Redis & Celery broker / result backend / SocketIO message bus. \\ \hline
          & TimescaleDB & Hardware-telemetry time series. \\
-\midrule
-ML       & scikit-learn, XGBoost, LightGBM, CatBoost, H2O & Fourteen tabular algorithms via the BaseMLModel registry. \\
-         & Prophet & Time-series forecasting with seasonality. \\
+\hline
+ML       & scikit-learn, XGBoost, LightGBM, CatBoost, H2O & Fourteen tabular algorithms via the BaseMLModel registry. \\ \hline
+         & Prophet & Time-series forecasting with seasonality. \\ \hline
          & SHAP & TreeExplainer-fast post-hoc explanations. \\
-\midrule
-LLM      & Ollama + Llama~3.2~3B (Q4\_K\_M) & Local chat completion at $\sim$30 tok/s on 6\,GB VRAM. \\
+\hline
+LLM      & Ollama + Llama~3.2~3B (Q4\_K\_M) & Local chat completion at $\sim$30 tok/s on 6\,GB VRAM. \\ \hline
          & sentence-transformers MiniLM-L6-v2 & 384-dim embeddings, CPU-only. \\
-\midrule
+\hline
 DL       & PyTorch + torchvision (CUDA~12.1) & LeNet, custom ResNet-9, MobileNet-V3-Small. \\
-\midrule
-Ops      & Docker Compose & 14-container orchestration via single \texttt{make up}. \\
-         & GitHub Actions & Parallel lint + test jobs, $\sim$14\,min full-stack. \\
+\hline
+Ops      & Docker Compose & 14-container orchestration via single \texttt{make up}. \\ \hline
+         & GitHub Actions & Parallel lint + test jobs, $\sim$14\,min full-stack. \\ \hline
          & MailHog & Dev email capture for verification + reset flows. \\
-\bottomrule
+\hline
 \end{tabular}
 \end{table}
 
@@ -582,14 +627,14 @@ constraints of an ML-heavy solo project.
 \centering
 \caption{Comparison of candidate project management methodologies.}
 \label{tab:methodology_comparison}
-\begin{tabular}{@{}p{0.18\linewidth} L{0.36\linewidth} L{0.36\linewidth}@{}}
-\toprule
+\begin{tabular}{|p{0.18\linewidth}|L{0.36\linewidth}|L{0.36\linewidth}|}
+\hline
 \textbf{Approach} & \textbf{Strengths} & \textbf{Why rejected (or chosen)} \\
-\midrule
-Waterfall & Predictable cost, single up-front spec, easy to communicate. & Fails an ML project where the cost of a feature is genuinely unpredictable --- Prophet's CmdStan dependency alone pushed a ``trivial'' algorithm into half a sprint. \textbf{Rejected.} \\
-Pure Kanban & Continuous flow, no ceremony overhead. & Removes the dated checkpoints needed to demo to a supervisor; produces no natural fallback point if a late feature fails. \textbf{Rejected.} \\
+\hline
+Waterfall & Predictable cost, single up-front spec, easy to communicate. & Fails an ML project where the cost of a feature is genuinely unpredictable --- Prophet's CmdStan dependency alone pushed a ``trivial'' algorithm into half a sprint. \textbf{Rejected.} \\ \hline
+Pure Kanban & Continuous flow, no ceremony overhead. & Removes the dated checkpoints needed to demo to a supervisor; produces no natural fallback point if a late feature fails. \textbf{Rejected.} \\ \hline
 Scrum-lite & Short fixed-length sprints, runnable demo + git tag at each boundary, written retro. & Enough ceremony to enforce scope discipline without consuming the sprint. \textbf{Chosen.} \\
-\bottomrule
+\hline
 \end{tabular}
 \end{table}
 
@@ -746,7 +791,7 @@ the host only needs the NVIDIA driver plus
 
 \begin{figure}[p]
   \centering
-  \includegraphics[width=\textwidth, height=0.85\textheight, keepaspectratio]{diagrams/ch3_fig3}
+  \includegraphics[angle=90, height=0.92\textheight, keepaspectratio]{diagrams/ch3_fig3}
   \caption{High-level microservice topology.}
   \label{fig:ch3_fig3}
 \end{figure}
@@ -758,14 +803,12 @@ the host only needs the NVIDIA driver plus
   \label{fig:ch3_fig_general_usecase}
 \end{figure}
 
-\begin{landscape}
 \begin{figure}[p]
   \centering
-  \includegraphics[width=\linewidth, height=0.95\textheight, keepaspectratio]{diagrams/ch3_fig_db_schema}
+  \includegraphics[angle=90, height=0.95\textheight, keepaspectratio]{diagrams/ch3_fig_db_schema}
   \caption{Database schema --- Postgres tables across auth-service, rag, and pipeline collaboration.}
   \label{fig:ch3_fig_db_schema}
 \end{figure}
-\end{landscape}
 
 \begin{itemize}
     \item \texttt{api-gateway} (port 8000) --- decodes JWTs, injects
@@ -820,22 +863,22 @@ decisions of the whole project.
 \centering
 \caption{Sprint~1 backlog --- foundation services.}
 \label{tab:sprint1_backlog}
-\begin{tabular}{@{}p{0.05\linewidth} L{0.55\linewidth} p{0.1\linewidth} p{0.18\linewidth}@{}}
-\toprule
+\begin{tabular}{|p{0.05\linewidth}|L{0.55\linewidth}|p{0.1\linewidth}|p{0.18\linewidth}|}
+\hline
 \textbf{ID} & \textbf{User Story / Task} & \textbf{Priority} & \textbf{Estimation (d)} \\
-\midrule
-US-01 & Stateless JWT authentication with refresh-token rotation. & High & 2 \\
-US-02 & Redis-backed token revocation list. & High & 1 \\
-US-03 & Role-based access control (super-admin + tenant roles). & High & 1 \\
-US-04 & API gateway: strip client-supplied identity headers, inject from decoded JWT. & High & 2 \\
-US-05 & Optional TOTP two-factor authentication. & Medium & 1.5 \\
-US-06 & Per-IP and per-user rate limiting at the gateway. & Medium & 0.5 \\
-US-07 & Email verification on signup via MailHog. & Medium & 1 \\
-US-08 & Password reset round-trip via MailHog. & Medium & 1 \\
-US-09 & \texttt{data-ingestion-service}: CSV/Excel upload, async profiling. & High & 2 \\
-US-10 & SQL connectors (Postgres/MySQL) with Fernet-encrypted credentials. & Medium & 1.5 \\
+\hline
+US-01 & Stateless JWT authentication with refresh-token rotation. & High & 2 \\ \hline
+US-02 & Redis-backed token revocation list. & High & 1 \\ \hline
+US-03 & Role-based access control (super-admin + tenant roles). & High & 1 \\ \hline
+US-04 & API gateway: strip client-supplied identity headers, inject from decoded JWT. & High & 2 \\ \hline
+US-05 & Optional TOTP two-factor authentication. & Medium & 1.5 \\ \hline
+US-06 & Per-IP and per-user rate limiting at the gateway. & Medium & 0.5 \\ \hline
+US-07 & Email verification on signup via MailHog. & Medium & 1 \\ \hline
+US-08 & Password reset round-trip via MailHog. & Medium & 1 \\ \hline
+US-09 & \texttt{data-ingestion-service}: CSV/Excel upload, async profiling. & High & 2 \\ \hline
+US-10 & SQL connectors (Postgres/MySQL) with Fernet-encrypted credentials. & Medium & 1.5 \\ \hline
 US-11 & Mongo-backed dataset metadata + Parquet preprocessing output. & High & 1.5 \\
-\bottomrule
+\hline
 \end{tabular}
 \end{table}
 
@@ -845,24 +888,24 @@ US-11 & Mongo-backed dataset metadata + Parquet preprocessing output. & High & 1
 \centering
 \caption{Textual description of the ``Sign in with optional 2FA'' use case.}
 \label{tab:uc_signin}
-\begin{tabular}{@{}p{0.22\linewidth} L{0.7\linewidth}@{}}
-\toprule
+\begin{tabular}{|p{0.22\linewidth}|L{0.7\linewidth}|}
+\hline
 \textbf{Field} & \textbf{Value} \\
-\midrule
-Use case & Sign in with optional 2FA \\
-Primary actor & End user (any tier) \\
-Pre-conditions & Account exists and \texttt{email\_verified = true}. \\
-Trigger & User submits the Sign In form with email + password. \\
+\hline
+Use case & Sign in with optional 2FA \\ \hline
+Primary actor & End user (any tier) \\ \hline
+Pre-conditions & Account exists and \texttt{email\_verified = true}. \\ \hline
+Trigger & User submits the Sign In form with email + password. \\ \hline
 Nominal scenario & (1) Gateway forwards \texttt{POST /auth/login}.
 (2) Auth-service validates credentials with bcrypt.
 (3) If \texttt{totp\_enabled = false}, issue access + refresh tokens.
 (4) Frontend persists access token in \texttt{sessionStorage}, sets HttpOnly refresh cookie.
-(5) Redirect to \texttt{/dashboard}. \\
-Alt. scenario A & Credentials invalid $\to$ 401 + audit event \texttt{auth.login\_failed}. \\
-Alt. scenario B & \texttt{email\_verified = false} $\to$ 403 with link hint to MailHog. \\
-Alt. scenario C & \texttt{totp\_enabled = true} $\to$ 200 \texttt{requires\_2fa} + 5-min session token; user enters 6-digit code on \texttt{/2fa}. \\
+(5) Redirect to \texttt{/dashboard}. \\ \hline
+Alt. scenario A & Credentials invalid $\to$ 401 + audit event \texttt{auth.login\_failed}. \\ \hline
+Alt. scenario B & \texttt{email\_verified = false} $\to$ 403 with link hint to MailHog. \\ \hline
+Alt. scenario C & \texttt{totp\_enabled = true} $\to$ 200 \texttt{requires\_2fa} + 5-min session token; user enters 6-digit code on \texttt{/2fa}. \\ \hline
 Post-conditions & Refresh token JTI persisted; previous JTI blacklisted on next rotation. \\
-\bottomrule
+\hline
 \end{tabular}
 \end{table}
 
@@ -872,23 +915,23 @@ Post-conditions & Refresh token JTI persisted; previous JTI blacklisted on next 
 \centering
 \caption{Textual description of the ``Verify email'' use case.}
 \label{tab:uc_verify}
-\begin{tabular}{@{}p{0.22\linewidth} L{0.7\linewidth}@{}}
-\toprule
+\begin{tabular}{|p{0.22\linewidth}|L{0.7\linewidth}|}
+\hline
 \textbf{Field} & \textbf{Value} \\
-\midrule
-Use case & Verify email via MailHog \\
-Primary actor & Newly registered user \\
-Pre-conditions & \texttt{POST /auth/register} completed; token persisted as SHA-256 hash with 24-hour TTL. \\
-Trigger & User clicks the link inside the verification email. \\
+\hline
+Use case & Verify email via MailHog \\ \hline
+Primary actor & Newly registered user \\ \hline
+Pre-conditions & \texttt{POST /auth/register} completed; token persisted as SHA-256 hash with 24-hour TTL. \\ \hline
+Trigger & User clicks the link inside the verification email. \\ \hline
 Nominal scenario & (1) Browser hits \texttt{/verify-email?token=…}.
 (2) Frontend posts the token to \texttt{POST /auth/verify-email}.
 (3) Auth-service matches \texttt{sha256(token)} against \texttt{users.email\_verification\_token\_hash}.
 (4) Sets \texttt{email\_verified = true}; clears the token row.
-(5) Frontend shows success card with a continue-to-sign-in button. \\
-Alt. scenario A & Token expired ($\geq$ 24h) $\to$ 400 \texttt{invalid\_or\_expired\_token}; user can request a fresh mail. \\
-Alt. scenario B & Token reused $\to$ 400; the token hash is cleared on first success. \\
+(5) Frontend shows success card with a continue-to-sign-in button. \\ \hline
+Alt. scenario A & Token expired ($\geq$ 24h) $\to$ 400 \texttt{invalid\_or\_expired\_token}; user can request a fresh mail. \\ \hline
+Alt. scenario B & Token reused $\to$ 400; the token hash is cleared on first success. \\ \hline
 Post-conditions & Account is now eligible for sign-in. \\
-\bottomrule
+\hline
 \end{tabular}
 \end{table}
 
@@ -1032,18 +1075,18 @@ and to a one-paragraph fix.
 \centering
 \caption{Automatic profiling alerts surfaced on the dataset page.}
 \label{tab:profile_alerts}
-\begin{tabular}{@{}p{0.24\linewidth} L{0.30\linewidth} L{0.36\linewidth}@{}}
-\toprule
+\begin{tabular}{|p{0.24\linewidth}|L{0.30\linewidth}|L{0.36\linewidth}|}
+\hline
 \textbf{Alert} & \textbf{Trigger} & \textbf{Suggested fix} \\
-\midrule
-Missing values     & column.missing\_pct $> 5\%$ & Impute with median (numeric) or mode (categorical); drop column if $> 50\%$. \\
-High skew          & $|$skewness$| > 1$         & Log-transform the column before fitting a linear or distance-based model. \\
-Outliers           & Tukey IQR count $> 1\%$ of rows & Cap to the 1st/99th percentile, or switch to a tree-based algorithm. \\
-High cardinality   & unique\_pct $> 50\%$ on a categorical column & Target-encode instead of one-hot. \\
-Target imbalance   & minority class $< 20\%$    & Prefer F1 over accuracy; consider class\_weight=balanced. \\
-Multicollinearity  & $|$Pearson$| > 0.9$ between two numeric columns & Drop one of the pair before fitting a linear model. \\
+\hline
+Missing values     & column.missing\_pct $> 5\%$ & Impute with median (numeric) or mode (categorical); drop column if $> 50\%$. \\ \hline
+High skew          & $|$skewness$| > 1$         & Log-transform the column before fitting a linear or distance-based model. \\ \hline
+Outliers           & Tukey IQR count $> 1\%$ of rows & Cap to the 1st/99th percentile, or switch to a tree-based algorithm. \\ \hline
+High cardinality   & unique\_pct $> 50\%$ on a categorical column & Target-encode instead of one-hot. \\ \hline
+Target imbalance   & minority class $< 20\%$    & Prefer F1 over accuracy; consider class\_weight=balanced. \\ \hline
+Multicollinearity  & $|$Pearson$| > 0.9$ between two numeric columns & Drop one of the pair before fitting a linear model. \\ \hline
 Suspected leakage  & mutual\_info(target, col) $> 0.7$ for a non-trivial feature & Inspect whether the column is computed from the target. \\
-\bottomrule
+\hline
 \end{tabular}
 \end{table}
 
@@ -1219,20 +1262,20 @@ could follow from canvas to artefact.
 \centering
 \caption{Sprint~2 backlog --- canvas plus tabular ML stack.}
 \label{tab:sprint2_backlog}
-\begin{tabular}{@{}p{0.05\linewidth} L{0.55\linewidth} p{0.1\linewidth} p{0.18\linewidth}@{}}
-\toprule
+\begin{tabular}{|p{0.05\linewidth}|L{0.55\linewidth}|p{0.1\linewidth}|p{0.18\linewidth}|}
+\hline
 \textbf{ID} & \textbf{User Story / Task} & \textbf{Priority} & \textbf{Estimation (d)} \\
-\midrule
-US-12 & React Flow canvas with custom node components and per-node validation. & High & 3 \\
-US-13 & Pipeline schema (Mongo document with nodes + edges). & High & 0.5 \\
-US-14 & \texttt{ml-training-service} hosting fourteen tabular algorithms. & High & 4 \\
-US-15 & \texttt{BaseMLModel} abstraction + algorithm-agnostic Celery task. & High & 1 \\
-US-16 & Model registry with versioning. & High & 1 \\
-US-17 & Live metric streaming over SocketIO. & Medium & 1.5 \\
-US-18 & SHAP explainability for supervised runs (TreeExplainer fast path). & Medium & 1 \\
-US-19 & Confusion matrices and residual plots. & Medium & 0.5 \\
+\hline
+US-12 & React Flow canvas with custom node components and per-node validation. & High & 3 \\ \hline
+US-13 & Pipeline schema (Mongo document with nodes + edges). & High & 0.5 \\ \hline
+US-14 & \texttt{ml-training-service} hosting fourteen tabular algorithms. & High & 4 \\ \hline
+US-15 & \texttt{BaseMLModel} abstraction + algorithm-agnostic Celery task. & High & 1 \\ \hline
+US-16 & Model registry with versioning. & High & 1 \\ \hline
+US-17 & Live metric streaming over SocketIO. & Medium & 1.5 \\ \hline
+US-18 & SHAP explainability for supervised runs (TreeExplainer fast path). & Medium & 1 \\ \hline
+US-19 & Confusion matrices and residual plots. & Medium & 0.5 \\ \hline
 US-20 & Model export (joblib + generated FastAPI inference script). & Medium & 1 \\
-\bottomrule
+\hline
 \end{tabular}
 \end{table}
 
@@ -1252,17 +1295,17 @@ makes it concrete what each phase delivered for this project.
 \centering
 \caption{CRISP-DM phases mapped to Sprint~2 deliverables.}
 \label{tab:crispdm}
-\begin{tabular}{@{}p{0.22\linewidth} L{0.7\linewidth}@{}}
-\toprule
+\begin{tabular}{|p{0.22\linewidth}|L{0.7\linewidth}|}
+\hline
 \textbf{CRISP-DM phase} & \textbf{What this sprint delivered} \\
-\midrule
-Business understanding & Identify the supervised tasks a non-technical user can describe (classification, regression, clustering, forecasting). Surface fourteen named algorithms behind one shared canvas node. \\
-Data understanding & Reuse the ingestion-service profile: missing values, skew, target imbalance, correlation. Surface alerts on the canvas's Dataset node. \\
-Data preparation & Celery preprocessing task: 70/15/15 train/val/test split, column-wise imputation, scaling for distance-based algorithms, one-hot or target encoding by cardinality. \\
-Modelling & \texttt{BaseMLModel} subclasses construct, fit, predict, and evaluate against a shared signature regardless of underlying library (sklearn, XGBoost, LightGBM, CatBoost, H2O, Prophet). \\
-Evaluation & Accuracy/F1/AUC for classification, R$^2$/MAE/RMSE for regression. F1 is preferred in the summary card when the target is imbalanced. SHAP feature importance for tree-based supervised runs. \\
+\hline
+Business understanding & Identify the supervised tasks a non-technical user can describe (classification, regression, clustering, forecasting). Surface fourteen named algorithms behind one shared canvas node. \\ \hline
+Data understanding & Reuse the ingestion-service profile: missing values, skew, target imbalance, correlation. Surface alerts on the canvas's Dataset node. \\ \hline
+Data preparation & Celery preprocessing task: 70/15/15 train/val/test split, column-wise imputation, scaling for distance-based algorithms, one-hot or target encoding by cardinality. \\ \hline
+Modelling & \texttt{BaseMLModel} subclasses construct, fit, predict, and evaluate against a shared signature regardless of underlying library (sklearn, XGBoost, LightGBM, CatBoost, H2O, Prophet). \\ \hline
+Evaluation & Accuracy/F1/AUC for classification, R$^2$/MAE/RMSE for regression. F1 is preferred in the summary card when the target is imbalanced. SHAP feature importance for tree-based supervised runs. \\ \hline
 Deployment & Versioned artefact in the registry; downloadable joblib + FastAPI launcher zip. Re-running a pipeline mints a new version rather than overwriting. \\
-\bottomrule
+\hline
 \end{tabular}
 \end{table}
 
@@ -1410,25 +1453,25 @@ explainability work.
 \centering
 \caption{Algorithm catalogue for the tabular ML mode.}
 \label{tab:ml_algos}
-\begin{tabular}{@{}L{0.21\linewidth} L{0.16\linewidth} L{0.16\linewidth} L{0.4\linewidth}@{}}
-\toprule
+\begin{tabular}{|L{0.21\linewidth}|L{0.16\linewidth}|L{0.16\linewidth}|L{0.4\linewidth}|}
+\hline
 \textbf{Algorithm} & \textbf{Task} & \textbf{Backend} & \textbf{Why it is in the catalogue} \\
-\midrule
-Logistic Regression & Classification & scikit-learn & Fast linear baseline, interpretable coefficients. \\
-Linear Regression & Regression & scikit-learn & Baseline for continuous targets, residual diagnostics. \\
-Random Forest & Both & H2O-3 & Robust default, no scaling needed, OOB error estimate. \\
-XGBoost & Both & H2O-3 & Highest accuracy on most tabular data with interactions. \\
-LightGBM & Both & scikit-learn API & Faster than XGBoost on wide datasets, leaf-wise growth. \\
-CatBoost & Both & scikit-learn API & Native categorical handling without one-hot blow-up. \\
-GBM & Both & H2O-3 & Mature gradient boosting, stable on small data. \\
-K-Means & Clustering & scikit-learn & Default for spherical clusters, O(nkd) cost. \\
-DBSCAN & Clustering & scikit-learn & Density-based, handles non-spherical clusters. \\
-Hierarchical & Clustering & scikit-learn & Dendrogram visualisation on small datasets. \\
-KNN & Both & scikit-learn & Non-parametric baseline, useful for sanity checks. \\
-SVM & Classification & scikit-learn & Maximum-margin classifier for small clean datasets. \\
-Prophet & Forecasting & Meta Prophet & Time series with seasonality and holiday effects. \\
+\hline
+Logistic Regression & Classification & scikit-learn & Fast linear baseline, interpretable coefficients. \\ \hline
+Linear Regression & Regression & scikit-learn & Baseline for continuous targets, residual diagnostics. \\ \hline
+Random Forest & Both & H2O-3 & Robust default, no scaling needed, OOB error estimate. \\ \hline
+XGBoost & Both & H2O-3 & Highest accuracy on most tabular data with interactions. \\ \hline
+LightGBM & Both & scikit-learn API & Faster than XGBoost on wide datasets, leaf-wise growth. \\ \hline
+CatBoost & Both & scikit-learn API & Native categorical handling without one-hot blow-up. \\ \hline
+GBM & Both & H2O-3 & Mature gradient boosting, stable on small data. \\ \hline
+K-Means & Clustering & scikit-learn & Default for spherical clusters, O(nkd) cost. \\ \hline
+DBSCAN & Clustering & scikit-learn & Density-based, handles non-spherical clusters. \\ \hline
+Hierarchical & Clustering & scikit-learn & Dendrogram visualisation on small datasets. \\ \hline
+KNN & Both & scikit-learn & Non-parametric baseline, useful for sanity checks. \\ \hline
+SVM & Classification & scikit-learn & Maximum-margin classifier for small clean datasets. \\ \hline
+Prophet & Forecasting & Meta Prophet & Time series with seasonality and holiday effects. \\ \hline
 ARIMA & Forecasting & statsmodels & Stationary or already-detrended series. \\
-\bottomrule
+\hline
 \end{tabular}
 \end{table}
 
@@ -1455,22 +1498,22 @@ cannot accidentally mix an XGBoost Train node with a RAG Chat node.
 \centering
 \caption{Canvas node palette per pipeline family.}
 \label{tab:canvas_nodes}
-\begin{tabular}{@{}p{0.15\linewidth} p{0.27\linewidth} L{0.5\linewidth}@{}}
-\toprule
+\begin{tabular}{|p{0.15\linewidth}|p{0.27\linewidth}|L{0.5\linewidth}|}
+\hline
 \textbf{Family} & \textbf{Node} & \textbf{What it carries} \\
-\midrule
-ML  & \texttt{DatasetNode}   & dataset\_id, target column, profile summary chip \\
-    & \texttt{TrainNode}     & algorithm (one of fourteen), hyperparams JSON, task type \\
+\hline
+ML  & \texttt{DatasetNode}   & dataset\_id, target column, profile summary chip \\ \hline
+    & \texttt{TrainNode}     & algorithm (one of fourteen), hyperparams JSON, task type \\ \hline
     & \texttt{EvaluateNode}  & metric keys to display, SHAP toggle, comparison link \\
-\midrule
-RAG & \texttt{DocumentNode}     & document\_id, file type, chunk count \\
-    & \texttt{VectorStoreNode}  & pgvector index name, chunk size, overlap \\
+\hline
+RAG & \texttt{DocumentNode}     & document\_id, file type, chunk count \\ \hline
+    & \texttt{VectorStoreNode}  & pgvector index name, chunk size, overlap \\ \hline
     & \texttt{ChatNode}         & top-k, system prompt template, model name \\
-\midrule
-DL  & \texttt{ImageDatasetNode} & dataset\_id, class chips, thumbnail strip \\
-    & \texttt{CNNArchNode}      & arch (LeNet / TinyResNet / MobileNetV3), input size, pretrained toggle \\
+\hline
+DL  & \texttt{ImageDatasetNode} & dataset\_id, class chips, thumbnail strip \\ \hline
+    & \texttt{CNNArchNode}      & arch (LeNet / TinyResNet / MobileNetV3), input size, pretrained toggle \\ \hline
     & \texttt{DLTrainNode}      & epochs slider (tier-clamped), batch slider, lr field \\
-\bottomrule
+\hline
 \end{tabular}
 \end{table}
 
@@ -1552,18 +1595,18 @@ its default and the algorithms it is skipped for.
 \centering
 \caption{Preprocessing pipeline for the tabular ML mode --- default per stage and per-algorithm skip rules.}
 \label{tab:preprocessing}
-\begin{tabular}{@{}p{0.22\linewidth} L{0.42\linewidth} L{0.30\linewidth}@{}}
-\toprule
+\begin{tabular}{|p{0.22\linewidth}|L{0.42\linewidth}|L{0.30\linewidth}|}
+\hline
 \textbf{Stage} & \textbf{Default behaviour} & \textbf{Skipped for} \\
-\midrule
-Train / val / test split & $70\%$ / $15\%$ / $15\%$, stratified by target for classification, time-ordered for forecasting. Random seed pinned to $42$ for reproducibility. & --- \\
-Missing-value imputation & Median for numeric columns, mode for categorical. Columns with $>50\%$ missing are dropped with a warning. & Tree-based algorithms tolerate missing values directly (XGBoost, LightGBM, CatBoost) --- imputation is still applied but configurable to off. \\
-Feature scaling & StandardScaler on numeric columns (mean $0$, variance $1$). Fit on train only, applied to val/test. & Tree-based algorithms (scaling has no effect on splits). \\
-Categorical encoding & One-hot for cardinality $\le 10$, target encoding (mean target value per category) for cardinality $> 10$. & CatBoost handles categoricals natively --- raw column passed through. \\
-Outlier handling & Tukey IQR rule emitted as a warning; no automatic capping. User opts in via a checkbox on the Train node. & Robust algorithms (Random Forest, GBM). \\
-Target transform & Identity. User can opt in to log-transform for skewed regression targets (toggle on the Train node). & Classification. \\
+\hline
+Train / val / test split & $70\%$ / $15\%$ / $15\%$, stratified by target for classification, time-ordered for forecasting. Random seed pinned to $42$ for reproducibility. & --- \\ \hline
+Missing-value imputation & Median for numeric columns, mode for categorical. Columns with $>50\%$ missing are dropped with a warning. & Tree-based algorithms tolerate missing values directly (XGBoost, LightGBM, CatBoost) --- imputation is still applied but configurable to off. \\ \hline
+Feature scaling & StandardScaler on numeric columns (mean $0$, variance $1$). Fit on train only, applied to val/test. & Tree-based algorithms (scaling has no effect on splits). \\ \hline
+Categorical encoding & One-hot for cardinality $\le 10$, target encoding (mean target value per category) for cardinality $> 10$. & CatBoost handles categoricals natively --- raw column passed through. \\ \hline
+Outlier handling & Tukey IQR rule emitted as a warning; no automatic capping. User opts in via a checkbox on the Train node. & Robust algorithms (Random Forest, GBM). \\ \hline
+Target transform & Identity. User can opt in to log-transform for skewed regression targets (toggle on the Train node). & Classification. \\ \hline
 Persistence & The fitted transformer pipeline is serialised next to the model artefact so inference uses the exact same transformations. & --- \\
-\bottomrule
+\hline
 \end{tabular}
 \end{table}
 
@@ -1702,19 +1745,19 @@ on a consumer GPU.
 \centering
 \caption{Sprint~3 backlog --- local RAG.}
 \label{tab:sprint3_backlog}
-\begin{tabular}{@{}p{0.05\linewidth} L{0.55\linewidth} p{0.1\linewidth} p{0.18\linewidth}@{}}
-\toprule
+\begin{tabular}{|p{0.05\linewidth}|L{0.55\linewidth}|p{0.1\linewidth}|p{0.18\linewidth}|}
+\hline
 \textbf{ID} & \textbf{User Story / Task} & \textbf{Priority} & \textbf{Estimation (d)} \\
-\midrule
-US-21 & Document ingestion pipeline (PDF, DOCX, plain text). & High & 1 \\
-US-22 & Local embedding via \texttt{sentence-transformers}. & High & 0.5 \\
-US-23 & Vector store in \texttt{pgvector} (IVFFlat index). & High & 1 \\
-US-24 & Ollama integration serving Llama~3.2~3B Q4\_K\_M. & High & 1 \\
-US-25 & Chat orchestration --- embed, retrieve top-$k$, build prompt, stream. & High & 2 \\
-US-26 & Streamed UI: tokens render as they arrive over SocketIO. & High & 1.5 \\
-US-27 & RAG-mode toggle on the canvas with three node types. & Medium & 1 \\
+\hline
+US-21 & Document ingestion pipeline (PDF, DOCX, plain text). & High & 1 \\ \hline
+US-22 & Local embedding via \texttt{sentence-transformers}. & High & 0.5 \\ \hline
+US-23 & Vector store in \texttt{pgvector} (IVFFlat index). & High & 1 \\ \hline
+US-24 & Ollama integration serving Llama~3.2~3B Q4\_K\_M. & High & 1 \\ \hline
+US-25 & Chat orchestration --- embed, retrieve top-$k$, build prompt, stream. & High & 2 \\ \hline
+US-26 & Streamed UI: tokens render as they arrive over SocketIO. & High & 1.5 \\ \hline
+US-27 & RAG-mode toggle on the canvas with three node types. & Medium & 1 \\ \hline
 US-28 & Source-chunks chip showing retrieved chunks + similarity. & Low & 0.5 \\
-\bottomrule
+\hline
 \end{tabular}
 \end{table}
 
@@ -1913,19 +1956,19 @@ the feature.
 \centering
 \caption{Sprint~4 backlog --- deep learning for image classification.}
 \label{tab:sprint4_backlog}
-\begin{tabular}{@{}p{0.05\linewidth} L{0.55\linewidth} p{0.1\linewidth} p{0.18\linewidth}@{}}
-\toprule
+\begin{tabular}{|p{0.05\linewidth}|L{0.55\linewidth}|p{0.1\linewidth}|p{0.18\linewidth}|}
+\hline
 \textbf{ID} & \textbf{User Story / Task} & \textbf{Priority} & \textbf{Estimation (d)} \\
-\midrule
-US-29 & New microservice: \texttt{dl-training-service}. & High & 1 \\
-US-30 & Three CNN architectures (LeNet, ResNet-9, MobileNet-V3-Small). & High & 2 \\
-US-31 & Image-dataset ingestion (zip of \texttt{<class>/<file>}). & High & 1 \\
-US-32 & Static VRAM estimator (the VRAM guard). & High & 2 \\
-US-33 & Tier-aware ceilings on epochs and batch size. & High & 0.5 \\
-US-34 & Live training visualisation (reused from Sprint~2). & Medium & 0.5 \\
-US-35 & Inline single-image inference (the ``Try it'' panel). & Medium & 1 \\
+\hline
+US-29 & New microservice: \texttt{dl-training-service}. & High & 1 \\ \hline
+US-30 & Three CNN architectures (LeNet, ResNet-9, MobileNet-V3-Small). & High & 2 \\ \hline
+US-31 & Image-dataset ingestion (zip of \texttt{<class>/<file>}). & High & 1 \\ \hline
+US-32 & Static VRAM estimator (the VRAM guard). & High & 2 \\ \hline
+US-33 & Tier-aware ceilings on epochs and batch size. & High & 0.5 \\ \hline
+US-34 & Live training visualisation (reused from Sprint~2). & Medium & 0.5 \\ \hline
+US-35 & Inline single-image inference (the ``Try it'' panel). & Medium & 1 \\ \hline
 US-36 & DL-mode canvas toggle with three new node components. & Medium & 1.5 \\
-\bottomrule
+\hline
 \end{tabular}
 \end{table}
 
@@ -2064,14 +2107,14 @@ twenty.
 \centering
 \caption{CNN architecture catalogue with operating envelope.}
 \label{tab:cnn_catalog}
-\begin{tabular}{@{}L{0.21\linewidth} L{0.12\linewidth} L{0.16\linewidth} L{0.42\linewidth}@{}}
-\toprule
+\begin{tabular}{|L{0.21\linewidth}|L{0.12\linewidth}|L{0.16\linewidth}|L{0.42\linewidth}|}
+\hline
 \textbf{Architecture} & \textbf{Params} & \textbf{Demo VRAM} & \textbf{Operating point} \\
-\midrule
-LeNet & $\sim$60\,k & $<$0.3\,GB & Smoke-test scale. Confirms the training path end-to-end before committing to a longer run. \\
-Tiny ResNet-9 & $\sim$2.7\,M & $\sim$1.5\,GB at 64\,px batch 32 & Workhorse. Hits $\sim$90\% on CIFAR-10 in five epochs; the demo default. \\
+\hline
+LeNet & $\sim$60\,k & $<$0.3\,GB & Smoke-test scale. Confirms the training path end-to-end before committing to a longer run. \\ \hline
+Tiny ResNet-9 & $\sim$2.7\,M & $\sim$1.5\,GB at 64\,px batch 32 & Workhorse. Hits $\sim$90\% on CIFAR-10 in five epochs; the demo default. \\ \hline
 MobileNet-V3-Small & $\sim$2.5\,M & $\sim$2.0\,GB at 224\,px batch 16 & Transfer learning from ImageNet. Reaches $80\%$+ on a 200-image custom dataset in two minutes. \\
-\bottomrule
+\hline
 \end{tabular}
 \end{table}
 
@@ -2306,17 +2349,17 @@ other's work.
 \centering
 \caption{Sprint~5 backlog --- multi-tenancy and collaboration.}
 \label{tab:sprint5_backlog}
-\begin{tabular}{@{}p{0.05\linewidth} L{0.55\linewidth} p{0.1\linewidth} p{0.18\linewidth}@{}}
-\toprule
+\begin{tabular}{|p{0.05\linewidth}|L{0.55\linewidth}|p{0.1\linewidth}|p{0.18\linewidth}|}
+\hline
 \textbf{ID} & \textbf{User Story / Task} & \textbf{Priority} & \textbf{Estimation (d)} \\
-\midrule
-US-37 & Per-pipeline access control with five distinct roles. & High & 1.5 \\
-US-38 & Server-side and client-side role enforcement. & High & 1 \\
-US-39 & Real-time canvas presence (cursors and node highlights). & High & 2 \\
-US-40 & Threaded chat per pipeline. & Medium & 1.5 \\
-US-41 & One-click Google Meet links via Google OAuth. & Medium & 1 \\
+\hline
+US-37 & Per-pipeline access control with five distinct roles. & High & 1.5 \\ \hline
+US-38 & Server-side and client-side role enforcement. & High & 1 \\ \hline
+US-39 & Real-time canvas presence (cursors and node highlights). & High & 2 \\ \hline
+US-40 & Threaded chat per pipeline. & Medium & 1.5 \\ \hline
+US-41 & One-click Google Meet links via Google OAuth. & Medium & 1 \\ \hline
 US-42 & Per-pipeline notification fan-out. & Medium & 0.5 \\
-\bottomrule
+\hline
 \end{tabular}
 \end{table}
 
@@ -2490,19 +2533,19 @@ works'' to ``demonstrably operable''.
 \centering
 \caption{Sprint~6 backlog --- operability and polish.}
 \label{tab:sprint6_backlog}
-\begin{tabular}{@{}p{0.05\linewidth} L{0.55\linewidth} p{0.1\linewidth} p{0.18\linewidth}@{}}
-\toprule
+\begin{tabular}{|p{0.05\linewidth}|L{0.55\linewidth}|p{0.1\linewidth}|p{0.18\linewidth}|}
+\hline
 \textbf{ID} & \textbf{User Story / Task} & \textbf{Priority} & \textbf{Estimation (d)} \\
-\midrule
-US-43 & User-facing dashboard (datasets, pipelines, model versions). & High & 1.5 \\
-US-44 & Billing UI (free / solo / company tier; Stripe checkout). & High & 2 \\
-US-45 & Internationalisation (English + French, generated bindings). & High & 1 \\
-US-46 & High-contrast theme + WCAG~AA audit. & Medium & 1 \\
-US-47 & Persistent notification bell. & Medium & 1 \\
-US-48 & Admin operations dashboard (5 panels). & High & 2 \\
-US-49 & User impersonation with hard five-minute TTL. & High & 1 \\
+\hline
+US-43 & User-facing dashboard (datasets, pipelines, model versions). & High & 1.5 \\ \hline
+US-44 & Billing UI (free / solo / company tier; Stripe checkout). & High & 2 \\ \hline
+US-45 & Internationalisation (English + French, generated bindings). & High & 1 \\ \hline
+US-46 & High-contrast theme + WCAG~AA audit. & Medium & 1 \\ \hline
+US-47 & Persistent notification bell. & Medium & 1 \\ \hline
+US-48 & Admin operations dashboard (5 panels). & High & 2 \\ \hline
+US-49 & User impersonation with hard five-minute TTL. & High & 1 \\ \hline
 US-50 & Undo / redo on the canvas with drag-coalescing. & Medium & 1 \\
-\bottomrule
+\hline
 \end{tabular}
 \end{table}
 
@@ -2730,16 +2773,16 @@ service.
 \centering
 \caption{Backend test coverage by service.}
 \label{tab:coverage}
-\begin{tabular}{@{}L{0.28\linewidth} L{0.13\linewidth} L{0.49\linewidth}@{}}
-\toprule
+\begin{tabular}{|L{0.28\linewidth}|L{0.13\linewidth}|L{0.49\linewidth}|}
+\hline
 \textbf{Service} & \textbf{Line cov.} & \textbf{Load-bearing path tested} \\
-\midrule
-\texttt{auth-service} & \textgreater 80\% & Login, refresh rotation, TOTP, email verification, password reset, admin ops, impersonation TTL. \\
-\texttt{api-gateway} & $\sim$70\% & Header strip-then-inject invariant, rate limit, public-prefix routing. \\
-\texttt{data-ingestion-service} & $\sim$65\% & Upload-then-profile end to end (\texttt{mongomock}), SQL probe, Fernet round-trip. \\
-\texttt{ml-training-service} & $\sim$60\% & Algorithm factory parametrised across 14 algorithms; SocketIO streaming path not exercised. \\
+\hline
+\texttt{auth-service} & \textgreater 80\% & Login, refresh rotation, TOTP, email verification, password reset, admin ops, impersonation TTL. \\ \hline
+\texttt{api-gateway} & $\sim$70\% & Header strip-then-inject invariant, rate limit, public-prefix routing. \\ \hline
+\texttt{data-ingestion-service} & $\sim$65\% & Upload-then-profile end to end (\texttt{mongomock}), SQL probe, Fernet round-trip. \\ \hline
+\texttt{ml-training-service} & $\sim$60\% & Algorithm factory parametrised across 14 algorithms; SocketIO streaming path not exercised. \\ \hline
 \texttt{dl-training-service} & 22 cases & Forward-pass shapes per arch, VRAM-guard envelope, oversize refusal, end-to-end LeNet train$\to$save$\to$predict on CPU. \\
-\bottomrule
+\hline
 \end{tabular}
 \end{table}
 
@@ -2804,24 +2847,24 @@ Table~\ref{tab:deployment_services}.
 \centering
 \caption{Deployment topology --- 14 containers, three named volumes.}
 \label{tab:deployment_services}
-\begin{tabular}{@{}L{0.27\linewidth} L{0.12\linewidth} L{0.51\linewidth}@{}}
-\toprule
+\begin{tabular}{|L{0.27\linewidth}|L{0.12\linewidth}|L{0.51\linewidth}|}
+\hline
 \textbf{Container} & \textbf{Port} & \textbf{Role} \\
-\midrule
-\texttt{api-gateway} & 8000 & JWT decode + header injection + SocketIO. \\
-\texttt{auth-service} & 8001 & Accounts, ACL, billing, admin operations. \\
-\texttt{data-ingestion-service} & 8002 & File upload, SQL connectors, profiling, RAG ingestion. \\
-\texttt{ml-training-service} & 8003 & 14 tabular algorithms + RAG chat orchestration. \\
-\texttt{metrics-service} & 8004 & Hardware telemetry into TimescaleDB. \\
-\texttt{dl-training-service} & 8005 & PyTorch image classification (GPU). \\
-3 $\times$ Celery workers & internal & One per CPU-bound service. \\
-\texttt{postgres} (pgvector) & internal & Auth, ACL, vector store. \\
-\texttt{mongo} & internal & Schemaless data (datasets, pipelines, results). \\
-\texttt{redis} & internal & Celery broker / result / SocketIO bus. \\
-\texttt{timescaledb} & internal & Hardware telemetry time series. \\
-\texttt{ollama} & internal & Local LLM inference (Llama~3.2~3B). \\
+\hline
+\texttt{api-gateway} & 8000 & JWT decode + header injection + SocketIO. \\ \hline
+\texttt{auth-service} & 8001 & Accounts, ACL, billing, admin operations. \\ \hline
+\texttt{data-ingestion-service} & 8002 & File upload, SQL connectors, profiling, RAG ingestion. \\ \hline
+\texttt{ml-training-service} & 8003 & 14 tabular algorithms + RAG chat orchestration. \\ \hline
+\texttt{metrics-service} & 8004 & Hardware telemetry into TimescaleDB. \\ \hline
+\texttt{dl-training-service} & 8005 & PyTorch image classification (GPU). \\ \hline
+3 $\times$ Celery workers & internal & One per CPU-bound service. \\ \hline
+\texttt{postgres} (pgvector) & internal & Auth, ACL, vector store. \\ \hline
+\texttt{mongo} & internal & Schemaless data (datasets, pipelines, results). \\ \hline
+\texttt{redis} & internal & Celery broker / result / SocketIO bus. \\ \hline
+\texttt{timescaledb} & internal & Hardware telemetry time series. \\ \hline
+\texttt{ollama} & internal & Local LLM inference (Llama~3.2~3B). \\ \hline
 \texttt{mailhog} & 1025 / 8025 & Dev SMTP sink + web UI for verification/reset mails. \\
-\bottomrule
+\hline
 \end{tabular}
 \end{table}
 
@@ -3271,6 +3314,256 @@ A. Roques,
 \textit{PlantUML: Open-source tool for UML diagrams from text},
 \url{https://plantuml.com/}, 2024.
 
+% ── Books ───────────────────────────────────────────────────────────────────
+
+\bibitem{hastie}
+T. Hastie, R. Tibshirani, and J. Friedman,
+\textit{The Elements of Statistical Learning: Data Mining, Inference,
+and Prediction}, 2nd ed., New York: Springer, 2009, ISBN 978-0-387-84857-0.
+
+\bibitem{murphy}
+K. P. Murphy,
+\textit{Probabilistic Machine Learning: An Introduction},
+Cambridge, MA: MIT Press, 2022, ISBN 978-0-262-04682-4.
+
+\bibitem{goodfellow}
+I. Goodfellow, Y. Bengio, and A. Courville,
+\textit{Deep Learning},
+Cambridge, MA: MIT Press, 2016, ISBN 978-0-262-03561-3.
+
+\bibitem{geron}
+A. G\'eron,
+\textit{Hands-On Machine Learning with Scikit-Learn, Keras, and
+TensorFlow}, 3rd ed., Sebastopol, CA: O'Reilly Media, 2022,
+ISBN 978-1-098-12597-4.
+
+\bibitem{kleppmann}
+M. Kleppmann,
+\textit{Designing Data-Intensive Applications: The Big Ideas Behind
+Reliable, Scalable, and Maintainable Systems},
+Sebastopol, CA: O'Reilly Media, 2017, ISBN 978-1-449-37332-0.
+
+\bibitem{fowler}
+M. Fowler,
+\textit{Patterns of Enterprise Application Architecture},
+Boston, MA: Addison-Wesley, 2002, ISBN 978-0-321-12742-6.
+
+\bibitem{newman}
+S. Newman,
+\textit{Building Microservices: Designing Fine-Grained Systems},
+2nd ed., Sebastopol, CA: O'Reilly Media, 2021,
+ISBN 978-1-492-03402-5.
+
+\bibitem{burns}
+B. Burns,
+\textit{Designing Distributed Systems: Patterns and Paradigms for
+Scalable, Reliable Services},
+Sebastopol, CA: O'Reilly Media, 2018, ISBN 978-1-491-98364-7.
+
+\bibitem{martin_clean}
+R. C. Martin,
+\textit{Clean Architecture: A Craftsman's Guide to Software Structure
+and Design}, Upper Saddle River, NJ: Prentice Hall, 2017,
+ISBN 978-0-134-49416-6.
+
+\bibitem{nielsen}
+J. Nielsen,
+\textit{Usability Engineering},
+San Francisco: Morgan Kaufmann, 1993, ISBN 978-0-12-518406-9.
+
+% ── Journal articles ────────────────────────────────────────────────────────
+
+\bibitem{breiman}
+L. Breiman,
+``Random Forests'',
+\textit{Machine Learning}, vol.~45, no.~1, pp.~5--32, Oct. 2001.
+DOI: 10.1023/A:1010933404324.
+
+\bibitem{friedman}
+J. H. Friedman,
+``Greedy Function Approximation: A Gradient Boosting Machine'',
+\textit{The Annals of Statistics}, vol.~29, no.~5, pp.~1189--1232,
+Oct. 2001. DOI: 10.1214/aos/1013203451.
+
+\bibitem{vaswani}
+A. Vaswani et al.,
+``Attention Is All You Need'',
+in \textit{Advances in Neural Information Processing Systems 30},
+Long Beach, CA, USA, Dec. 2017, pp.~5998--6008.
+
+\bibitem{devlin}
+J. Devlin, M.-W. Chang, K. Lee, and K. Toutanova,
+``BERT: Pre-training of Deep Bidirectional Transformers for Language
+Understanding'',
+in \textit{Proc. NAACL-HLT}, Minneapolis, MN, USA, Jun. 2019,
+pp.~4171--4186. DOI: 10.18653/v1/N19-1423.
+
+\bibitem{krizhevsky}
+A. Krizhevsky, I. Sutskever, and G. E. Hinton,
+``ImageNet Classification with Deep Convolutional Neural Networks'',
+\textit{Communications of the ACM}, vol.~60, no.~6, pp.~84--90,
+May 2017. DOI: 10.1145/3065386.
+
+\bibitem{ioffe}
+S. Ioffe and C. Szegedy,
+``Batch Normalization: Accelerating Deep Network Training by Reducing
+Internal Covariate Shift'',
+in \textit{Proc. 32nd Int. Conf. Machine Learning (ICML)}, Lille,
+France, Jul. 2015, pp.~448--456.
+
+\bibitem{kingma}
+D. P. Kingma and J. Ba,
+``Adam: A Method for Stochastic Optimization'',
+in \textit{Proc. 3rd Int. Conf. Learning Representations (ICLR)},
+San Diego, CA, USA, May 2015.
+
+% ── Standards and reports ───────────────────────────────────────────────────
+
+\bibitem{iso25010}
+International Organization for Standardization,
+\textit{ISO/IEC 25010:2011 --- Systems and software engineering ---
+Systems and software Quality Requirements and Evaluation (SQuaRE) ---
+System and software quality models}, Geneva: ISO, 2011.
+
+\bibitem{iso27001}
+International Organization for Standardization,
+\textit{ISO/IEC 27001:2022 --- Information security, cybersecurity and
+privacy protection --- Information security management systems ---
+Requirements}, Geneva: ISO, 2022.
+
+\bibitem{gdpr}
+European Parliament and Council of the European Union,
+``Regulation (EU) 2016/679 (General Data Protection Regulation)'',
+\textit{Official Journal of the European Union}, L 119, 4 May 2016,
+pp.~1--88.
+
+\bibitem{owasp}
+OWASP Foundation,
+\textit{OWASP Top 10:2021 --- The Ten Most Critical Web Application
+Security Risks}, 2021, \url{https://owasp.org/Top10/}.
+
+\bibitem{rfc7235}
+R. Fielding and J. Reschke,
+``Hypertext Transfer Protocol (HTTP/1.1): Authentication'',
+IETF, RFC 7235, Jun. 2014,
+\url{https://www.rfc-editor.org/rfc/rfc7235}.
+
 \end{thebibliography}
+
+% ═════════════════════════════════════════════════════════════════════════════
+\appendix
+\renewcommand{\thechapter}{\Alph{chapter}}
+\titleformat{\chapter}[hang]
+  {\normalfont\fontsize{16}{19}\bfseries}
+  {Annex \thechapter\;---}{0.6em}{}
+
+\chapter{Repository layout}
+\label{annex:repo}
+
+The full source tree of the platform is available at
+\url{https://github.com/WhatIsThePoint/No-Code-AI-Platform-}.
+
+\begin{itemize}
+    \item \texttt{services/} --- the five Python microservices
+        (\texttt{api-gateway}, \texttt{auth-service},
+        \texttt{data-ingestion-service}, \texttt{ml-training-service},
+        \texttt{metrics-service}, \texttt{dl-training-service}).
+    \item \texttt{frontend/} --- the React + TypeScript single-page app.
+    \item \texttt{infra/} --- Postgres seed file, test DB fixtures
+        (Postgres + MySQL), sample CSVs.
+    \item \texttt{scripts/} --- demo seeds (synthetic image dataset),
+        smoke tests, screenshot tours.
+    \item \texttt{docs/} --- the demo-day runbook, the report audit
+        notes, the Orange Challenge PFE submission decks (FR + EN),
+        and the tour-captured screenshots.
+    \item \texttt{diagrams/} --- 35 PlantUML sources, 8 matplotlib
+        chart generators, and the rendered PNGs that ship inside this
+        report.
+    \item \texttt{docker-compose.yml} --- one-command bring-up of the
+        full 14-container stack.
+\end{itemize}
+
+\chapter{Demo accounts and credentials}
+\label{annex:accounts}
+
+The platform ships with seed users for the live demo. All accounts
+share the password \texttt{Demo1234!} after running \texttt{make seed}.
+
+\begin{table}[H]
+\centering
+\caption{Seeded demo accounts.}
+\label{tab:demo_accounts}
+\begin{tabular}{|p{0.32\linewidth}|p{0.18\linewidth}|L{0.40\linewidth}|}
+\hline
+\textbf{Email} & \textbf{Tier} & \textbf{Demo role} \\ \hline
+\texttt{admin@nocode-ai.io} & super\_admin & Platform admin. Used for the admin console / impersonation demo. \\ \hline
+\texttt{alice@acme-ml.com} & company & ACME company owner. Main demo identity for the multi-tenant flow. \\ \hline
+\texttt{bob@acme-ml.com} & company & Second ACME member, used for two-browser real-time presence. \\ \hline
+\texttt{carol@acme-ml.com} & company & Analyst role demo (read-only). \\ \hline
+\texttt{dave@solo-dev.io} & solo & Solo-tier feature gate demo. \\ \hline
+\texttt{eve@free-mail.io} & free & Free-tier ceiling demo (DL slider caps at 5 epochs / batch 32). \\ \hline
+\end{tabular}
+\end{table}
+
+\chapter{Configuration reference}
+\label{annex:config}
+
+The complete set of environment variables, with defaults, is
+documented in \texttt{.env.example} at the repository root. The
+critical ones for the demo:
+
+\begin{table}[H]
+\centering
+\caption{Critical environment variables.}
+\label{tab:env_vars}
+\begin{tabular}{|p{0.32\linewidth}|L{0.58\linewidth}|}
+\hline
+\textbf{Variable} & \textbf{Role} \\ \hline
+\texttt{JWT\_SECRET\_KEY} & Shared by the gateway and the auth-service for in-process JWT decode. \\ \hline
+\texttt{FERNET\_KEY} & Encrypts the SQL connector credentials stored in Mongo. \\ \hline
+\texttt{STRIPE\_SECRET\_KEY} & Optional. Without it the billing UI shows a "demo mode" notice. \\ \hline
+\texttt{STRIPE\_WEBHOOK\_SECRET} & Issued by the Stripe CLI's \texttt{listen} command. Required for the upgrade flow to flip the tier. \\ \hline
+\texttt{MAIL\_SERVER} / \texttt{MAIL\_PORT} & MailHog defaults: \texttt{mailhog} / 1025. \\ \hline
+\texttt{EMAIL\_VERIFICATION\_REQUIRED} & When \texttt{true}, /auth/login returns 403 until the user clicks the verification link in MailHog. \\ \hline
+\texttt{OLLAMA\_URL} / \texttt{OLLAMA\_MODEL} & \texttt{http://ollama:11434} and \texttt{llama3.2:3b}. \\ \hline
+\end{tabular}
+\end{table}
+
+\chapter{Re-running the validation experiments}
+\label{annex:validation}
+
+The two reference validation runs reported in the General Conclusion
+can be reproduced on any GTX 1660 Super class machine.
+
+\paragraph{Tabular ML reference run.}
+\begin{enumerate}
+    \item \texttt{make up} to bring the stack online.
+    \item \texttt{make seed} to load the demo users.
+    \item Sign in as \texttt{alice@acme-ml.com}.
+    \item Datasets $\to$ Load Demo Dataset $\to$ \textbf{Salary (250 k rows)}.
+    \item Pipelines $\to$ New Pipeline $\to$ ML mode $\to$ ML starter
+        template.
+    \item Train node: algorithm \texttt{random\_forest}, task
+        \texttt{regression}, target \texttt{salary}, n\_estimators
+        $= 200$, max\_depth $= 12$.
+    \item Click Run. Expected: $R^2$ between $0.97$ and $0.98$ in
+        roughly $4$\,min on the demo machine.
+\end{enumerate}
+
+\paragraph{Deep-learning reference run.}
+\begin{enumerate}
+    \item \texttt{python3 scripts/seed\_demo\_image\_dataset.py
+        /tmp/demo\_images.zip} to mint the synthetic 30-image,
+        3-class dataset.
+    \item Upload the zip via the Image Dataset upload route.
+    \item Pipelines $\to$ New Pipeline $\to$ DL mode $\to$ DL starter
+        template.
+    \item Arch node: \texttt{tiny\_resnet} at $64$\,px,
+        pretrained \texttt{false}.
+    \item Train node: $5$ epochs, batch $32$, lr $0.001$.
+    \item Click Run. Expected: terminal validation accuracy averaging
+        $\sim 97\%$ across five runs in roughly $30$\,seconds on a
+        1660 Super.
+\end{enumerate}
 
 \end{document}

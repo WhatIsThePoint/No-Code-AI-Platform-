@@ -172,12 +172,41 @@ def _activate_subscription(
             if stripe_sub.get("trial_end")
             else None
         )
-        sub.current_period_end = datetime.datetime.fromtimestamp(
-            stripe_sub["current_period_end"], tz=datetime.timezone.utc
-        )
+        # `current_period_end` lives at the top level on older API versions
+        # and on `items.data[0].current_period_end` on 2025-03-31 and later.
+        # Read whichever exists; fall back to None rather than raising.
+        period_end_ts = stripe_sub.get("current_period_end")
+        if not period_end_ts:
+            items = stripe_sub.get("items", {}).get("data") or []
+            if items:
+                period_end_ts = items[0].get("current_period_end")
+        if period_end_ts:
+            sub.current_period_end = datetime.datetime.fromtimestamp(
+                period_end_ts, tz=datetime.timezone.utc
+            )
 
     user.tier = PLAN_TO_TIER.get(plan, "free")
     db.session.commit()
+
+
+def _plan_from_stripe_price(stripe_sub: dict) -> Optional[str]:
+    """Look at the subscription's active line item, pull the price ID, and
+    reverse-map back to our internal plan key (`solo_monthly`,
+    `company_yearly`, etc.). Returns None if the price ID is unknown — that
+    case keeps the existing plan rather than clobbering it."""
+    try:
+        items = stripe_sub.get("items", {}).get("data") or []
+        if not items:
+            return None
+        price_id = items[0].get("price", {}).get("id")
+        if not price_id:
+            return None
+        for plan_key, configured_id in _PRICE_IDS.items():
+            if configured_id and configured_id == price_id:
+                return plan_key
+    except Exception:
+        pass
+    return None
 
 
 def _sync_subscription(stripe_sub: dict) -> None:
@@ -201,6 +230,19 @@ def _sync_subscription(stripe_sub: dict) -> None:
         sub.current_period_end = datetime.datetime.fromtimestamp(
             stripe_sub["current_period_end"], tz=datetime.timezone.utc
         )
+
+    # Keep `sub.plan` and `user.tier` in lockstep with the active Stripe
+    # price. Portal-driven upgrades / downgrades fire customer.subscription.
+    # updated without ever firing a fresh checkout.session.completed, so this
+    # is the only path that catches a plan change made outside the Checkout
+    # flow.
+    new_plan = _plan_from_stripe_price(stripe_sub)
+    if new_plan and new_plan != sub.plan and sub.status not in ("canceled",):
+        sub.plan = new_plan
+        user = User.query.get(sub.user_id)
+        if user:
+            user.tier = PLAN_TO_TIER.get(new_plan, user.tier)
+
     if stripe_sub.get("cancel_at_period_end") or sub.status == "canceled":
         user = User.query.get(sub.user_id)
         if user:

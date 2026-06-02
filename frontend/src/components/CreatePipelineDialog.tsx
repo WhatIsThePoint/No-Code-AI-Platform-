@@ -22,6 +22,9 @@ import {
 } from "@mui/material";
 import GroupsIcon from "@mui/icons-material/GroupsRounded";
 import PersonIcon from "@mui/icons-material/PersonRounded";
+import ScienceIcon from "@mui/icons-material/ScienceRounded";
+import ChatIcon from "@mui/icons-material/ChatRounded";
+import ImageIcon from "@mui/icons-material/ImageRounded";
 import { companiesApi, type CompanyMember } from "../api/companies";
 import { pipelinesApi } from "../api/pipelines";
 import { projectsApi } from "../api/projects";
@@ -122,12 +125,54 @@ export function CreatePipelineDialog({ open, onClose, onCreated }: Props) {
           <FormControl>
             <FormLabel sx={{ fontWeight: 600, mb: 0.5 }}>Type</FormLabel>
             <RadioGroup
-              row
               value={type}
               onChange={(_, v) => setType(v as PipelineType)}
             >
-              <FormControlLabel value="ml" control={<Radio />} label="ML training" />
-              <FormControlLabel value="rag" control={<Radio />} label="RAG / GenAI" />
+              <FormControlLabel
+                value="ml"
+                control={<Radio />}
+                label={
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <ScienceIcon fontSize="small" />
+                    <Box>
+                      <Typography sx={{ fontWeight: 600 }}>Tabular ML</Typography>
+                      <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                        Classification, regression, clustering, forecasting over CSV / SQL.
+                      </Typography>
+                    </Box>
+                  </Box>
+                }
+              />
+              <FormControlLabel
+                value="rag"
+                control={<Radio />}
+                label={
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <ChatIcon fontSize="small" />
+                    <Box>
+                      <Typography sx={{ fontWeight: 600 }}>RAG / Generative AI</Typography>
+                      <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                        Chat with your documents, fully local (Ollama + pgvector).
+                      </Typography>
+                    </Box>
+                  </Box>
+                }
+              />
+              <FormControlLabel
+                value="dl"
+                control={<Radio />}
+                label={
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <ImageIcon fontSize="small" />
+                    <Box>
+                      <Typography sx={{ fontWeight: 600 }}>Deep Learning</Typography>
+                      <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                        Image classification on a curated CNN catalogue (LeNet / ResNet-9 / MobileNet-V3).
+                      </Typography>
+                    </Box>
+                  </Box>
+                }
+              />
             </RadioGroup>
           </FormControl>
 

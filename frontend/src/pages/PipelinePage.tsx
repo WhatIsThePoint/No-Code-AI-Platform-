@@ -1,18 +1,11 @@
 import {
   Alert,
   Box,
-  Button,
   Card,
   CardActionArea,
   CardContent,
   Chip,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   Fab,
-  TextField,
   Typography,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
@@ -25,6 +18,7 @@ import { pipelinesApi } from "../api/pipelines";
 import type { Pipeline } from "../types/pipeline";
 import { EmptyStateHero } from "../components/common/EmptyStateHero";
 import { CardSkeletonGrid } from "../components/common/CardSkeletonGrid";
+import { CreatePipelineDialog } from "../components/CreatePipelineDialog";
 
 const STATUS_COLOR: Record<string, "default" | "warning" | "success" | "error"> = {
   draft: "default",
@@ -40,8 +34,6 @@ export function PipelinePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [creating, setCreating] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -56,20 +48,6 @@ export function PipelinePage() {
   };
 
   useEffect(() => { load(); }, []);
-
-  const handleCreate = async () => {
-    if (!newName.trim()) return;
-    setCreating(true);
-    try {
-      const { data } = await pipelinesApi.create({
-        name: newName.trim(),
-        owner_type: "personal",
-      });
-      navigate(`/pipelines/${data.pipeline_id}`);
-    } finally {
-      setCreating(false);
-    }
-  };
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
@@ -154,30 +132,14 @@ export function PipelinePage() {
         <AddIcon />
       </Fab>
 
-      <Dialog open={createOpen} onClose={() => setCreateOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>New Pipeline</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            label="Pipeline name"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            fullWidth
-            margin="normal"
-            onKeyDown={(e) => { if (e.key === "Enter") handleCreate(); }}
-          />
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2.5 }}>
-          <Button onClick={() => setCreateOpen(false)}>Cancel</Button>
-          <Button
-            variant="contained"
-            onClick={handleCreate}
-            disabled={!newName.trim() || creating}
-          >
-            {creating ? <CircularProgress size={16} /> : "Create"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <CreatePipelineDialog
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreated={(p) => {
+          setCreateOpen(false);
+          navigate(`/pipelines/${p.pipeline_id}`);
+        }}
+      />
     </Box>
   );
 }

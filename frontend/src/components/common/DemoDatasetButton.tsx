@@ -23,7 +23,7 @@ import { useTaskStatus } from "../../hooks/useTaskStatus";
 
 interface DemoSpec {
   id: string;
-  i18nKey: "churn" | "iris" | "titanic";
+  i18nKey: "churn" | "iris" | "titanic" | "attritionDirty";
   file: string;
   uploadName: string;
 }
@@ -32,6 +32,12 @@ const DEMOS: DemoSpec[] = [
   { id: "churn", i18nKey: "churn", file: "/demo/customer_churn.csv", uploadName: "customer_churn_demo.csv" },
   { id: "iris", i18nKey: "iris", file: "/demo/iris.csv", uploadName: "iris_demo.csv" },
   { id: "titanic", i18nKey: "titanic", file: "/demo/titanic.csv", uploadName: "titanic_demo.csv" },
+  {
+    id: "attritionDirty",
+    i18nKey: "attritionDirty",
+    file: "/demo/employee_attrition_dirty.csv",
+    uploadName: "employee_attrition_dirty_demo.csv",
+  },
 ];
 
 interface Props {

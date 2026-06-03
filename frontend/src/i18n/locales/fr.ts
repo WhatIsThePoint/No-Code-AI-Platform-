@@ -173,7 +173,7 @@ export const fr: TranslationKeys = {
       buildPipeline: "Construire un pipeline",
       buildPipelineHint: "Glissez un nœud Jeu de données sur le canevas et reliez-le à une étape d'entraînement.",
       runTraining: "Lancer un entraînement",
-      runTrainingHint: "Cliquez sur Exécuter et suivez le graphique d'entraînement en direct.",
+      runTrainingHint: "Cliquez sur Exécuter — les résultats apparaîtront sur le nœud Évaluer à la fin de l'entraînement.",
       inviteTeammate: "Inviter un coéquipier (optionnel)",
       inviteTeammateHint: "Ajoutez des collaborateurs à votre espace entreprise depuis la page Collaboration.",
     },
@@ -211,6 +211,14 @@ export const fr: TranslationKeys = {
         "Un échantillon de 100 lignes du jeu Titanic. Mélange de variables numériques et catégorielles avec des valeurs manquantes réalistes — parfait pour tester le prétraitement.",
       specs:
         "100 lignes · 9 colonnes · Cible : survived (binaire)\nVariables : pclass, sex, age, sibsp, parch, fare, embarked",
+    },
+    attritionDirty: {
+      title: "Attrition employés — Démo « sale »",
+      summary: "90 lignes · attrition binaire · met en valeur le prétraitement",
+      description:
+        "Un jeu RH volontairement bruité pour exercer le pipeline de prétraitement : environ 12 % de valeurs manquantes sur plusieurs colonnes, casse incohérente des catégories (« Engineering » vs « engineering » vs « ENGINEERING »), encodages oui/non hétérogènes (« Yes », « Y », « 1 », « N/A », « ? ») et quelques valeurs aberrantes (salaire, heures supplémentaires).",
+      specs:
+        "90 lignes · 10 colonnes · Cible : attrition (binaire)\nVariables : age, department, years_at_company, monthly_salary, overtime_hours, satisfaction, remote_days_per_week, has_promotion\nProblèmes semés : valeurs manquantes, casse incohérente, valeurs aberrantes, encodages booléens mixtes",
     },
     errors: {
       fileTooLarge: "Le fichier de démo dépasse la limite de {{max}} Mo de votre formule.",

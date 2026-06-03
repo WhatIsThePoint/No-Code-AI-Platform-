@@ -169,7 +169,7 @@ export const en = {
       buildPipeline: "Build a pipeline",
       buildPipelineHint: "Drag a Dataset node onto the canvas and connect a Train step.",
       runTraining: "Run a training job",
-      runTrainingHint: "Click Run on your pipeline and watch the live training chart.",
+      runTrainingHint: "Click Run on your pipeline — results appear on the Evaluate node when training finishes.",
       inviteTeammate: "Invite a teammate (optional)",
       inviteTeammateHint: "Bring collaborators into your company workspace from the Collaborator page.",
     },
@@ -207,6 +207,14 @@ export const en = {
         "A 100-row sample of the Titanic survival dataset. Mix of numeric and categorical features with realistic missing values — good for trying preprocessing.",
       specs:
         "100 rows · 9 columns · Target: survived (binary)\nFeatures: pclass, sex, age, sibsp, parch, fare, embarked",
+    },
+    attritionDirty: {
+      title: "Employee Attrition — Dirty Demo",
+      summary: "90 rows · binary attrition · showcases preprocessing",
+      description:
+        "A deliberately messy HR dataset built to exercise the platform's preprocessing pipeline: ~12% missing values on several columns, inconsistent category casing ('Engineering' vs 'engineering' vs 'ENGINEERING'), mixed yes/no encodings ('Yes', 'Y', '1', 'N/A', '?'), and a few salary / overtime outliers.",
+      specs:
+        "90 rows · 10 columns · Target: attrition (binary)\nFeatures: age, department, years_at_company, monthly_salary, overtime_hours, satisfaction, remote_days_per_week, has_promotion\nIssues seeded: missing cells, inconsistent text categories, outliers, mixed boolean encodings",
     },
     errors: {
       fileTooLarge: "The demo file exceeds the {{max}} MB limit for your plan.",

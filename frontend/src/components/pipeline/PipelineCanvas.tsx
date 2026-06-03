@@ -73,6 +73,7 @@ import { PipelineStepper } from "./PipelineStepper";
 import { derivePipelineStep } from "./derivePipelineStep";
 import { PipelineTour } from "../onboarding/PipelineTour";
 import { GenAITour } from "../tour/GenAITour";
+import { DLTour } from "../tour/DLTour";
 import { ChatInterface } from "./ChatInterface";
 import { ChatDrawer } from "./ChatDrawer";
 import { MeetingButton } from "./MeetingButton";
@@ -636,6 +637,7 @@ function PipelineCanvasInner({ pipeline, datasets, onSaved }: Props) {
         <PipelineTour shouldStart={pipeline.nodes.length === 0} />
       )}
       {canvasMode === "rag" && <GenAITour shouldStart={true} />}
+      {canvasMode === "dl" && <DLTour shouldStart={pipeline.nodes.length === 0} />}
       {canvasMode === "ml" && (
         <PipelineStepper activeStep={activeStep} completedSteps={completedSteps} />
       )}

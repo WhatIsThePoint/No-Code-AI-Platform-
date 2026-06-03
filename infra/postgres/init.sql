@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS users (
     is_active       BOOLEAN NOT NULL DEFAULT TRUE,
     has_seen_pipeline_tour BOOLEAN NOT NULL DEFAULT FALSE,
     has_seen_genai_tour BOOLEAN NOT NULL DEFAULT FALSE,
+    has_seen_dl_tour BOOLEAN NOT NULL DEFAULT FALSE,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );

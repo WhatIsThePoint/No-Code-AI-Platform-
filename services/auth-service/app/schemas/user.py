@@ -10,6 +10,7 @@ class UserSchema(Schema):
     totp_enabled = fields.Bool(dump_only=True)
     has_seen_pipeline_tour = fields.Bool()
     has_seen_genai_tour = fields.Bool()
+    has_seen_dl_tour = fields.Bool()
     created_at = fields.DateTime(dump_only=True)
 
 
@@ -20,3 +21,4 @@ class UpdateProfileSchema(Schema):
     )
     has_seen_pipeline_tour = fields.Bool()
     has_seen_genai_tour = fields.Bool()
+    has_seen_dl_tour = fields.Bool()

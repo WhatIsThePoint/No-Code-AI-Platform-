@@ -63,6 +63,8 @@ def update_profile():
         user.has_seen_pipeline_tour = data["has_seen_pipeline_tour"]
     if "has_seen_genai_tour" in data:
         user.has_seen_genai_tour = data["has_seen_genai_tour"]
+    if "has_seen_dl_tour" in data:
+        user.has_seen_dl_tour = data["has_seen_dl_tour"]
 
     db.session.commit()
     return jsonify(_user_schema.dump(user)), 200

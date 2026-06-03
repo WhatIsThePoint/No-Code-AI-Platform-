@@ -7,6 +7,7 @@ export interface User {
   totp_enabled: boolean;
   has_seen_pipeline_tour?: boolean;
   has_seen_genai_tour?: boolean;
+  has_seen_dl_tour?: boolean;
   created_at: string;
   /** Effective per-user resource ceilings — populated by GET /users/me. */
   limits?: UserLimits;

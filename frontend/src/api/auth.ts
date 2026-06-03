@@ -19,7 +19,7 @@ export const authApi = {
 
   updateMe: (
     payload: Partial<
-      Pick<User, "full_name" | "role" | "has_seen_pipeline_tour" | "has_seen_genai_tour">
+      Pick<User, "full_name" | "role" | "has_seen_pipeline_tour" | "has_seen_genai_tour" | "has_seen_dl_tour">
     >,
   ) => api.patch<User>("/users/me", payload),
 

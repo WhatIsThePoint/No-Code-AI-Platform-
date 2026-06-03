@@ -356,10 +356,24 @@ export function RAGConfigNode({ id, data, selected }: NodeProps) {
           </Typography>
         </Tooltip>
       </Box>
-      {/* Slight right padding > left so the rightmost mark dot, whose
-          MUI default transform centres it on `left: 100%`, lands fully
-          inside the node's rounded border instead of bleeding past it. */}
-      <Box className="nodrag" sx={{ pl: 1.25, pr: 2, pb: 2 }}>
+      {/* The slider track is inset from both edges so the thumb at value=max
+          (default `left:100%` with `translate(-50%,-50%)` puts half of itself
+          past the rail) and the rightmost mark label stay inside the node.
+          `overflow: hidden` is a backstop — if any sub-element still tries to
+          escape, it gets clipped at the node's content edge rather than
+          breaking out into the canvas. */}
+      <Box
+        className="nodrag"
+        sx={{
+          // Extra right inset because the rightmost mark label can be 2 digits
+          // ("10") and MUI's default `translateX(-50%)` would push half of it
+          // past the rail's right edge.
+          pl: 1,
+          pr: 2.5,
+          pb: 2,
+          overflow: "hidden",
+        }}
+      >
         <Slider
           size="small"
           value={Math.min(topK, dynamicMaxK)}
@@ -388,23 +402,6 @@ export function RAGConfigNode({ id, data, selected }: NodeProps) {
               fontSize: "0.6rem",
               color: MUTED,
               top: 16,
-            },
-            // Pin the first/last *dots* fully inside the rail. MUI's default
-            // `translate(-50%, -50%)` puts half of the 0% / 100% mark
-            // outside the rail edges; we shift them inward instead.
-            "& .MuiSlider-mark[data-index='0']": {
-              transform: "translate(0, -50%)",
-            },
-            [`& .MuiSlider-mark[data-index='${sliderMarks.length - 1}']`]: {
-              transform: "translate(-100%, -50%)",
-            },
-            // Pin the first/last *labels* the same way so the digits don't
-            // hang past the node's rounded border.
-            "& .MuiSlider-markLabel[data-index='0']": {
-              transform: "translateX(0)",
-            },
-            [`& .MuiSlider-markLabel[data-index='${sliderMarks.length - 1}']`]: {
-              transform: "translateX(-100%)",
             },
           }}
         />

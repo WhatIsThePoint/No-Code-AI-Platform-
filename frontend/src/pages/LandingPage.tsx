@@ -133,7 +133,6 @@ const PRICING_ROWS: PricingRow[] = [
   { l: "Training runs / month", vals: ["10", "Unlimited", "Unlimited"] },
   { l: "XGBoost · LightGBM · CatBoost", vals: ["✓", "✓", "✓"], check: true },
   { l: "scikit-learn · statsmodels", vals: ["✓", "✓", "✓"], check: true },
-  { l: "Live training telemetry", hint: "SocketIO", vals: ["✓", "✓", "✓"], check: true },
   { l: "Side-by-side model comparison", vals: ["—", "✓", "✓"] },
 
   { sec: "Local AI" },
@@ -574,7 +573,7 @@ export function LandingPage() {
                 Build ML models <em>without writing code.</em>
               </h1>
               <p className="hero-sub">
-                From CSV to a deployable model — with live training telemetry, document-grounded RAG, and a
+                From CSV to a deployable model — with full profiling, document-grounded RAG, and a
                 context-aware AI copilot. All running locally, on your hardware, with zero cloud dependencies.
               </p>
               <div className="hero-ctas">

@@ -3,13 +3,12 @@ import {
   Alert,
   Box,
   Button,
-  ButtonGroup,
   CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
-  IconButton,
+  Divider,
   MenuItem,
   Snackbar,
   TextField,
@@ -19,7 +18,7 @@ import {
 } from "@mui/material";
 import VideoCallIcon from "@mui/icons-material/VideoCallRounded";
 import LinkIcon from "@mui/icons-material/OpenInNewRounded";
-import AddLinkIcon from "@mui/icons-material/AddLinkRounded";
+import DuoIcon from "@mui/icons-material/DuoRounded";
 
 import {
   collabApi,
@@ -53,15 +52,15 @@ export function MeetingButton({ pipelineId, disabled = false }: Props) {
     configured: boolean;
     linked: boolean;
   } | null>(null);
-  const [starting, setStarting] = useState(false);
   const [notice, setNotice] = useState<MeetingNotice>({ open: false, link: "" });
   const [error, setError] = useState<string | null>(null);
 
-  const [pasteOpen, setPasteOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [pasteUrl, setPasteUrl] = useState("");
   const [pasteProvider, setPasteProvider] =
     useState<ExternalMeetingProvider>("zoom");
   const [pasteSubmitting, setPasteSubmitting] = useState(false);
+  const [googleStarting, setGoogleStarting] = useState(false);
 
   useEffect(() => {
     collabApi
@@ -99,12 +98,12 @@ export function MeetingButton({ pipelineId, disabled = false }: Props) {
     };
   }, [pipelineId]);
 
-  const handleStartMeet = async () => {
+  const handleStartGoogleMeet = async () => {
     setError(null);
 
     if (!linkStatus?.configured) {
       setError(
-        "Google Meet is not configured on this deployment. Use Paste Meeting Link instead."
+        "Google Meet is not configured on this deployment. Paste a Zoom, Teams, Jitsi, or Whereby link instead."
       );
       return;
     }
@@ -114,7 +113,7 @@ export function MeetingButton({ pipelineId, disabled = false }: Props) {
         const { data } = await collabApi.googleLinkUrl();
         window.open(data.authorization_url, "_blank", "noopener,noreferrer");
         setError(
-          "Authorize Google Calendar in the new tab, then click Start Meet again."
+          "Authorize Google Calendar in the new tab, then click Start Google Meet again."
         );
       } catch {
         setError("Failed to start Google link flow.");
@@ -122,12 +121,13 @@ export function MeetingButton({ pipelineId, disabled = false }: Props) {
       return;
     }
 
-    setStarting(true);
+    setGoogleStarting(true);
     try {
       const { data } = await collabApi.createMeeting(pipelineId);
       if (data.hangout_link) {
         window.open(data.hangout_link, "_blank", "noopener,noreferrer");
       }
+      setDialogOpen(false);
     } catch (e) {
       const err = e as {
         response?: { status?: number; data?: { error?: string } };
@@ -141,7 +141,7 @@ export function MeetingButton({ pipelineId, disabled = false }: Props) {
         setError("Failed to create meeting.");
       }
     } finally {
-      setStarting(false);
+      setGoogleStarting(false);
     }
   };
 
@@ -162,7 +162,7 @@ export function MeetingButton({ pipelineId, disabled = false }: Props) {
         window.open(data.hangout_link, "_blank", "noopener,noreferrer");
       }
       setPasteUrl("");
-      setPasteOpen(false);
+      setDialogOpen(false);
     } catch (e) {
       const err = e as {
         response?: { status?: number; data?: { error?: string; message?: string } };
@@ -183,82 +183,107 @@ export function MeetingButton({ pipelineId, disabled = false }: Props) {
     }
   };
 
-  const tooltip = !linkStatus?.configured
-    ? "Google Meet requires Google OAuth env vars on the server"
+  const googleHint = !linkStatus?.configured
+    ? "Google Meet is not configured on this deployment."
     : !linkStatus.linked
-    ? "Connect your Google account to create a Meet link"
-    : "Spin up a Google Meet for this pipeline";
+    ? "Connect your Google account to create a Meet link."
+    : "Spin up a Google Meet and notify your teammates.";
 
   return (
     <>
-      <ButtonGroup
-        variant="outlined"
-        size="small"
-        disabled={disabled}
-        sx={{
-          "& .MuiButtonGroup-grouped": {
-            borderColor: alpha("#10b981", 0.3),
-            color: "#059669",
-            "&:hover": {
-              borderColor: "#10b981",
-              bgcolor: alpha("#10b981", 0.05),
-            },
-          },
-        }}
-      >
-        <Tooltip title={tooltip}>
-          <span>
-            <Button
-              disabled={disabled || starting}
-              onClick={handleStartMeet}
-              startIcon={
-                starting ? (
-                  <CircularProgress size={14} sx={{ color: "#10b981" }} />
-                ) : (
-                  <VideoCallIcon sx={{ fontSize: 16 }} />
-                )
-              }
-            >
-              {starting ? "Starting…" : "Start Meet"}
-            </Button>
-          </span>
-        </Tooltip>
-        <Tooltip title="Paste a Zoom, Teams, Jitsi, or Whereby link to share with teammates">
-          <span>
-            <IconButton
-              size="small"
-              disabled={disabled}
-              onClick={() => setPasteOpen(true)}
-              aria-label="Paste an external meeting link"
-              sx={{
-                border: 1,
-                borderLeft: 0,
-                borderColor: alpha("#10b981", 0.3),
-                color: "#059669",
-                borderRadius: 0,
-                borderTopRightRadius: 4,
-                borderBottomRightRadius: 4,
-                px: 1,
-              }}
-            >
-              <AddLinkIcon sx={{ fontSize: 16 }} />
-            </IconButton>
-          </span>
-        </Tooltip>
-      </ButtonGroup>
+      <Tooltip title="Share a meeting link with your teammates">
+        <span>
+          <Button
+            variant="outlined"
+            size="small"
+            disabled={disabled}
+            onClick={() => {
+              setError(null);
+              setDialogOpen(true);
+            }}
+            startIcon={<VideoCallIcon sx={{ fontSize: 16 }} />}
+            sx={{
+              borderColor: alpha("#10b981", 0.3),
+              color: "#059669",
+              "&:hover": {
+                borderColor: "#10b981",
+                bgcolor: alpha("#10b981", 0.05),
+              },
+            }}
+          >
+            Share Meeting
+          </Button>
+        </span>
+      </Tooltip>
 
       <Dialog
-        open={pasteOpen}
-        onClose={() => (pasteSubmitting ? null : setPasteOpen(false))}
+        open={dialogOpen}
+        onClose={() =>
+          pasteSubmitting || googleStarting ? null : setDialogOpen(false)
+        }
         fullWidth
         maxWidth="sm"
       >
         <DialogTitle sx={{ fontWeight: 700 }}>Share a meeting link</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Don't use Google? Paste a link from Zoom, Microsoft Teams, Jitsi, or
-            Whereby — we'll notify everyone in the pipeline.
+            Spin up a Google Meet, or paste a link from Zoom, Microsoft Teams,
+            Jitsi, or Whereby — everyone in the pipeline will be notified.
           </Typography>
+
+          <Box
+            sx={{
+              p: 2,
+              mb: 2,
+              borderRadius: 1,
+              border: 1,
+              borderColor: alpha("#10b981", 0.25),
+              bgcolor: alpha("#10b981", 0.04),
+            }}
+          >
+            <Typography
+              variant="subtitle2"
+              sx={{ fontWeight: 700, mb: 0.5, display: "flex", alignItems: "center", gap: 0.75 }}
+            >
+              <DuoIcon sx={{ fontSize: 18, color: "#059669" }} />
+              Start a Google Meet
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1.25 }}>
+              {googleHint}
+            </Typography>
+            <Button
+              variant="contained"
+              size="small"
+              onClick={handleStartGoogleMeet}
+              disabled={googleStarting || pasteSubmitting}
+              startIcon={
+                googleStarting ? (
+                  <CircularProgress size={14} sx={{ color: "#fff" }} />
+                ) : (
+                  <VideoCallIcon sx={{ fontSize: 16 }} />
+                )
+              }
+              sx={{
+                bgcolor: "#10b981",
+                "&:hover": { bgcolor: "#059669" },
+              }}
+            >
+              {googleStarting
+                ? "Starting…"
+                : !linkStatus?.configured
+                ? "Unavailable"
+                : !linkStatus.linked
+                ? "Connect Google"
+                : "Start Google Meet"}
+            </Button>
+          </Box>
+
+          <Divider sx={{ my: 2 }}>
+            <Typography variant="caption" color="text.secondary">
+              OR PASTE A LINK
+            </Typography>
+          </Divider>
+
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <TextField
               select
@@ -283,15 +308,14 @@ export function MeetingButton({ pipelineId, disabled = false }: Props) {
               onChange={(e) => setPasteUrl(e.target.value)}
               size="small"
               fullWidth
-              autoFocus
               helperText="Must be an https link from an allowed provider."
             />
           </Box>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button
-            onClick={() => setPasteOpen(false)}
-            disabled={pasteSubmitting}
+            onClick={() => setDialogOpen(false)}
+            disabled={pasteSubmitting || googleStarting}
             color="inherit"
           >
             Cancel
@@ -299,7 +323,7 @@ export function MeetingButton({ pipelineId, disabled = false }: Props) {
           <Button
             variant="contained"
             onClick={handlePasteSubmit}
-            disabled={pasteSubmitting || !pasteUrl.trim()}
+            disabled={pasteSubmitting || googleStarting || !pasteUrl.trim()}
             startIcon={
               pasteSubmitting ? (
                 <CircularProgress size={14} sx={{ color: "#fff" }} />
@@ -312,7 +336,7 @@ export function MeetingButton({ pipelineId, disabled = false }: Props) {
               "&:hover": { bgcolor: "#059669" },
             }}
           >
-            {pasteSubmitting ? "Sharing…" : "Share with team"}
+            {pasteSubmitting ? "Sharing…" : "Share pasted link"}
           </Button>
         </DialogActions>
       </Dialog>

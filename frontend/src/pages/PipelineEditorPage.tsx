@@ -20,6 +20,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBackRounded";
 import AccountTreeIcon from "@mui/icons-material/AccountTreeRounded";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownloadRounded";
 import CloseIcon from "@mui/icons-material/CloseRounded";
+import LockRoundedIcon from "@mui/icons-material/LockRounded";
 import { pipelinesApi } from "../api/pipelines";
 import { datasetsApi } from "../api/datasets";
 import { projectsApi } from "../api/projects";
@@ -29,7 +30,6 @@ import type { Dataset } from "../types/dataset";
 import { PipelineCanvas } from "../components/pipeline/PipelineCanvas";
 import { ManageAccessTab } from "../components/ManageAccessTab";
 import { ExportModelCard } from "../components/results/ExportModelCard";
-import { LiveTrainingChart } from "../components/pipeline/LiveTrainingChart";
 import { useReportCompanionContext } from "../components/companion/useCompanionContext";
 
 export function PipelineEditorPage() {
@@ -40,6 +40,7 @@ export function PipelineEditorPage() {
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [errorKind, setErrorKind] = useState<"forbidden" | "not_found" | "generic" | null>(null);
   const [tab, setTab] = useState<"canvas" | "access">("canvas");
   const [canManage, setCanManage] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
@@ -54,7 +55,19 @@ export function PipelineEditorPage() {
         setPipeline(pRes.data);
         setDatasets(dRes.data.items);
       })
-      .catch(() => setError("Failed to load pipeline"))
+      .catch((e: unknown) => {
+        const status = (e as { response?: { status?: number } }).response?.status;
+        if (status === 403) {
+          setErrorKind("forbidden");
+          setError("You are not a part of this pipeline.");
+        } else if (status === 404) {
+          setErrorKind("not_found");
+          setError("Pipeline not found.");
+        } else {
+          setErrorKind("generic");
+          setError("Failed to load pipeline");
+        }
+      })
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -92,6 +105,51 @@ export function PipelineEditorPage() {
   }
 
   if (error || !pipeline) {
+    if (errorKind === "forbidden") {
+      return (
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 2,
+            mt: 8,
+            px: 3,
+            textAlign: "center",
+          }}
+        >
+          <Box
+            sx={{
+              width: 64,
+              height: 64,
+              borderRadius: "50%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              bgcolor: alpha("#d2541c", 0.12),
+            }}
+          >
+            <LockRoundedIcon sx={{ fontSize: 32, color: "#d2541c" }} />
+          </Box>
+          <Typography variant="h6" sx={{ fontWeight: 700 }}>
+            You are not a part of this pipeline
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 420 }}>
+            This pipeline belongs to your company, but you haven't been invited
+            to collaborate on it. Ask the owner or a project admin to add you.
+          </Typography>
+          <Button
+            variant="outlined"
+            startIcon={<ArrowBackIcon />}
+            onClick={() => navigate("/pipelines")}
+            sx={{ mt: 1 }}
+          >
+            Back to my pipelines
+          </Button>
+        </Box>
+      );
+    }
     return <Alert severity="error">{error ?? "Pipeline not found"}</Alert>;
   }
 
@@ -224,12 +282,6 @@ export function PipelineEditorPage() {
           />
         </DialogContent>
       </Dialog>
-      {pipeline.type !== "rag" && pipeline.status === "running" && (
-        <Box sx={{ px: 2.5, pt: 2 }}>
-          <LiveTrainingChart pipelineId={pipeline.pipeline_id} />
-        </Box>
-      )}
-
       <Box sx={{ flex: 1, overflow: "hidden" }}>
         {tab === "canvas" ? (
           <PipelineCanvas

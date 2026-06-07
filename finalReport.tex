@@ -935,6 +935,30 @@ Post-conditions & Account is now eligible for sign-in. \\
 \end{tabular}
 \end{table}
 
+\section{Règles métier}
+
+The authentication and ingestion logic rests on a handful of rules
+the rest of the sprint enforces in code. Table~\ref{tab:sprint1_rules}
+collects them.
+
+\begin{table}[H]
+\centering
+\caption{Sprint~1 business rules.}
+\label{tab:sprint1_rules}
+\begin{tabular}{|p{0.12\linewidth}|L{0.80\linewidth}|}
+\hline
+\textbf{ID} & \textbf{Business rule} \\
+\hline
+RG-01 & A user can sign in only once their email address has been verified. \\ \hline
+RG-02 & Every request reaching a downstream service carries identity headers injected by the gateway from a valid JWT; any client-supplied identity header is discarded first. \\ \hline
+RG-03 & A refresh token is single-use --- each refresh rotates it and revokes the previous one. \\ \hline
+RG-04 & An email-verification link is valid for 24 hours and for one use only. \\ \hline
+RG-05 & Two-factor authentication is optional per user, but a super-admin may make it mandatory for a whole tier. \\ \hline
+RG-06 & External database credentials are never stored in clear text; they are encrypted before they are persisted. \\
+\hline
+\end{tabular}
+\end{table}
+
 \section{Design}
 
 \begin{figure}[H]
@@ -1275,6 +1299,28 @@ US-17 & Live metric streaming over SocketIO. & Medium & 1.5 \\ \hline
 US-18 & SHAP explainability for supervised runs (TreeExplainer fast path). & Medium & 1 \\ \hline
 US-19 & Confusion matrices and residual plots. & Medium & 0.5 \\ \hline
 US-20 & Model export (joblib + generated FastAPI inference script). & Medium & 1 \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Règles métier}
+
+A few rules govern how a pipeline may be built and run, and how a
+model version comes to exist. Table~\ref{tab:sprint2_rules} lists them.
+
+\begin{table}[H]
+\centering
+\caption{Sprint~2 business rules.}
+\label{tab:sprint2_rules}
+\begin{tabular}{|p{0.12\linewidth}|L{0.80\linewidth}|}
+\hline
+\textbf{ID} & \textbf{Business rule} \\
+\hline
+RG-07 & A pipeline runs only when its nodes are valid --- a Train node needs an upstream Dataset, an Evaluate node needs a completed training run. \\ \hline
+RG-08 & Every dataset is split 70/15/15 into train/validation/test before any model is fitted. \\ \hline
+RG-09 & Re-running a pipeline mints a new model version; an existing version is never overwritten. \\ \hline
+RG-10 & When the target is imbalanced, the summary card reports F1 rather than accuracy as the headline metric. \\ \hline
+RG-11 & SHAP explanations are produced only for tree-based supervised runs. \\
 \hline
 \end{tabular}
 \end{table}
@@ -1761,6 +1807,27 @@ US-28 & Source-chunks chip showing retrieved chunks + similarity. & Low & 0.5 \\
 \end{tabular}
 \end{table}
 
+\section{Règles métier}
+
+The RAG pipeline is governed by rules that keep its answers grounded
+and the data local. Table~\ref{tab:sprint3_rules} states them.
+
+\begin{table}[H]
+\centering
+\caption{Sprint~3 business rules.}
+\label{tab:sprint3_rules}
+\begin{tabular}{|p{0.12\linewidth}|L{0.80\linewidth}|}
+\hline
+\textbf{ID} & \textbf{Business rule} \\
+\hline
+RG-12 & A document must be embedded and indexed into the vector store before it can be queried in chat. \\ \hline
+RG-13 & The model answers only from the retrieved context; when the context does not hold the answer it refuses rather than guesses. \\ \hline
+RG-14 & Each answer surfaces the source chunks it was built from, together with their similarity scores. \\ \hline
+RG-15 & No document, embedding, or prompt ever leaves the local machine. \\
+\hline
+\end{tabular}
+\end{table}
+
 \section{Concepts fondamentaux}
 
 Three concepts carry the weight of this sprint; the design and
@@ -1968,6 +2035,27 @@ US-33 & Tier-aware ceilings on epochs and batch size. & High & 0.5 \\ \hline
 US-34 & Live training visualisation (reused from Sprint~2). & Medium & 0.5 \\ \hline
 US-35 & Inline single-image inference (the ``Try it'' panel). & Medium & 1 \\ \hline
 US-36 & DL-mode canvas toggle with three new node components. & Medium & 1.5 \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Règles métier}
+
+Training on a 6\,GB GPU stays safe only because of a few hard rules.
+Table~\ref{tab:sprint4_rules} collects them.
+
+\begin{table}[H]
+\centering
+\caption{Sprint~4 business rules.}
+\label{tab:sprint4_rules}
+\begin{tabular}{|p{0.12\linewidth}|L{0.80\linewidth}|}
+\hline
+\textbf{ID} & \textbf{Business rule} \\
+\hline
+RG-16 & A training run is admitted only if its estimated VRAM fits the budget; the guard rejects it before any GPU work starts. \\ \hline
+RG-17 & Epoch count and batch size are capped according to the user's tier. \\ \hline
+RG-18 & An image dataset is accepted only when it follows the \texttt{<class>/<file>} folder layout. \\ \hline
+RG-19 & Single-image inference (the ``Try it'' panel) is available only after a model has finished training. \\
 \hline
 \end{tabular}
 \end{table}
@@ -2363,6 +2451,29 @@ US-42 & Per-pipeline notification fan-out. & Medium & 0.5 \\
 \end{tabular}
 \end{table}
 
+\section{Règles métier}
+
+Collaboration is governed by the role a member holds on a given
+pipeline. Table~\ref{tab:sprint5_rules} states the rules that follow
+from it.
+
+\begin{table}[H]
+\centering
+\caption{Sprint~5 business rules.}
+\label{tab:sprint5_rules}
+\begin{tabular}{|p{0.12\linewidth}|L{0.80\linewidth}|}
+\hline
+\textbf{ID} & \textbf{Business rule} \\
+\hline
+RG-20 & Each member holds exactly one of five roles on a pipeline: Owner, Project Manager, Data Scientist, Analyst, or Viewer. \\ \hline
+RG-21 & The Owner is the user who created the pipeline and cannot be removed from it. \\ \hline
+RG-22 & Only an Owner or a Project Manager can invite a member or change a role. \\ \hline
+RG-23 & Running a training job requires at least the Data Scientist role; an Analyst or Viewer cannot train. \\ \hline
+RG-24 & A role is enforced on the server; the client-side disabling of buttons is convenience, not security. \\
+\hline
+\end{tabular}
+\end{table}
+
 \section{Concepts fondamentaux}
 
 \textbf{SocketIO rooms.} A room is a server-side label that groups
@@ -2545,6 +2656,27 @@ US-47 & Persistent notification bell. & Medium & 1 \\ \hline
 US-48 & Admin operations dashboard (5 panels). & High & 2 \\ \hline
 US-49 & User impersonation with hard five-minute TTL. & High & 1 \\ \hline
 US-50 & Undo / redo on the canvas with drag-coalescing. & Medium & 1 \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Règles métier}
+
+The operability features carry their own rules, mostly around tiers
+and the impersonation window. Table~\ref{tab:sprint6_rules} lists them.
+
+\begin{table}[H]
+\centering
+\caption{Sprint~6 business rules.}
+\label{tab:sprint6_rules}
+\begin{tabular}{|p{0.12\linewidth}|L{0.80\linewidth}|}
+\hline
+\textbf{ID} & \textbf{Business rule} \\
+\hline
+RG-25 & A super-admin ``view as user'' session expires automatically after a hard five-minute limit. \\ \hline
+RG-26 & A user's tier (free / solo / company) sets the quotas that apply; a super-admin may override a quota per user. \\ \hline
+RG-27 & Sensitive admin actions --- impersonation, role changes, quota overrides --- are written to the audit log. \\ \hline
+RG-28 & The platform runs on the free tier with no Stripe key configured; billing is needed only to go beyond free-tier quotas. \\
 \hline
 \end{tabular}
 \end{table}

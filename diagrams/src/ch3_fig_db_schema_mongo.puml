@@ -1,0 +1,85 @@
+@startuml ch3_fig_db_schema_mongo
+!include _style.iuml
+title MongoDB collections --- document shapes and the embedded / referenced split
+
+hide circle
+skinparam DatabaseBackgroundColor #e6f0ff
+
+legend top
+  <<embedded>>  nested subdocument, read together with its parent (denormalised)
+  <<ref>>       referenced by id --- a Postgres row, a named-volume artefact, or another collection
+end legend
+
+entity "datasets" as datasets {
+  * dataset_id : str <<PK>>
+  --
+  user_id : str <<ref: PG users>>
+  file_path : str <<ref: vol uploaded_files>>
+  file_type : str
+  status : str
+  row_count : int
+  column_count : int
+  target_column : str
+  profiling_summary : document <<embedded>>
+  created_at : datetime
+}
+
+entity "pipelines" as pipelines {
+  * pipeline_id : str <<PK>>
+  --
+  user_id : str <<ref: PG users>>
+  type : "ml" | "rag" | "dl"
+  status : str
+  nodes : [ document ] <<embedded>>
+  edges : [ document ] <<embedded>>
+  created_at : datetime
+  updated_at : datetime
+}
+
+entity "task_results" as task_results {
+  * task_id : str <<PK>>
+  --
+  status : str
+  progress_pct : int
+  result : document <<embedded>>
+}
+
+entity "model_versions" as mv {
+  * version_id : str <<PK>>
+  --
+  pipeline_id : str <<ref: pipelines>>
+  algorithm : str
+  metrics : document <<embedded>>
+  shap_summary : document <<embedded>>
+  file_path : str <<ref: vol model_artifacts>>
+  created_at : datetime
+}
+
+entity "dl_versions" as dv {
+  * version_id : str <<PK>>
+  --
+  pipeline_id : str <<ref: pipelines>>
+  arch : str
+  final_metrics : document <<embedded>>
+  epoch_history : [ document ] <<embedded>>
+  class_names : [ str ] <<embedded>>
+  state_dict_path : str <<ref: vol model_artifacts>>
+  status : str
+}
+
+datasets ||--o{ task_results : ref (dataset_id)
+pipelines ||--o{ task_results : ref (pipeline_id)
+pipelines ||--o{ mv : ref (pipeline_id)
+pipelines ||--o{ dv : ref (pipeline_id)
+
+note bottom of datasets
+  Hybrid: the schemaless profile is
+  embedded; owner and raw file are
+  referenced (Postgres / named volume).
+end note
+note bottom of mv
+  Metrics embedded for one-query reads;
+  the trained binary lives on a named
+  volume, never as a BLOB in Mongo.
+end note
+@enduml

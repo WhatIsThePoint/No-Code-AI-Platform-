@@ -18,6 +18,7 @@
 \usepackage{array}
 \usepackage{subcaption}
 \usepackage{pdflscape}
+\usepackage{pgfgantt}     % dated sprint Gantt chart (Chapter 3)
 \usepackage{setspace}     % 1.5 line spacing
 \onehalfspacing
 
@@ -443,10 +444,11 @@ app.
 
 \section{Project Duration}
 
-The project ran across six sprints of roughly two to three weeks each,
-with a runnable demo and a self-contained git tag at the end of every
-sprint. Chapter~3 sets out the planned versus actual timeline across
-the six sprints.
+The project ran from 20 February to 1 June 2026, across six sprints of
+roughly two to three weeks each, with a runnable demo and a
+self-contained git tag at the end of every sprint. The Gantt chart in
+Chapter~3 (Figure~\ref{fig:ch3_gantt}) sets out the planned versus
+actual timeline across the six sprints.
 
 \section*{Conclusion}
 
@@ -749,6 +751,63 @@ without rebuilding any of them.
 
 \section{Project Planning}
 
+The project ran from 20 February to 1 June 2026 --- about fifteen
+weeks of development, closing with the report write-up and the defense
+preparation. The work was cut into six sprints of two to three weeks
+each. Figure~\ref{fig:ch3_gantt} shows the schedule as a Gantt chart,
+and Table~\ref{tab:timeline} sets the planned dates against the actual
+ones side by side.
+
+\begin{table}[H]
+\centering
+\caption{Planned versus actual sprint timeline (20 February --- 1 June 2026).}
+\label{tab:timeline}
+\begin{tabular}{|p{0.06\linewidth}|L{0.30\linewidth}|L{0.21\linewidth}|L{0.21\linewidth}|p{0.06\linewidth}|}
+\hline
+\textbf{Sprint} & \textbf{Theme} & \textbf{Planned} & \textbf{Actual} & \textbf{Wks} \\
+\hline
+1 & Authentication, gateway, ingestion & 20 Feb -- 5 Mar & 20 Feb -- 5 Mar & 2 \\ \hline
+2 & Visual canvas + tabular ML & 6 Mar -- 19 Mar & 6 Mar -- 26 Mar & 3 \\ \hline
+3 & Local generative AI (RAG) & 20 Mar -- 2 Apr & 27 Mar -- 9 Apr & 2 \\ \hline
+4 & Deep learning (images) & 3 Apr -- 16 Apr & 10 Apr -- 30 Apr & 3 \\ \hline
+5 & Multi-tenancy + collaboration & 17 Apr -- 30 Apr & 1 May -- 14 May & 2 \\ \hline
+6 & Dashboard, i18n, a11y, admin & 1 May -- 14 May & 15 May -- 28 May & 2 \\ \hline
+\multicolumn{2}{|l|}{\textit{Report finalisation \& defense prep}} & --- & 29 May -- 1 Jun & 1 \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{ganttchart}[
+  hgrid,
+  vgrid,
+  title height=1,
+  title label font=\footnotesize,
+  bar label font=\small,
+  bar/.append style={fill=blue!35, draw=blue!60},
+  bar height=0.55,
+  y unit chart=0.62cm,
+  y unit title=0.7cm,
+]{1}{15}
+  \gantttitle{Feb}{2}\gantttitle{March}{4}\gantttitle{April}{4}\gantttitle{May}{4}\gantttitle{Jun}{1} \\
+  \gantttitlelist{1,...,15}{1} \\
+  \ganttbar{Sprint 1 --- Foundation}{1}{2} \\
+  \ganttbar[bar/.append style={fill=orange!50, draw=orange!80}]{Sprint 2 --- Canvas + Tabular ML}{3}{5} \\
+  \ganttbar{Sprint 3 --- RAG}{6}{7} \\
+  \ganttbar[bar/.append style={fill=orange!50, draw=orange!80}]{Sprint 4 --- Deep Learning}{8}{10} \\
+  \ganttbar{Sprint 5 --- Collaboration}{11}{12} \\
+  \ganttbar{Sprint 6 --- Operability + Polish}{13}{14} \\
+  \ganttbar[bar/.append style={fill=black!25, draw=black!45}]{Report + defense prep}{15}{15}
+\end{ganttchart}%
+}
+\caption{Six-sprint Gantt chart (20 February --- 1 June 2026), weeks
+W1--W15. The two orange sprints (2 and 4) each ran a week longer than
+planned, pushing every later sprint back by a week; the planned versus
+actual dates are in Table~\ref{tab:timeline}.}
+\label{fig:ch3_gantt}
+\end{figure}
 
 Two sprints slipped by roughly a week each. Sprint~2 ran long because
 the live training visualisation had a Plotly autoscale bug that took

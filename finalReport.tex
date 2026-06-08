@@ -133,8 +133,9 @@ possible without them.
 This report documents the design and implementation of a no-code AI
 platform built across six sprints as an end-of-studies project. The
 platform lets non-technical users upload data, sketch a pipeline on a
-visual canvas, and train a model under one fixed constraint: nothing
-ever leaves the machine. Three workloads share the same canvas. The
+visual canvas, and train a model under one fixed constraint: no data
+ever leaves the machine for an AI provider. Three workloads share the
+same canvas. The
 first is tabular machine learning across fourteen algorithms covering
 classification, regression, clustering, and forecasting. The second is
 local Generative AI through a Retrieval-Augmented Generation chat
@@ -177,7 +178,7 @@ that gives a domain expert --- a clinician, an analyst, a small
 business owner --- enough visual scaffolding to build, train, and
 inspect a model on their own machine. Not a tutorial, not a hosted
 SaaS, but a real piece of software that runs locally, accepts local
-data, and never phones home to a vendor API.
+data, and never phones home to an AI vendor.
 
 Three workloads sit behind the same canvas: tabular ML, RAG-style
 generative AI, and image classification. Each imposes a different
@@ -297,7 +298,7 @@ Admin operations & User management, audit logs, queue and hardware monitoring, u
 \textbf{Property} & \textbf{Commitment} \\
 \hline
 Data sovereignty & No outbound calls to AI vendors. Stripe is the only third-party service in the deployment graph, and it is optional --- without an API key the platform still works on the free tier. \\ \hline
-Modularity & Five independent Python services so a long training run cannot block an authentication request. \\ \hline
+Modularity & Six independent Python services so a long training run cannot block an authentication request. \\ \hline
 Reproducibility & Every dataset version is profiled, every training run is recorded, every model artefact is versioned and downloadable. \\ \hline
 Hardware envelope & Single consumer machine: $16$\,GB RAM, GTX~1660~Super (6\,GB VRAM). The platform runs on it, not just compiles on it. \\ \hline
 Accessibility & WCAG~AA contrast on the default theme; opt-in high-contrast theme; \texttt{aria-label} on every interactive element. \\ \hline
@@ -324,7 +325,7 @@ Frontend & React~18 + Vite + TypeScript + MUI & SPA shell with strict-mode type 
          & React Flow & Visual pipeline canvas with custom nodes. \\ \hline
          & Plotly + i18next + Zustand & Live charts, EN/FR i18n, state store. \\
 \hline
-Backend  & Flask + Celery + Flask-SocketIO & Five microservices, async queues, real-time channels. \\
+Backend  & Flask + Celery + Flask-SocketIO & Six microservices, async queues, real-time channels. \\
 \hline
 Data     & PostgreSQL + pgvector & Auth, ACL, billing, vector store (co-located). \\ \hline
          & MongoDB & Datasets, pipelines, task results, anything schemaless. \\ \hline
@@ -340,7 +341,7 @@ LLM      & Ollama + Llama~3.2~3B (Q4\_K\_M) & Local chat completion at $\sim$30 
 \hline
 DL       & PyTorch + torchvision (CUDA~12.1) & LeNet, custom ResNet-9, MobileNet-V3-Small. \\
 \hline
-Ops      & Docker Compose & 14-container orchestration via single \texttt{make up}. \\ \hline
+Ops      & Docker Compose & 15-container orchestration via single \texttt{make up}. \\ \hline
          & GitHub Actions & Parallel lint + test jobs, $\sim$14\,min full-stack. \\ \hline
          & MailHog & Dev email capture for verification + reset flows. \\
 \hline
@@ -360,7 +361,7 @@ change. These limits shaped almost every later design choice.
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch1_fig2}
-  \caption{Deployment envelope --- a single host, a single GPU, fourteen containers.}
+  \caption{Deployment envelope --- a single host, a single GPU, fifteen containers.}
   \label{fig:ch1_fig2}
 \end{figure}
 
@@ -371,7 +372,7 @@ change. These limits shaped almost every later design choice.
 \begin{itemize}
     \item A working web application running the three pipeline modes
         end to end on the demo machine.
-    \item Five Python microservices, packaged as Docker images.
+    \item Six Python microservices, packaged as Docker images.
     \item A React + TypeScript frontend, packaged as a static build.
     \item A \texttt{docker-compose.yml} that brings the entire stack
         online with one command.
@@ -414,8 +415,8 @@ Datasets, Pipelines, Models, Collaborator, Billing, Profile), a
 top bar with the language toggle, contrast toggle, notification
 bell, tier chip and account menu, and a content area that
 renders the active page. The mockup commits to the get-started
-checklist on the dashboard, which was the single change that most
-improved first-session retention during user testing.
+checklist on the dashboard, a deliberate choice to give a new user a
+clear first step instead of an empty screen.
 
 \subsection{Admin dashboard interface}
 The admin mockup is deliberately different from the user surface:
@@ -444,8 +445,8 @@ app.
 
 The project ran across six sprints of roughly two to three weeks each,
 with a runnable demo and a self-contained git tag at the end of every
-sprint. The Gantt chart in Chapter~3 captures the planned versus
-actual timeline.
+sprint. Chapter~3 sets out the planned versus actual timeline across
+the six sprints.
 
 \section*{Conclusion}
 
@@ -565,8 +566,8 @@ conversational tasks. The other shift is first-class GPU inference
 runtimes for consumer hardware. Ollama, llama.cpp, and vLLM all
 expose efficient batched inference on cards with $4$--$8$\,GB of
 VRAM. A 1660 Super, with $6$\,GB of VRAM and $30$\,TFLOPS of FP16
-throughput, serves roughly $30$ tokens per second on a 3B model ---
-enough latency budget for an interactive RAG chat.
+throughput, served roughly $30$ tokens per second on a 3B model in
+our own runs --- enough latency budget for an interactive RAG chat.
 
 \begin{figure}[H]
   \centering
@@ -768,7 +769,7 @@ work.
 \textbf{Backend --- Flask + Celery + Flask-SocketIO.} Flask was the
 lowest-common-denominator choice for a microservice. FastAPI would
 have given typed routes for free, but every template used as a
-starting point assumed Flask, and rewriting five services for typing
+starting point assumed Flask, and rewriting six services for typing
 was not a fight worth picking. Celery handles every CPU-bound task ---
 profiling, preprocessing, H2O training, RAG ingestion, image
 extraction, and PyTorch training all live on their own queue.
@@ -1098,7 +1099,8 @@ features) --- often the signature of a leaked feature.
 
 \paragraph{Performance envelope.} The full profile of the reference
 $250\,000$-row salary dataset (10 columns, mixed dtypes) runs in
-$2.3$ seconds in a single Celery task. The frontend polls
+about $2.3$ seconds on the demo machine, timed as a single Celery
+task and averaged over a handful of runs. The frontend polls
 \texttt{/datasets/<id>} every two seconds, so the profile lights up
 on the page within one poll cycle of completion.
 
@@ -2941,9 +2943,9 @@ service.
 
 The frontend uses \texttt{vitest} for unit tests but relies mostly
 on TypeScript strict mode plus ESLint as the structural guarantee.
-In practice more than $99\%$ of regressions in this codebase are
-caught by \texttt{tsc --noEmit} before they ever reach a runner.
-Typing is the cheapest test you can write.
+In practice the large majority of structural regressions in this
+codebase are caught by \texttt{tsc --noEmit} before they ever reach a
+runner. Typing is the cheapest test you can write.
 
 \begin{figure}[H]
   \centering
@@ -2984,12 +2986,12 @@ when both sides move at once.
 \section{Deployment}
 
 The whole stack ships as a single \texttt{docker-compose.yml} with
-14 services, summarised in
+15 services, summarised in
 Table~\ref{tab:deployment_services}.
 
 \begin{table}[H]
 \centering
-\caption{Deployment topology --- 14 containers, three named volumes.}
+\caption{Deployment topology --- 15 containers, three named volumes.}
 \label{tab:deployment_services}
 \begin{tabular}{|L{0.27\linewidth}|L{0.12\linewidth}|L{0.51\linewidth}|}
 \hline
@@ -3021,7 +3023,7 @@ the CUDA wheels on first build (around $1$\,GB). After that,
 \begin{figure}[p]
   \centering
   \includegraphics[angle=90, height=0.92\textheight, keepaspectratio]{diagrams/ch10_fig5}
-  \caption{Deployment diagram --- 14 containers, three named volumes.}
+  \caption{Deployment diagram --- 15 containers, three named volumes.}
   \label{fig:ch10_fig5}
 \end{figure}
 
@@ -3110,7 +3112,7 @@ A non-exhaustive list, in roughly the order they bit us:
 \section*{Conclusion}
 
 The stack is, by deployment-engineering standards, modest --- one
-host, fourteen containers, \texttt{make up}. That simplicity is the
+host, fifteen containers, \texttt{make up}. That simplicity is the
 point. A platform whose deployment story requires Kubernetes
 expertise would not be a credible answer to the question this
 project set out to ask.
@@ -3133,7 +3135,7 @@ write Python.
 \section*{Key deliverables}
 
 \begin{itemize}
-    \item \textbf{Five Python microservices} totalling roughly
+    \item \textbf{Six Python microservices} totalling roughly
         $6{,}500$ lines of code across the api-gateway,
         auth-service, data-ingestion-service, ml-training-service,
         metrics-service, and dl-training-service. Three independent
@@ -3143,9 +3145,10 @@ write Python.
         the live training visualisations, the admin operations
         dashboard, the i18n bundles for English and French, the
         high-contrast theme, and the impersonation banner.
-    \item \textbf{14 docker-compose services} (5 application
-        services, 3 Celery workers, 4 backing data stores, Ollama,
-        \texttt{ollama-pull}, MailHog).
+    \item \textbf{15 docker-compose services} (6 application
+        services, 3 Celery workers, 4 backing data stores, Ollama, and
+        MailHog), plus a one-shot \texttt{ollama-pull} job that fetches
+        the model weights on first boot and then exits.
     \item \textbf{14 tabular ML algorithms} covering classification,
         regression, clustering, and time-series forecasting.
     \item \textbf{A fully-local RAG pipeline} built on
@@ -3156,7 +3159,7 @@ write Python.
         learning), guarded by a static VRAM estimator that refuses
         oversize requests before the GPU sees them.
     \item \textbf{A GitHub Actions CI pipeline} with parallel lint
-        and test jobs across all five Python services and the
+        and test jobs across all six Python services and the
         TypeScript frontend.
     \item \textbf{An Alembic migration history} of nine revisions
         across two services, idempotent and replayable.
@@ -3608,7 +3611,7 @@ The full source tree of the platform is available at
 \url{https://github.com/WhatIsThePoint/No-Code-AI-Platform-}.
 
 \begin{itemize}
-    \item \texttt{services/} --- the five Python microservices
+    \item \texttt{services/} --- the six Python microservices
         (\texttt{api-gateway}, \texttt{auth-service},
         \texttt{data-ingestion-service}, \texttt{ml-training-service},
         \texttt{metrics-service}, \texttt{dl-training-service}).
@@ -3624,7 +3627,7 @@ The full source tree of the platform is available at
         chart generators, and the rendered PNGs that ship inside this
         report.
     \item \texttt{docker-compose.yml} --- one-command bring-up of the
-        full 14-container stack.
+        full 15-container stack.
 \end{itemize}
 
 \chapter{Demo accounts and credentials}

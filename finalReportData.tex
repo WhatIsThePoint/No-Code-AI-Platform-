@@ -22,13 +22,15 @@
 \usepackage{setspace}     % 1.5 line spacing
 \onehalfspacing
 
-% ── University-style heading sizes:
-%    chapter title 16 pt · section 14 pt · subsection 13 pt · body 12 pt
-%    Tight whitespace above chapter titles (no full blank top).
-\titleformat{\chapter}[hang]
-  {\normalfont\fontsize{16}{19}\bfseries}
-  {\thechapter}{1em}{}
-\titlespacing*{\chapter}{0pt}{-30pt}{18pt}
+% ── Chapter openings: a centred divider --- "CHAPTER N" label above a large
+%    centred title, dropped toward the middle of the page. The \chapterabstract
+%    macro then prints a centred summary below and clears to a fresh page.
+\titleformat{\chapter}[display]
+  {\normalfont\centering}
+  {\bfseries\Large\MakeUppercase{\chaptertitlename}\ \thechapter}
+  {14pt}
+  {\bfseries\fontsize{22}{26}\selectfont}
+\titlespacing*{\chapter}{0pt}{110pt}{30pt}
 \titleformat*{\section}{\normalfont\fontsize{14}{17}\bfseries}
 \titlespacing*{\section}{0pt}{12pt}{6pt}
 \titleformat*{\subsection}{\normalfont\fontsize{13}{15}\bfseries}

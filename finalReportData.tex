@@ -43,6 +43,17 @@
 \displaywidowpenalty=10000
 \raggedbottom              % fills white space at bottom rather than stretching
 
+% ── Chapter divider: a short italic intro/summary under the chapter title,
+%    alone on the opening page, so every chapter starts unmistakably.
+\newcommand{\chapterabstract}[1]{%
+  \vspace*{1.2cm}%
+  \begin{center}%
+  \rule{0.45\textwidth}{0.4pt}\\[0.8em]%
+  \begin{minipage}{0.82\textwidth}\centering\itshape\large #1\end{minipage}\\[0.8em]%
+  \rule{0.45\textwidth}{0.4pt}%
+  \end{center}%
+  \vspace*{\fill}\clearpage}
+
 % ── Fully-bordered tables — every cell enclosed; replaces booktabs minimal style
 \setlength{\arrayrulewidth}{0.4pt}
 \setlength{\tabcolsep}{6pt}
@@ -160,6 +171,53 @@ microservices a zero-trust boundary without operational overhead.
 \newpage
 
 % ═════════════════════════════════════════════════════════════════════════════
+\chapter*{Abbreviations and Acronyms}
+\addcontentsline{toc}{chapter}{Abbreviations and Acronyms}
+% ═════════════════════════════════════════════════════════════════════════════
+
+\begin{longtable}{p{0.18\linewidth} L{0.74\linewidth}}
+\textbf{Acronym} & \textbf{Meaning} \\
+\hline
+\endhead
+AI        & Artificial Intelligence \\
+ML        & Machine Learning \\
+DL        & Deep Learning \\
+LLM       & Large Language Model \\
+RAG       & Retrieval-Augmented Generation \\
+MLOps     & Machine Learning Operations \\
+CRISP-DM  & Cross-Industry Standard Process for Data Mining \\
+CNN       & Convolutional Neural Network \\
+SHAP      & SHapley Additive exPlanations \\
+ACL       & Access Control List \\
+RBAC      & Role-Based Access Control \\
+API       & Application Programming Interface \\
+JWT       & JSON Web Token \\
+JTI       & JWT Identifier \\
+TOTP      & Time-based One-Time Password \\
+TTL       & Time To Live \\
+ORM       & Object-Relational Mapping \\
+SQL       & Structured Query Language \\
+NoSQL     & Not only SQL \\
+CSV       & Comma-Separated Values \\
+CRUD      & Create, Read, Update, Delete \\
+JSON      & JavaScript Object Notation \\
+HTTP      & HyperText Transfer Protocol \\
+GPU       & Graphics Processing Unit \\
+VRAM      & Video Random-Access Memory \\
+CI/CD     & Continuous Integration / Continuous Deployment \\
+SPA       & Single-Page Application \\
+UML       & Unified Modeling Language \\
+IVF       & Inverted File (vector index) \\
+PDF       & Portable Document Format \\
+SaaS      & Software as a Service \\
+GDPR      & General Data Protection Regulation \\
+PFE       & Projet de Fin d'\'Etudes (End-of-Studies Project) \\
+DSI       & D\'eveloppement des Syst\`emes d'Information \\
+\hline
+\end{longtable}
+\newpage
+
+% ═════════════════════════════════════════════════════════════════════════════
 \chapter*{General Introduction}
 \addcontentsline{toc}{chapter}{General Introduction}
 % ═════════════════════════════════════════════════════════════════════════════
@@ -200,6 +258,10 @@ would build with another quarter.
 
 % ═════════════════════════════════════════════════════════════════════════════
 \chapter{General Context of the Project}
+\chapterabstract{This chapter frames the problem the platform addresses --- where
+no-code ML tools fail privacy-sensitive users --- and sets out the host context,
+the functional and non-functional requirements, the high-level technical
+architecture, and the deliverables the work is evaluated against.}
 % ═════════════════════════════════════════════════════════════════════════════
 
 \section*{Introduction}
@@ -461,6 +523,9 @@ appears.
 
 % ═════════════════════════════════════════════════════════════════════════════
 \chapter{Preliminary Study}
+\chapterabstract{A study and critique of the existing no-code ML landscape ---
+why each family of tools falls short on data sovereignty --- followed by the
+solution this project proposes and the technical foundations it builds on.}
 % ═════════════════════════════════════════════════════════════════════════════
 
 \section*{Introduction}
@@ -470,7 +535,7 @@ already on the market quite fits the problem. The no-code ML space
 is crowded, but the products in it cluster into families that all
 share the same blind spot.
 
-\section{Current Situation}
+\section{\'Etude de l'existant}
 
 Three categories of product dominate the space.
 
@@ -501,7 +566,7 @@ tabular path.
   \label{fig:ch2_fig1}
 \end{figure}
 
-\section{Observed Problems}
+\section{Critique de l'existant}
 
 \subsection{Forced data exfiltration}
 
@@ -537,7 +602,7 @@ team that has a workstation and an ambition. A platform whose
 deployment story requires cluster administration is not really a
 self-hostable product; it is a hosted product that pretends.
 
-\section{Objectives of the New System}
+\section{Solution propos\'ee}
 
 The platform sets out to satisfy four objectives at once.
 
@@ -578,7 +643,7 @@ our own runs --- enough latency budget for an interactive RAG chat.
   \label{fig:ch2_fig2}
 \end{figure}
 
-\section{État de l'art technique}
+\section{Fondements techniques retenus}
 
 The platform builds on four well-documented technique families. We
 summarise the relevant prior art here so the sprint chapters can
@@ -622,6 +687,10 @@ hardware appetite to run on a laptop.
 
 % ═════════════════════════════════════════════════════════════════════════════
 \chapter{Methodology and Working Environment}
+\chapterabstract{The working method --- an Agile, Scrum-lite cadence augmented with
+data-science lifecycles (CRISP-DM for ML, and MLOps practices for the AI sprints)
+--- together with the toolchain and the microservice architecture those choices
+produced.}
 % ═════════════════════════════════════════════════════════════════════════════
 
 \section*{Introduction}
@@ -962,6 +1031,10 @@ next chapter opens the sprint walkthrough.
 
 % ═════════════════════════════════════════════════════════════════════════════
 \chapter{Sprint 1: Authentication, Gateway, and Data Ingestion}
+\chapterabstract{The foundation sprint: stateless JWT authentication with
+refresh-token rotation, the strip-then-inject API gateway that gives the system
+its zero-trust boundary, and the asynchronous data-ingestion and profiling
+pipeline every later sprint builds on.}
 % ═════════════════════════════════════════════════════════════════════════════
 
 \section*{Introduction}
@@ -1401,6 +1474,10 @@ set.
 
 % ═════════════════════════════════════════════════════════════════════════════
 \chapter{Sprint 2: Visual Pipeline Editor and Tabular Machine Learning}
+\chapterabstract{The visual pipeline canvas and the tabular ML engine --- fourteen
+algorithms behind one \texttt{BaseMLModel} abstraction, live training telemetry,
+SHAP explanations, and one-click model export --- framed through the CRISP-DM
+data-mining lifecycle.}
 % ═════════════════════════════════════════════════════════════════════════════
 
 \section*{Introduction}
@@ -1887,6 +1964,9 @@ model and being able to do something with it.
 
 % ═════════════════════════════════════════════════════════════════════════════
 \chapter{Sprint 3: Local Generative AI and Retrieval-Augmented Chat}
+\chapterabstract{Local Generative AI: a Retrieval-Augmented Generation pipeline
+that embeds documents into \texttt{pgvector} and streams grounded answers from a
+local Llama~3.2 model served by Ollama --- with no token ever leaving the machine.}
 % ═════════════════════════════════════════════════════════════════════════════
 
 \section*{Introduction}
@@ -2105,6 +2185,9 @@ project is framed against, that trade-off is the right one.
 
 % ═════════════════════════════════════════════════════════════════════════════
 \chapter{Sprint 4: Deep Learning for Image Classification}
+\chapterabstract{Deep-learning image classification on a curated CNN catalogue
+(LeNet, a small ResNet, MobileNet-V3), guarded by a static VRAM estimator that
+refuses oversize jobs before they ever reach the 6\,GB GPU.}
 % ═════════════════════════════════════════════════════════════════════════════
 
 \section*{Introduction}
@@ -2506,6 +2589,9 @@ without bending.
 
 % ═════════════════════════════════════════════════════════════════════════════
 \chapter{Sprint 5: Multi-tenancy, Project ACL, and Real-Time Collaboration}
+\chapterabstract{Multi-tenancy and real-time collaboration: a five-role
+per-pipeline access-control list, live cursors and presence over SocketIO,
+threaded per-pipeline chat, and one-click Google Meet links.}
 % ═════════════════════════════════════════════════════════════════════════════
 
 \section*{Introduction}
@@ -2704,6 +2790,9 @@ check fit naturally into the existing header convention.
 
 % ═════════════════════════════════════════════════════════════════════════════
 \chapter{Sprint 6: Dashboard, i18n, Accessibility, and Admin Console}
+\chapterabstract{The operability and polish sprint: the user dashboard, Stripe
+billing, English/French internationalisation, an accessible high-contrast theme,
+and a dedicated super-admin console with audited, time-boxed impersonation.}
 % ═════════════════════════════════════════════════════════════════════════════
 
 \section*{Introduction}
@@ -2956,6 +3045,10 @@ a tractable one.
 
 % ═════════════════════════════════════════════════════════════════════════════
 \chapter{Testing and Deployment}
+\chapterabstract{How the platform is tested and shipped: the per-service test
+strategy and the parallel CI pipeline, then the single-command Docker Compose
+deployment with its named volumes, healthchecks, and gateway-only network
+topology.}
 % ═════════════════════════════════════════════════════════════════════════════
 
 \section*{Introduction}

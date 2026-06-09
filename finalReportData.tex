@@ -1045,8 +1045,9 @@ Table~\ref{tab:mongo_modelling} records the split.
 \texttt{datasets} & \texttt{profiling\_summary} & \texttt{user\_id} $\to$ Postgres \texttt{users}; \texttt{file\_path} $\to$ named volume \\ \hline
 \texttt{pipelines} & \texttt{nodes[]}, \texttt{edges[]} & \texttt{user\_id} $\to$ Postgres \texttt{users} \\ \hline
 \texttt{task\_results} & \texttt{result} & \texttt{dataset\_id} / \texttt{pipeline\_id} \\ \hline
-\texttt{model\_versions} & \texttt{metrics}, \texttt{shap\_summary} & \texttt{pipeline\_id}; \texttt{file\_path} $\to$ named volume \\ \hline
-\texttt{dl\_versions} & \texttt{final\_metrics}, \texttt{epoch\_history[]}, \texttt{class\_names[]} & \texttt{pipeline\_id}; \texttt{state\_dict\_path} $\to$ named volume \\
+\texttt{model\_versions} & \texttt{hparams}, \texttt{metrics}, \texttt{shap\_summary}, \texttt{vram\_estimate} & \texttt{pipeline\_id}, \texttt{dataset\_id}; \texttt{file\_path} $\to$ named volume \\ \hline
+\texttt{rag\_documents} & flat metadata (no nesting) & \texttt{pipeline\_id}; \texttt{file\_path} $\to$ volume; chunk \emph{vectors} $\to$ pgvector \\ \hline
+\texttt{rag\_chat\_turns} & message + answer per turn & \texttt{pipeline\_id}, \texttt{user\_id} \\
 \hline
 \end{tabular}
 \end{table}
@@ -1057,6 +1058,60 @@ never bloats a document because only its \texttt{file\_path} is kept,
 with the binary on a named volume; and user identity is never copied
 into Mongo because it is referenced back to the Postgres \texttt{users}
 table, which stays the single source of truth for auth and ACL.
+
+\subsection{Liste des collections et index}
+
+The document side of the platform uses seven collections in the
+\texttt{nocode\_ingestion} database. Their per-attribute data dictionary
+is given in Annex~\ref{annex:datadict}; Table~\ref{tab:collections}
+lists them with their role, and Table~\ref{tab:mongo_indexes} the
+indexes created at startup (\texttt{infra/mongo/init.js}). MongoDB has
+no server-side views here --- read models are built with aggregation
+pipelines and the indexed queries below.
+
+\begin{table}[H]
+\centering
+\caption{MongoDB collections (database \texttt{nocode\_ingestion}).}
+\label{tab:collections}
+\begin{tabular}{|p{0.24\linewidth}|L{0.68\linewidth}|}
+\hline
+\textbf{Collection} & \textbf{Role} \\
+\hline
+\texttt{datasets} & Uploaded tabular/image datasets and their profiling summary. \\ \hline
+\texttt{pipelines} & The visual canvas: the node/edge graph of each ML/RAG/DL pipeline. \\ \hline
+\texttt{task\_results} & Status, progress and live metrics of asynchronous Celery jobs (auto-expires after 7 days). \\ \hline
+\texttt{model\_versions} & Every trained model version --- tabular and deep learning --- with hyper-parameters, metrics and artefact path. \\ \hline
+\texttt{rag\_documents} & Metadata of documents ingested for RAG (the chunk vectors live in pgvector). \\ \hline
+\texttt{rag\_chat\_turns} & History of RAG chat turns (question, answer, source count) per pipeline. \\ \hline
+\texttt{pipeline\_step\_notes} & Free-text notes attached to a specific canvas node. \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{MongoDB indexes created at startup.}
+\label{tab:mongo_indexes}
+\begin{tabular}{|p{0.24\linewidth}|L{0.46\linewidth}|p{0.16\linewidth}|}
+\hline
+\textbf{Collection} & \textbf{Index key} & \textbf{Property} \\
+\hline
+\texttt{datasets} & \texttt{\{dataset\_id\}} & unique \\ \hline
+ & \texttt{\{user\_id, created\_at$\downarrow$\}}, \texttt{\{company\_id, created\_at$\downarrow$\}}, \texttt{\{status\}} & (sparse on company) \\ \hline
+\texttt{pipelines} & \texttt{\{pipeline\_id\}} & unique \\ \hline
+ & \texttt{\{user\_id, created\_at$\downarrow$\}}, \texttt{\{status\}} & \\ \hline
+\texttt{task\_results} & \texttt{\{task\_id\}} & unique \\ \hline
+ & \texttt{\{dataset\_id\}}, \texttt{\{pipeline\_id\}}, \texttt{\{status\}} & \\ \hline
+ & \texttt{\{created\_at\}} & TTL 7 days \\ \hline
+\texttt{model\_versions} & \texttt{\{version\_id\}} & unique \\ \hline
+ & \texttt{\{pipeline\_id, created\_at$\downarrow$\}}, \texttt{\{user\_id, created\_at$\downarrow$\}} & \\ \hline
+\texttt{rag\_documents} & \texttt{\{document\_id\}} & unique \\ \hline
+ & \texttt{\{pipeline\_id, created\_at$\downarrow$\}}, \texttt{\{user\_id, created\_at$\downarrow$\}} & \\ \hline
+\texttt{pipeline\_step\_notes} & \texttt{\{note\_id\}} & unique \\ \hline
+ & \texttt{\{pipeline\_id, node\_id, created\_at\}} & \\
+\hline
+\end{tabular}
+\end{table}
 
 \section*{Conclusion}
 
@@ -3731,5 +3786,95 @@ can be reproduced on any GTX 1660 Super class machine.
         $\sim 97\%$ across five runs in roughly $30$\,seconds on a
         1660 Super.
 \end{enumerate}
+
+\chapter{Dictionnaire de donn\'ees --- collections MongoDB}
+\label{annex:datadict}
+
+Per-attribute data dictionary for the seven MongoDB collections
+(database \texttt{nocode\_ingestion}). Types are the stored BSON types;
+\textit{(E)} marks an embedded subdocument, \textit{(R)} a reference to
+another store. The relational (Postgres) side is documented by the
+schema diagram in Chapter~3.
+
+\begin{longtable}{p{0.26\linewidth} p{0.16\linewidth} L{0.50\linewidth}}
+\textbf{Attribute} & \textbf{Type} & \textbf{Description} \\
+\hline \endhead
+\multicolumn{3}{l}{\textbf{\texttt{datasets}}} \\ \hline
+\texttt{dataset\_id} & string & Unique id (PK). \\
+\texttt{user\_id} & string & Owner (R $\to$ Postgres \texttt{users}). \\
+\texttt{company\_id} & string & Owning workspace, if any (R). \\
+\texttt{file\_path} & string & Path on the \texttt{uploaded\_files} volume (R). \\
+\texttt{source\_type} & string & \texttt{tabular} or \texttt{image}. \\
+\texttt{status} & string & \texttt{uploading} / \texttt{ready} / \texttt{preprocessed}. \\
+\texttt{row\_count} & int & Rows (tabular). \\
+\texttt{column\_count} & int & Columns (tabular). \\
+\texttt{target\_column} & string & Chosen target, if set. \\
+\texttt{profiling\_summary} & document & Full profile: per-column stats + alerts (E). \\
+\texttt{created\_at} & datetime & Creation timestamp. \\
+\hline
+\multicolumn{3}{l}{\textbf{\texttt{pipelines}}} \\ \hline
+\texttt{pipeline\_id} & string & Unique id (PK). \\
+\texttt{user\_id} & string & Owner (R). \\
+\texttt{type} & string & \texttt{ml} / \texttt{rag} / \texttt{dl}. \\
+\texttt{status} & string & \texttt{draft} / \texttt{running} / \texttt{done} / \texttt{error}. \\
+\texttt{nodes} & array & Canvas nodes, each a subdocument (E). \\
+\texttt{edges} & array & Canvas edges (E). \\
+\texttt{created\_at} / \texttt{updated\_at} & datetime & Timestamps. \\
+\hline
+\multicolumn{3}{l}{\textbf{\texttt{task\_results}}} \\ \hline
+\texttt{task\_id} & string & Celery task id (PK). \\
+\texttt{task\_type} & string & \texttt{profiling} / \texttt{preprocessing} / \texttt{rag\_ingest} / \texttt{training} / \texttt{dl\_training}. \\
+\texttt{status} & string & \texttt{running} / \texttt{success} / \texttt{failure}. \\
+\texttt{progress\_pct} & int & Progress 0--100. \\
+\texttt{stage} & string & Current stage label. \\
+\texttt{dataset\_id} / \texttt{pipeline\_id} & string & Subject of the task (R). \\
+\texttt{live\_metrics} & array & Streamed per-step metric points (E). \\
+\texttt{result} & document & Final result payload (E). \\
+\texttt{created\_at} & datetime & Indexed; document auto-expires after 7 days. \\
+\hline
+\multicolumn{3}{l}{\textbf{\texttt{model\_versions}}} \\ \hline
+\texttt{version\_id} & string & Unique id (PK). \\
+\texttt{pipeline\_id} & string & Source pipeline (R). \\
+\texttt{dataset\_id} & string & Training dataset (R). \\
+\texttt{user\_id} & string & Owner (R). \\
+\texttt{framework} & string & \texttt{sklearn} / \texttt{h2o} / \texttt{pytorch} --- discriminates tabular vs DL. \\
+\texttt{algorithm} / \texttt{arch} & string & Algorithm (tabular) or architecture (DL). \\
+\texttt{status} & string & \texttt{training} / \texttt{ready} / \texttt{failed}. \\
+\texttt{hparams} & document & Hyper-parameters (E). \\
+\texttt{metrics} & document & Final evaluation metrics (E). \\
+\texttt{shap\_summary} & document & SHAP importances, tabular runs (E). \\
+\texttt{vram\_estimate\_mb} & document & VRAM-guard breakdown, DL runs (E). \\
+\texttt{file\_path} & string & Artefact on the \texttt{model\_artifacts} volume (R). \\
+\texttt{created\_at} & datetime & Timestamp. \\
+\hline
+\multicolumn{3}{l}{\textbf{\texttt{rag\_documents}}} \\ \hline
+\texttt{document\_id} & string & Unique id (PK). \\
+\texttt{pipeline\_id} & string & Owning RAG pipeline (R). \\
+\texttt{user\_id} & string & Owner (R). \\
+\texttt{source\_name} & string & Original filename. \\
+\texttt{file\_path} & string & Path on the \texttt{uploaded\_files} volume (R). \\
+\texttt{size\_bytes} & int & File size. \\
+\texttt{status} & string & \texttt{queued} / \texttt{running} / \texttt{ready} / \texttt{failed}. \\
+\texttt{chunk\_count} & int & Chunks produced (vectors stored in pgvector). \\
+\texttt{created\_at} / \texttt{updated\_at} & datetime & Timestamps. \\
+\hline
+\multicolumn{3}{l}{\textbf{\texttt{rag\_chat\_turns}}} \\ \hline
+\texttt{\_id} & ObjectId & Mongo-generated id (PK). \\
+\texttt{pipeline\_id} & string & RAG pipeline (R). \\
+\texttt{user\_id} & string & Asker (R). \\
+\texttt{thread\_id} & string & Conversation thread. \\
+\texttt{message} & string & The user's question. \\
+\texttt{answer} & string & The model's grounded answer. \\
+\texttt{source\_count} & int & Number of source chunks used. \\
+\texttt{created\_at} & datetime & Timestamp. \\
+\hline
+\multicolumn{3}{l}{\textbf{\texttt{pipeline\_step\_notes}}} \\ \hline
+\texttt{note\_id} & string & Unique id (PK). \\
+\texttt{pipeline\_id} & string & Owning pipeline (R). \\
+\texttt{node\_id} & string & Canvas node the note is attached to. \\
+\texttt{body} & string & Free-text note. \\
+\texttt{created\_at} / \texttt{updated\_at} & datetime & Timestamps. \\
+\hline
+\end{longtable}
 
 \end{document}

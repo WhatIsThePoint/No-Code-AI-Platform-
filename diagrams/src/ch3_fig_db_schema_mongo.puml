@@ -1,6 +1,6 @@
 @startuml ch3_fig_db_schema_mongo
 !include _style.iuml
-title MongoDB collections --- document shapes and the embedded / referenced split
+title MongoDB collections --- document shapes, the embedded / referenced split, and key indexes
 
 hide circle
 skinparam DatabaseBackgroundColor #e6f0ff
@@ -8,15 +8,17 @@ skinparam DatabaseBackgroundColor #e6f0ff
 legend top
   <<embedded>>  nested subdocument, read together with its parent (denormalised)
   <<ref>>       referenced by id --- a Postgres row, a named-volume artefact, or another collection
+  <<idx>>       indexed field (see the index table)
 end legend
 
 entity "datasets" as datasets {
-  * dataset_id : str <<PK>>
+  * dataset_id : str <<PK>> <<idx>>
   --
-  user_id : str <<ref: PG users>>
+  user_id : str <<ref: PG users>> <<idx>>
+  company_id : str <<ref>> <<idx>>
   file_path : str <<ref: vol uploaded_files>>
-  file_type : str
-  status : str
+  source_type : "tabular" | "image"
+  status : str <<idx>>
   row_count : int
   column_count : int
   target_column : str
@@ -25,61 +27,101 @@ entity "datasets" as datasets {
 }
 
 entity "pipelines" as pipelines {
-  * pipeline_id : str <<PK>>
+  * pipeline_id : str <<PK>> <<idx>>
   --
-  user_id : str <<ref: PG users>>
+  user_id : str <<ref: PG users>> <<idx>>
   type : "ml" | "rag" | "dl"
-  status : str
+  status : str <<idx>>
   nodes : [ document ] <<embedded>>
   edges : [ document ] <<embedded>>
   created_at : datetime
-  updated_at : datetime
 }
 
 entity "task_results" as task_results {
-  * task_id : str <<PK>>
+  * task_id : str <<PK>> <<idx>>
   --
-  status : str
+  task_type : str
+  status : str <<idx>>
   progress_pct : int
+  stage : str
+  dataset_id : str <<ref>> <<idx>>
+  pipeline_id : str <<ref>> <<idx>>
+  live_metrics : [ document ] <<embedded>>
   result : document <<embedded>>
+  created_at : datetime <<idx: TTL 7d>>
 }
 
 entity "model_versions" as mv {
-  * version_id : str <<PK>>
+  * version_id : str <<PK>> <<idx>>
   --
-  pipeline_id : str <<ref: pipelines>>
-  algorithm : str
+  pipeline_id : str <<ref: pipelines>> <<idx>>
+  dataset_id : str <<ref>>
+  user_id : str <<ref>>
+  framework : "sklearn" | "h2o" | "pytorch"
+  algorithm / arch : str
+  status : str
+  hparams : document <<embedded>>
   metrics : document <<embedded>>
   shap_summary : document <<embedded>>
+  vram_estimate_mb : document <<embedded>>
   file_path : str <<ref: vol model_artifacts>>
   created_at : datetime
 }
 
-entity "dl_versions" as dv {
-  * version_id : str <<PK>>
+entity "rag_documents" as ragdoc {
+  * document_id : str <<PK>> <<idx>>
   --
-  pipeline_id : str <<ref: pipelines>>
-  arch : str
-  final_metrics : document <<embedded>>
-  epoch_history : [ document ] <<embedded>>
-  class_names : [ str ] <<embedded>>
-  state_dict_path : str <<ref: vol model_artifacts>>
+  pipeline_id : str <<ref>> <<idx>>
+  user_id : str <<ref>>
+  source_name : str
+  file_path : str <<ref: vol uploaded_files>>
+  size_bytes : int
   status : str
+  chunk_count : int
+  created_at : datetime
 }
 
-datasets ||--o{ task_results : ref (dataset_id)
+entity "rag_chat_turns" as ragchat {
+  * _id : ObjectId <<PK>>
+  --
+  pipeline_id : str <<ref>>
+  user_id : str <<ref>>
+  thread_id : str
+  message : str
+  answer : str
+  source_count : int
+  created_at : datetime
+}
+
+entity "pipeline_step_notes" as notes {
+  * note_id : str <<PK>> <<idx>>
+  --
+  pipeline_id : str <<ref>> <<idx>>
+  node_id : str <<idx>>
+  body : str
+  created_at : datetime
+}
+
 pipelines ||--o{ task_results : ref (pipeline_id)
 pipelines ||--o{ mv : ref (pipeline_id)
-pipelines ||--o{ dv : ref (pipeline_id)
+pipelines ||--o{ ragdoc : ref (pipeline_id)
+pipelines ||--o{ ragchat : ref (pipeline_id)
+pipelines ||--o{ notes : ref (pipeline_id)
+datasets ||--o{ task_results : ref (dataset_id)
 
-note bottom of datasets
-  Hybrid: the schemaless profile is
-  embedded; owner and raw file are
-  referenced (Postgres / named volume).
-end note
 note bottom of mv
-  Metrics embedded for one-query reads;
-  the trained binary lives on a named
-  volume, never as a BLOB in Mongo.
+  One collection for ALL trained models;
+  the framework field discriminates tabular
+  (sklearn/h2o) from deep learning (pytorch).
+  Metrics embedded; the binary stays on a
+  named volume, never as a BLOB.
+end note
+note bottom of ragdoc
+  Document metadata lives here; the chunk
+  VECTORS live in Postgres/pgvector, not Mongo.
+end note
+note as N1
+  No server-side views: read models are built
+  with aggregation pipelines and indexed queries.
 end note
 @enduml

@@ -1,0 +1,18 @@
+@startuml ch5_fig_ml_pipeline
+!include _style.iuml
+left to right direction
+title Tabular ML pipeline --- linear steps
+skinparam rectangleBackgroundColor #f5f7fb
+skinparam rectangleBorderColor #3344aa
+rectangle "1. Dataset\n(CSV / Excel / SQL)" as s1
+rectangle "2. Profiling\n(stats + alerts)" as s2
+rectangle "3. Preprocessing\nsplit 70/15/15,\nimpute, scale, encode" as s3
+rectangle "4. Train\n(1 of 14 algorithms)" as s4
+rectangle "5. Evaluate\nmetrics + SHAP" as s5
+rectangle "6. Export\n.joblib + FastAPI" as s6
+s1 --> s2
+s2 --> s3
+s3 --> s4
+s4 --> s5
+s5 --> s6
+@enduml

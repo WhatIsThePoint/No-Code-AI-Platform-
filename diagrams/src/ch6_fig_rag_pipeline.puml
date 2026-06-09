@@ -1,0 +1,24 @@
+@startuml ch6_fig_rag_pipeline
+!include _style.iuml
+left to right direction
+title RAG pipeline --- linear steps (ingestion, then query)
+skinparam rectangleBackgroundColor #f5f7fb
+skinparam rectangleBorderColor #3344aa
+rectangle "1. Document\n(PDF/DOCX/text)" as d1
+rectangle "2. Chunk\n500 / overlap 50" as d2
+rectangle "3. Embed\nMiniLM-L6 (CPU)" as d3
+rectangle "4. Index\npgvector IVFFlat" as d4
+rectangle "5. Question" as q1
+rectangle "6. Retrieve\ntop-k = 4" as q2
+rectangle "7. Augment\nprompt + context" as q3
+rectangle "8. Generate\nLlama 3.2 (Ollama)" as q4
+rectangle "9. Answer\n+ sources" as q5
+d1 --> d2
+d2 --> d3
+d3 --> d4
+q1 --> q2
+d4 ..> q2 : similarity
+q2 --> q3
+q3 --> q4
+q4 --> q5
+@enduml

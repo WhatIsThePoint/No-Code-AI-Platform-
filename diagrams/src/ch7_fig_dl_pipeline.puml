@@ -1,0 +1,22 @@
+@startuml ch7_fig_dl_pipeline
+!include _style.iuml
+left to right direction
+title Deep-learning pipeline --- linear steps
+skinparam rectangleBackgroundColor #f5f7fb
+skinparam rectangleBorderColor #3344aa
+rectangle "1. Image zip\n<class>/<file>" as i1
+rectangle "2. Extract\nImageFolder" as i2
+rectangle "3. Augment\nresize, flip, norm" as i3
+rectangle "4. Select arch\nLeNet/ResNet/MobileNet" as i4
+rectangle "5. VRAM guard\nfit check" as i5
+rectangle "6. Train\nepochs (live)" as i6
+rectangle "7. Validate\nloss + accuracy" as i7
+rectangle "8. Predict\n'Try it' top-5" as i8
+i1 --> i2
+i2 --> i3
+i3 --> i4
+i4 --> i5
+i5 --> i6
+i6 --> i7
+i7 --> i8
+@enduml

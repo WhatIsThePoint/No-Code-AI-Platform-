@@ -1655,6 +1655,18 @@ Deployment & Versioned artefact in the registry; downloadable joblib + FastAPI l
 \end{tabular}
 \end{table}
 
+As a linear flow, the tabular ML pipeline runs in six steps
+(Figure~\ref{fig:ch5_fig_ml_pipeline}): the dataset is profiled, then
+preprocessed (split, impute, scale, encode), a model is trained from
+the registry, evaluated with metrics and SHAP, and finally exported.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth, keepaspectratio]{diagrams/ch5_fig_ml_pipeline}
+  \caption{Tabular ML pipeline --- the six linear steps from dataset to exported artefact.}
+  \label{fig:ch5_fig_ml_pipeline}
+\end{figure}
+
 \section{Design}
 
 \begin{figure}[p]
@@ -2025,6 +2037,25 @@ the load-time difference was larger. For the deep-learning path in
 Sprint~4 we use \texttt{torch.save} on a \texttt{state\_dict()}
 instead --- a different ecosystem, a different convention.
 
+\subsection{R\'esultats}
+
+After a run completes, the \texttt{Evaluate} node and the results
+dashboard surface the outcome: the metric summary card
+(accuracy / F1 / AUC for classification, R$^2$ / MAE / RMSE for
+regression), the confusion matrix or residual histogram, and the SHAP
+importance chart. The live training chart
+(Figure~\ref{fig:ch5_fig5}) and the SHAP chart
+(Figure~\ref{fig:ch5_fig6}) appear above; the screenshot below captures
+a completed run on the results dashboard.
+
+% [SCREENSHOT NEEDED: ml_run_results.png — results dashboard after a completed ML run: metric summary card + confusion matrix / residual plot]
+% \begin{figure}[H]
+%   \centering
+%   \includegraphics[width=0.9\textwidth, keepaspectratio]{diagrams/ml_run_results}
+%   \caption{Tabular ML results after a completed run --- metric summary and confusion matrix.}
+%   \label{fig:ml_run_results}
+% \end{figure}
+
 \section{Unit Tests}
 
 \begin{itemize}
@@ -2143,8 +2174,16 @@ corpus changes faster than a fine-tune can keep up with.
 Where the tabular sprint followed CRISP-DM, the RAG sprint follows a
 retrieval-and-generation lifecycle: the \emph{document} is the unit of
 work, and quality is judged by \emph{grounding}, not by a single
-accuracy number. Table~\ref{tab:rag_lifecycle} maps each phase to what
+accuracy number. Figure~\ref{fig:ch6_fig_rag_pipeline} shows the flow
+end to end and Table~\ref{tab:rag_lifecycle} maps each phase to what
 this sprint delivered.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth, keepaspectratio]{diagrams/ch6_fig_rag_pipeline}
+  \caption{RAG pipeline --- the ingestion path (document $\to$ chunk $\to$ embed $\to$ index) and the query path (question $\to$ retrieve $\to$ augment $\to$ generate $\to$ answer).}
+  \label{fig:ch6_fig_rag_pipeline}
+\end{figure}
 
 \begin{table}[H]
 \centering
@@ -2278,6 +2317,22 @@ their cosine similarity scores, which gives the reader a way to
 verify the answer against the original source --- the closest thing
 to accountability that a generative system can offer.
 
+\subsection{R\'esultats}
+
+A query returns a streamed answer together with the ``$n$ sources used''
+chip, which lists the retrieved chunks and their cosine-similarity
+scores so every answer can be traced back to its source. The
+screenshots below capture a chat turn and the retrieved-chunks panel.
+
+% [SCREENSHOT NEEDED: rag_chat_panel.png — streamed answer in the RAG chat panel]
+% [SCREENSHOT NEEDED: rag_chunks_retrieved.png — the 'sources used' chip expanded: retrieved chunks + similarity scores]
+% \begin{figure}[H]
+%   \centering
+%   \includegraphics[width=0.9\textwidth, keepaspectratio]{diagrams/rag_chat_panel}
+%   \caption{RAG chat --- a streamed, grounded answer with its source chunks.}
+%   \label{fig:rag_chat_panel}
+% \end{figure}
+
 \section{Unit Tests}
 
 \begin{itemize}
@@ -2392,8 +2447,16 @@ documented below.
 Image classification follows its own lifecycle --- close to MLOps, but
 with a hardware-feasibility gate tabular ML does not need: a run must be
 \emph{proven to fit in VRAM} before it is allowed to start.
+Figure~\ref{fig:ch7_fig_dl_pipeline} shows the eight linear steps and
 Table~\ref{tab:dl_lifecycle} maps each phase to what this sprint
 delivered.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth, keepaspectratio]{diagrams/ch7_fig_dl_pipeline}
+  \caption{Deep-learning pipeline --- eight linear steps, with the VRAM-guard feasibility gate placed before any training begins.}
+  \label{fig:ch7_fig_dl_pipeline}
+\end{figure}
 
 \begin{table}[H]
 \centering
@@ -2703,6 +2766,24 @@ chain non-interactively: gateway reachability, GPU visibility, the
 oversize-refusal path, the demo run, and the polling loop. The
 script has caught regressions in seemingly unrelated services more
 than once.
+
+\subsection{R\'esultats}
+
+Three results matter for the deep-learning flow: the ingested image
+dataset (class chips and per-class counts), the per-epoch training
+curves (train/validation loss and validation accuracy), and a
+single-image prediction with its top-five softmax probabilities. The
+screenshots below capture each.
+
+% [SCREENSHOT NEEDED: dl_ingestion_classes.png — after image-dataset ingestion: class chips + per-class image counts]
+% [SCREENSHOT NEEDED: dl_training_curves.png — live training: train/val loss and validation accuracy over epochs]
+% [SCREENSHOT NEEDED: dl_prediction_result.png — 'Try it' panel: dropped image + top-5 softmax probabilities]
+% \begin{figure}[H]
+%   \centering
+%   \includegraphics[width=0.9\textwidth, keepaspectratio]{diagrams/dl_training_curves}
+%   \caption{Deep-learning training curves and a single-image prediction after a completed run.}
+%   \label{fig:dl_training_curves}
+% \end{figure}
 
 \section{Unit Tests}
 

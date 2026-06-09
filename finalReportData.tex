@@ -780,6 +780,42 @@ the practice honest.
         Markdown backlog, under the sprint heading.
 \end{itemize}
 
+\section{Adapting the Method to AI Work}
+
+Scrum is a project-management discipline: it organises \emph{time and
+tasks}, not \emph{data and models}. On its own it says nothing about the
+parts of an AI project that actually carry the risk --- where the data
+comes from, whether a training run is reproducible, how a model is
+versioned, or how its quality is judged once it ships. A sprint that
+delivers ``a trained model'' means little if the run cannot be repeated
+or the metric cannot be trusted. Pure Scrum, in other words, is
+necessary but not sufficient for machine-learning work.
+
+Each AI sprint is therefore run as Scrum \emph{plus} a domain lifecycle,
+in the spirit of \textbf{MLOps} --- the practice of bringing
+software-engineering rigour (versioning, automation, monitoring,
+reproducibility) to the machine-learning lifecycle:
+
+\begin{itemize}
+    \item \textbf{Sprint~2 (tabular ML)} follows \textbf{CRISP-DM} ---
+        business understanding, data understanding, data preparation,
+        modelling, evaluation, deployment.
+    \item \textbf{Sprint~3 (RAG / LLM)} follows a \textbf{retrieval
+        lifecycle} --- collect, chunk, embed, index, retrieve, augment,
+        generate, and evaluate for grounding.
+    \item \textbf{Sprint~4 (deep learning)} follows a \textbf{DL
+        training lifecycle} --- data, augmentation, architecture
+        selection, a VRAM-feasibility gate, train, validate, and serve.
+\end{itemize}
+
+Three MLOps practices run across all three sprints: every dataset
+version is profiled and stored immutably, every training run is recorded
+and re-runnable (random seeds pinned, artefacts versioned in a
+registry), and training is monitored live rather than inspected only at
+the end. These conventions are what turn ``it trained once on my
+machine'' into a result a jury can reproduce
+(Annex~\ref{annex:validation}).
+
 \section{Product Backlog}
 
 Six sprints, each closing with a runnable demo and a self-contained
@@ -2047,6 +2083,34 @@ provided context and to refuse rather than guess. This trades a
 training step for a retrieval step --- the right trade when the
 corpus changes faster than a fine-tune can keep up with.
 
+\section{Cycle de vie RAG (LLMOps)}
+
+Where the tabular sprint followed CRISP-DM, the RAG sprint follows a
+retrieval-and-generation lifecycle: the \emph{document} is the unit of
+work, and quality is judged by \emph{grounding}, not by a single
+accuracy number. Table~\ref{tab:rag_lifecycle} maps each phase to what
+this sprint delivered.
+
+\begin{table}[H]
+\centering
+\caption{The RAG / LLMOps lifecycle mapped to Sprint~3 deliverables.}
+\label{tab:rag_lifecycle}
+\begin{tabular}{|p{0.24\linewidth}|L{0.68\linewidth}|}
+\hline
+\textbf{Phase} & \textbf{What this sprint delivered} \\
+\hline
+Document collection & PDF / DOCX / text upload through the ingestion service; the raw file is stored on a named volume and referenced (not embedded) from Mongo. \\ \hline
+Chunking & Recursive character splitting at 500 characters with 50-character overlap; the size chosen empirically (see the chunk-sizing trade-offs below). \\ \hline
+Embedding & Local \texttt{all-MiniLM-L6-v2}, 384-dim, CPU-only --- no outbound network call. \\ \hline
+Indexing & Vectors written to \texttt{pgvector} with an IVFFlat index, co-located in the auth Postgres. \\ \hline
+Retrieval & Top-$k$ ($k=4$) nearest chunks by cosine similarity at query time. \\ \hline
+Augmentation & Retrieved chunks concatenated into the prompt as context, each tagged with its source. \\ \hline
+Generation & Local Llama~3.2~3B via Ollama streams the answer token by token over SocketIO. \\ \hline
+Evaluation (grounding) & The model answers only from context and refuses otherwise; every answer surfaces its source chunks with similarity scores so the user can verify it. \\
+\hline
+\end{tabular}
+\end{table}
+
 \section{Design}
 
 \begin{figure}[H]
@@ -2267,6 +2331,34 @@ Adam~\cite{kingma} keeps two moment estimates per parameter (mean and variance),
 which doubles the optimiser-state memory compared to plain SGD.
 This factor is the dominant term in the VRAM guard's static estimate
 documented below.
+
+\section{Cycle de vie deep learning}
+
+Image classification follows its own lifecycle --- close to MLOps, but
+with a hardware-feasibility gate tabular ML does not need: a run must be
+\emph{proven to fit in VRAM} before it is allowed to start.
+Table~\ref{tab:dl_lifecycle} maps each phase to what this sprint
+delivered.
+
+\begin{table}[H]
+\centering
+\caption{The deep-learning lifecycle mapped to Sprint~4 deliverables.}
+\label{tab:dl_lifecycle}
+\begin{tabular}{|p{0.24\linewidth}|L{0.68\linewidth}|}
+\hline
+\textbf{Phase} & \textbf{What this sprint delivered} \\
+\hline
+Data collection \& labelling & Upload a zip of \texttt{<class>/<file>} folders, extracted into the PyTorch \texttt{ImageFolder} layout. \\ \hline
+Preprocessing \& augmentation & Resize to the architecture's input size, ImageNet normalisation for transfer learning, conservative train-time flips and small rotations. \\ \hline
+Architecture selection & LeNet, custom ResNet-9, or MobileNet-V3-Small (optional ImageNet weights), chosen from the catalogue. \\ \hline
+Feasibility check (VRAM) & The static VRAM guard estimates memory and rejects oversize runs before any GPU work --- the gate unique to this lifecycle. \\ \hline
+Training & Tier-clamped epochs and batch size; per-epoch metrics streamed live over SocketIO. \\ \hline
+Validation & Train/validation loss curves and validation accuracy tracked per epoch. \\ \hline
+Inference / serving & Inline single-image ``Try it'' prediction; the model saved as a \texttt{state\_dict} on a named volume (ONNX export a one-file follow-up). \\ \hline
+Versioning & Each run recorded as a \texttt{dl\_versions} document with metrics, class names, and the artefact path. \\
+\hline
+\end{tabular}
+\end{table}
 
 \section{Design}
 

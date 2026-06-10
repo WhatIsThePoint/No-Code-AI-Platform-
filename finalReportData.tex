@@ -3642,21 +3642,42 @@ Alongside the automated suites, the running stack was exercised
 directly against its HTTP surface to confirm the gateway, authentication,
 and the protected routes behave end to end.
 
-On the backend, every request is driven through the gateway on
-\texttt{localhost:8000}. A call to \texttt{/auth/login} returns a JWT,
-which is then presented as an \texttt{Authorization: Bearer} header on
-the protected routes. The checks confirm the expected contract: the
-health endpoint answers, login issues a token, and a protected route
-such as \texttt{/datasets} returns \texttt{401} without a token and
-\texttt{200} with a valid one, which is exactly the zero-trust boundary
-the gateway is meant to enforce.
-% [SCREENSHOT NEEDED: api_test_backend.png --- curl run through the gateway: health 200, login returning a token, /datasets 401 (no token) vs 200 (token), /billing/plans]
+On the backend, the running stack is checked at three levels, as shown
+in Figure~\ref{fig:api_test_backend}. First, every container reports
+\texttt{Up}, with the backing stores (Postgres, MongoDB, Redis,
+TimescaleDB, Ollama) reporting \texttt{healthy}. Second, each of the six
+microservices answers its own \texttt{/health} endpoint with
+\texttt{200}. Third, the authentication boundary is exercised through
+the gateway on \texttt{localhost:8000}: a call to \texttt{/auth/login}
+returns a JWT, which is then presented as an
+\texttt{Authorization: Bearer} header on the protected routes. The
+contract holds as designed: a protected route such as
+\texttt{/datasets} returns \texttt{401} without a token and \texttt{200}
+with a valid one, while \texttt{/pipelines} and \texttt{/billing/plans}
+answer \texttt{200}. This is exactly the zero-trust boundary the gateway
+is meant to enforce. The same figure also shows a \texttt{docker stats}
+snapshot, confirming the whole stack idles within the
+$16$\,GB-RAM hardware envelope.
 
-On the frontend, the \texttt{vitest} suite runs the component and store
-tests headlessly and reports each file as it passes.
-% [SCREENSHOT NEEDED: frontend_vitest.png --- npm test output, all suites passing]
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.8\textwidth, keepaspectratio]{diagrams/api_test_backend}
+  \caption{Operational health check: container status, per-service \texttt{/health} endpoints, the gateway authentication boundary (401 without a token, 200 with), and a resource-usage snapshot.}
+  \label{fig:api_test_backend}
+\end{figure}
 
-% Once captured, reference the two screenshots here, e.g.\ ``as shown in Figure~\ref{fig:api_test_backend}'' and ``Figure~\ref{fig:frontend_vitest}''.
+On the frontend, the \texttt{vitest} suite runs the unit tests headlessly
+and reports each file as it passes; the current suite asserts the
+TypeScript type contracts shared across the canvas (task results,
+pipeline and algorithm types, model versions), as shown in
+Figure~\ref{fig:frontend_vitest}.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/frontend_vitest}
+  \caption{Frontend \texttt{vitest} run: the type-contract unit tests passing headlessly.}
+  \label{fig:frontend_vitest}
+\end{figure}
 
 \section{Deployment}
 

@@ -2602,6 +2602,14 @@ Versioning & Each run recorded as a \texttt{dl\_versions} document with metrics,
 
 \section{Design}
 
+The DL sprint is designed around the use case diagram
+(Figure~\ref{fig:ch7_fig1}), the service architecture spanning
+\texttt{dl-training-service}, its Celery worker and GPU allocation
+(Figure~\ref{fig:ch7_fig2}), the architecture-catalogue and VRAM-guard
+class diagram (Figure~\ref{fig:ch7_fig3}), and the training sequence in
+which the tier ceiling and VRAM guard reject oversize requests before
+any GPU work (Figure~\ref{fig:ch7_fig_seq_training_b}).
+
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch7_fig1}
@@ -2813,7 +2821,8 @@ The defence-in-depth chain runs:
 \end{enumerate}
 
 Four layers may sound paranoid, but each one catches a different
-class of mistake, accidental, malicious, oversized, pathological, and none of them is expensive.
+class of mistake, accidental, malicious, oversized, pathological, and none of them is expensive. The full chain is shown as an
+activity diagram in Figure~\ref{fig:ch7_fig_activity_vram_guard}.
 
 \begin{figure}[p]
   \centering
@@ -2831,14 +2840,16 @@ class of mistake, accidental, malicious, oversized, pathological, and none of th
   \label{fig:ch7_fig4}
 \end{figure}
 
-The canvas gained a third toggle button (``Deep Learning''), three
+The deep-learning editor is shown in Figure~\ref{fig:ch7_fig4}. The
+canvas gained a third toggle button (``Deep Learning''), three
 new node components (\texttt{ImageDatasetNode},
 \texttt{CNNArchNode}, \texttt{DLTrainNode}), and a fourth preset
 (\texttt{dlStarter}). The three-family lock logic was extended to
 lock all three families against each other once any node of a given
 family lands on the canvas.
 
-The \texttt{ImageDatasetNode} body shows class chips, total-image
+The \texttt{ImageDatasetNode} body (Figure~\ref{fig:ch7_fig5}) shows
+class chips, total-image
 count, and a deterministically seeded thumbnail strip (three images
 per class, pulled from \texttt{/datasets/<id>/image-preview} as
 base64-encoded JPEGs). The \texttt{CNNArchNode} surfaces a
@@ -2866,7 +2877,8 @@ X-axis.
 When training completes, a \texttt{DLPredictPanel} component renders
 inline immediately under the success alert. The user drops an image,
 the panel POSTs it to \texttt{/dl/predict/<version\_id>}, and the
-top-five softmax probabilities render as ranked horizontal bars.
+top-five softmax probabilities render as ranked horizontal bars, as
+shown in Figure~\ref{fig:ch7_fig6}.
 
 \begin{figure}[H]
   \centering
@@ -3034,6 +3046,12 @@ single-layered.
 
 \section{Design}
 
+The collaboration sprint is designed around the use case diagram for
+roles and actions (Figure~\ref{fig:ch8_fig1}), the cursor and
+node-selection sequence over SocketIO (Figure~\ref{fig:ch8_fig2}), and
+the class diagram covering membership, chat threads, and Meet
+integration (Figure~\ref{fig:ch8_fig3}).
+
 \begin{figure}[H]
   \centering
   \includegraphics[height=0.9\textheight, keepaspectratio]{diagrams/ch8_fig1}
@@ -3118,7 +3136,8 @@ selections are emitted as throttled (50\,ms) events. The frontend
 maintains a per-user coloured cursor overlay on the canvas. Watching
 another user's cursor move across your screen is a small touch that
 makes the platform feel inhabited in a way that chat alone never
-quite does.
+quite does. Figure~\ref{fig:ch8_fig5} shows two browser windows on the
+same pipeline with threaded chat syncing live between them.
 
 \begin{figure}[H]
   \centering

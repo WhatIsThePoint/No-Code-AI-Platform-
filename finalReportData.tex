@@ -1471,47 +1471,14 @@ binary.
 
 \section{Implementation}
 
-\begin{lstlisting}[language=Python, caption=Gateway proxy with header injection (\texttt{api-gateway/app/routes/proxy.py})]
-def _forward(upstream_base, path, require_auth=True, timeout=30):
-    if require_auth:
-        try:
-            verify_jwt_in_request()
-            claims = get_jwt()
-            g.user_id = get_jwt_identity()
-            g.user_role = claims.get("role", "")
-            g.user_tier = claims.get("tier", "free")
-        except Exception as e:
-            return jsonify({"error": "unauthorized", "message": str(e)}), 401
-
-    # Strip every client-supplied identity header before forwarding.
-    _STRIP_PREFIXES = ("x-user-", "x-company-", "x-project-")
-    headers = {
-        k: v for k, v in request.headers
-        if k.lower() not in _HOP_BY_HOP
-        and k.lower() != "host"
-        and not k.lower().startswith(_STRIP_PREFIXES)
-    }
-    # Re-inject the authoritative ones from the decoded JWT.
-    if require_auth or hasattr(g, "user_id"):
-        headers.update(get_forwarded_headers())
-
-    resp = requests.request(
-        method=request.method, url=f"{upstream_base.rstrip('/')}{path}",
-        headers=headers, data=request.get_data(), stream=True, timeout=timeout,
-    )
-    return _stream_response(resp)
-\end{lstlisting}
-
-\begin{lstlisting}[language=Python, caption={Profiling task --- read, profile, write the summary back (\texttt{data-ingestion-service/app/tasks/profiling.py}, abridged)}]
-@celery.task(name="app.tasks.profiling.profile_dataset", bind=True)
-def profile_dataset(self, dataset_id):
-    doc = datasets.find_one({"dataset_id": dataset_id})
-    df = load_dataframe(doc["file_path"])
-    summary = compute_profile_summary(df, target_column=doc.get("target_column"))
-    datasets.update_one({"dataset_id": dataset_id}, {"$set": {
-        "status": "ready", "profiling_summary": summary,
-        "row_count": len(df), "column_count": len(df.columns)}})
-\end{lstlisting}
+The gateway forwards every request through a single helper that decodes
+the JWT, strips any client-supplied \texttt{X-User-*},
+\texttt{X-Company-*}, or \texttt{X-Project-*} header, and re-injects the
+authoritative identity from the decoded token before proxying upstream
+--- so a downstream service can trust \texttt{X-User-Id} unconditionally.
+Dataset profiling runs as a Celery task that loads the dataframe,
+computes the full profile, and writes the summary back to the dataset
+document for the canvas to read.
 
 \subsection{Security posture}
 
@@ -1753,18 +1720,12 @@ Post-conditions & A versioned model artefact is downloadable from the registry. 
 
 \subsection{Graph schema}
 
-A pipeline is stored in Mongo as a document with two arrays:
-
-\begin{lstlisting}[language=JSON, caption=Pipeline document shape (abridged)]
-{
-  "pipeline_id": "...", "user_id": "...", "type": "ml" | "rag" | "dl",
-  "nodes": [ { "node_id": "n1", "type": "dataset", "data": {...} },
-             { "node_id": "n2", "type": "train",
-               "data": { "algorithm": "xgboost", "hyperparams": {...} } } ],
-  "edges": [ { "source": "n1", "target": "n2" } ],
-  "status": "draft" | "running" | "done" | "error"
-}
-\end{lstlisting}
+A pipeline is stored in Mongo as a single document holding a
+\texttt{nodes} array and an \texttt{edges} array, alongside an id, the
+owner, the pipeline type (\texttt{ml}/\texttt{rag}/\texttt{dl}), and a
+status. Each node carries its type and a \texttt{data} payload --- for a
+Train node, the chosen algorithm and its hyper-parameters --- while each
+edge links a source node to a target.
 
 \subsection{The \texttt{BaseMLModel} abstraction}
 
@@ -1776,25 +1737,10 @@ whether it wraps scikit-learn~\cite{scikit-learn}, XGBoost, LightGBM~\cite{light
 Prophet. The training Celery task is algorithm-agnostic: it
 constructs a model from a registry, trains it, asks for metrics, and
 serialises the estimator. Adding a new algorithm is, in practice, a
-one-file change.
-
-\begin{lstlisting}[language=Python, caption=Algorithm-agnostic training core]
-class BaseMLModel(ABC):
-    def __init__(self, hyperparams: dict[str, Any]):
-        self.hyperparams = hyperparams
-        self._estimator = None
-
-    @abstractmethod
-    def train(self, X_train, y_train=None) -> None: ...
-    @abstractmethod
-    def predict(self, X) -> Any: ...
-    @abstractmethod
-    def evaluate(self, X_test, y_test=None) -> dict[str, Any]: ...
-
-    @property
-    def estimator(self):
-        return self._estimator
-\end{lstlisting}
+one-file change. Concretely, the base class declares three abstract
+methods --- \texttt{train}, \texttt{predict}, and \texttt{evaluate} ---
+with a shared signature, plus an \texttt{estimator} property; every
+algorithm subclass implements just those.
 
 The registry mapping algorithm strings to subclasses lives in
 \texttt{ml-training-service/app/services/model\_factory.py}.
@@ -2395,15 +2341,11 @@ The component picks for this project:
 
 \section{Implementation}
 
-\begin{lstlisting}[language=Python, caption={Document ingestion --- split, embed locally, store (\texttt{data-ingestion-service/app/tasks/rag\_ingest.py}, abridged)}]
-@celery.task(name="app.tasks.rag_ingest.process_rag_document", bind=True)
-def process_rag_document(self, document_id, pipeline_id, file_path):
-    split_docs = RecursiveCharacterTextSplitter(
-        chunk_size=500, chunk_overlap=50).split_documents(PyPDFLoader(file_path).load())
-    chunk_texts = [d.page_content for d in split_docs if d.page_content.strip()]
-    vectors = embed_texts(chunk_texts)   # local sentence-transformers, no network call
-    insert_chunks(pipeline_id, document_id, chunk_texts, vectors)
-\end{lstlisting}
+Document ingestion runs as a Celery task: it loads the file
+(PDF, DOCX, or plain text), splits it into roughly 500-character chunks
+with a 50-character overlap, embeds each chunk locally with
+sentence-transformers (no network call), and inserts the chunk text and
+its vector into \texttt{pgvector}.
 
 \subsection{Streamed chat}
 
@@ -2776,15 +2718,12 @@ ones, and small datasets are the common case here.
 
 \subsection{The VRAM guard}
 
-The most subtle piece of Sprint~4 is the static memory estimator:
-
-\begin{lstlisting}[language=Python, caption={Static VRAM estimate --- the core formula (\texttt{dl-training-service/app/services/vram\_guard.py}, abridged)}]
-def estimate(arch, input_size, batch_size):
-    weights     = params_mb(arch)
-    optimizer   = 3.0 * weights                                  # grads + 2 Adam moments
-    activations = _ACTIVATION_PER_PIXEL_MB[arch] * input_size**2 * batch_size
-    return weights + optimizer + activations + _CUDA_RUNTIME_MB  # total MB
-\end{lstlisting}
+The most subtle piece of Sprint~4 is the static memory estimator. It
+sums four contributions before a single tensor is allocated: the model
+weights, the optimizer state (three times the weights, to cover the
+gradients plus the two Adam moments), the activations (a per-architecture
+per-pixel cost scaled by the squared input size and the batch size), and
+a fixed allowance for the CUDA runtime.
 
 The route refuses any \texttt{/dl/train} request whose estimate
 exceeds the user's tier-resolved budget minus a $1$\,GB headroom for

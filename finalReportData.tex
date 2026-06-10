@@ -1843,36 +1843,42 @@ ARIMA & Forecasting & statsmodels & Stationary or already-detrended series. \\
 
 \subsection{Comparing algorithms on a dataset}
 
-The catalogue is not a black box: the platform trains the chosen
-algorithm and reports its metrics, so a user can compare candidates on
-their own data before committing to one. Table~\ref{tab:algo_comparison}
-shows such a comparison on the \texttt{customer\_churn} demo dataset
-(100 rows, 9 features, binary target), with each model trained through
-the same preprocessing pipeline and evaluated on a held-out 30\% split.
+The catalogue is not a black box: the platform trains each chosen
+algorithm and records its metrics in the model registry, so a user can
+compare candidates on their own data before committing to one.
+Table~\ref{tab:algo_comparison} and Figure~\ref{fig:algo_comparison}
+show three regressors trained on the same salary dataset, through the
+same preprocessing pipeline.
 
 \begin{table}[H]
 \centering
-\caption{Algorithm comparison on the \texttt{customer\_churn} demo dataset (held-out test split, seed 42).}
+\caption{Algorithm comparison on the salary regression dataset (same data and preprocessing, from the model registry).}
 \label{tab:algo_comparison}
-\begin{tabular}{|L{0.24\linewidth}|c|c|c|c|}
+\begin{tabular}{|L{0.26\linewidth}|c|c|c|c|}
 \hline
-\textbf{Algorithm} & \textbf{Accuracy} & \textbf{F1} & \textbf{ROC-AUC} & \textbf{Train time} \\
+\textbf{Algorithm} & \textbf{MAE} & \textbf{RMSE} & \textbf{R$^2$} & \textbf{Train time} \\
 \hline
-Logistic Regression & 0.800 & 0.769 & 0.921 & 48\,ms \\ \hline
-Random Forest & 0.767 & 0.720 & 0.889 & 206\,ms \\ \hline
-XGBoost & \textbf{0.800} & 0.750 & \textbf{0.935} & 72\,ms \\ \hline
-LightGBM & 0.800 & 0.750 & 0.917 & \textbf{31\,ms} \\
+CatBoost & \textbf{4\,009.6} & \textbf{5\,022.1} & \textbf{0.9818} & 2.7\,s \\ \hline
+XGBoost & 4\,565.1 & 5\,722.3 & 0.9764 & 16.1\,s \\ \hline
+Random Forest & 12\,044.4 & 15\,342.1 & 0.8302 & 30.0\,s \\
 \hline
 \end{tabular}
 \end{table}
 
-On this small set the four models land close together; XGBoost edges
-the others on ROC-AUC ($0.935$) while LightGBM trains fastest
-($31$\,ms). The headline result is that the comparison is one click ---
-the user sees the trade-off rather than being told which model to pick.
-On larger, noisier data the gap between the boosted-tree models and the
-linear baseline widens, which is why the catalogue defaults to a
-gradient booster for tabular tasks.
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.9\textwidth, keepaspectratio]{diagrams/ml_catboost_vsxgboost_vsrandomforest_same_data}
+  \caption{Model registry: CatBoost, XGBoost, and Random Forest trained on the same salary data, each with its regression metrics and SHAP / feature-importance chart.}
+  \label{fig:algo_comparison}
+\end{figure}
+
+On this dataset the gradient-boosted models clearly win: CatBoost leads
+at R$^2 = 0.9818$ (MAE $\approx 4{,}010$) and trains in under three
+seconds, XGBoost is a close second ($0.9764$), while the Random Forest
+trails at $0.8302$ and is the slowest. The point is not the ranking
+itself but that the platform makes it visible --- the user sees the
+trade-off and picks accordingly, which is why the catalogue defaults to
+a gradient booster for tabular tasks.
 
 \section{Implementation}
 
@@ -3527,6 +3533,13 @@ when both sides move at once.
   \label{fig:ch10_fig_cicd_flow}
 \end{figure}
 
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth, keepaspectratio]{diagrams/terminal_logs_tracking_everything}
+  \caption{Aggregated runtime logs --- every microservice (gateway, auth, ingestion, ML/DL training, workers) streamed together for end-to-end observability during a run.}
+  \label{fig:runtime_logs}
+\end{figure}
+
 \section{Deployment}
 
 The whole stack ships as a single \texttt{docker-compose.yml} with
@@ -3711,12 +3724,12 @@ write Python.
 \section*{Validation results}
 
 The platform was validated end-to-end on two representative
-workloads. On a $250{,}000$-row salary dataset with a Random Forest
-regressor, the system reached an R$^2$ of $0.9785$ in
-$4$\,min\,$12$\,s on the demo machine, roughly $97.85\%$ of the
-variance in the target explained by the features, on synthetic data
-where that level of fit is achievable but on real data would warrant
-a closer look at residual structure. On the synthetic 30-image,
+workloads. On the $250{,}000$-row salary dataset, three regressors were
+trained on the same data and preprocessing (Sprint~2): CatBoost led at
+an R$^2$ of $0.9818$ (MAE $\approx 4{,}010$), XGBoost reached $0.9764$,
+and the Random Forest $0.8302$. On synthetic data this level of fit is
+achievable; on real data the residual structure would warrant a closer
+look. On the synthetic 30-image,
 three-class dataset shipped as \texttt{seed\_demo\_image\_dataset.py},
 tiny\_resnet at $64$\,px batch~32 over five epochs reached a mean
 validation accuracy of roughly $97\%$ in $30$ seconds on a 1660

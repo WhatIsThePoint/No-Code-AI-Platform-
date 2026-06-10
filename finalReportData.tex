@@ -1651,7 +1651,8 @@ RG-11 & SHAP explanations are produced only for tree-based supervised runs. \\
 
 \section{CRISP-DM applied to the tabular ML sprint}
 
-We framed the ML work through the CRISP-DM lifecycle~\cite{crispdm}. The mapping
+We framed the ML work through the CRISP-DM lifecycle~\cite{crispdm},
+mapped onto this sprint in Figure~\ref{fig:ch5_fig_crispdm}. The mapping
 makes it concrete what each phase delivered for this project.
 
 \begin{figure}[H]
@@ -1692,6 +1693,13 @@ the registry, evaluated with metrics and SHAP, and finally exported.
 \end{figure}
 
 \section{Design}
+
+The sprint's design spans the use case diagram for the canvas plus
+tabular ML (Figure~\ref{fig:ch5_fig1}), the \texttt{BaseMLModel}
+class hierarchy and algorithm registry (Figure~\ref{fig:ch5_fig2}), and
+the browser-to-artefact training sequence
+(Figure~\ref{fig:ch5_fig_seq_training}); the realised editor with a
+completed run is shown in Figure~\ref{fig:ch5_fig3}.
 
 \begin{figure}[p]
   \centering
@@ -1894,7 +1902,9 @@ a gradient booster for tabular tasks.
 \end{figure}
 
 The pipeline editor is the surface that earns the platform its
-``no-code'' label. Everything the user does, pick a dataset,
+``no-code'' label. A new pipeline starts by choosing one of the three
+modes (Figure~\ref{fig:mode_chooser}), which drops a clean starter graph
+onto the canvas (Figure~\ref{fig:clean_ml_pipeline}). Everything the user does, pick a dataset,
 choose an algorithm, set hyperparameters, run a training job,
 inspect SHAP, is mediated by dragging coloured nodes onto a
 canvas and connecting them with edges. The editor is a React Flow
@@ -1986,7 +1996,8 @@ parameters.
   \label{fig:ch5_fig4}
 \end{figure}
 
-Each node component renders four regions: a header strip with the
+Each node component, whose anatomy is shown in
+Figure~\ref{fig:ch5_fig4}, renders four regions: a header strip with the
 node type and the live status chip (\texttt{idle}, \texttt{running},
 \texttt{done}, \texttt{error}), a body with a one-line summary
 (``XGBoost, 200 estimators, max\_depth 5''), input and output
@@ -2002,7 +2013,9 @@ task runs on the dataset that the Train node points at. The pipeline
 is deliberately conservative: no transformation happens that the user
 did not configure or that the algorithm's documentation does not
 require. Table~\ref{tab:preprocessing} summarises each stage with
-its default and the algorithms it is skipped for.
+its default and the algorithms it is skipped for, and
+Figure~\ref{fig:preprocessing_screen} shows how those defaults are
+surfaced for review before training.
 
 \begin{table}[H]
 \centering
@@ -2121,8 +2134,9 @@ dashboard surface the outcome: the metric summary card
 regression), the confusion matrix or residual histogram, and the SHAP
 importance chart. The live training chart
 (Figure~\ref{fig:ch5_fig5}) and the SHAP chart
-(Figure~\ref{fig:ch5_fig6}) appear above; the screenshot below captures
-a completed run on the results dashboard.
+(Figure~\ref{fig:ch5_fig6}) appear above; the model registry in
+Figure~\ref{fig:ml_run_results} captures the versioned artefacts of
+completed runs on the results dashboard.
 
 \begin{figure}[H]
   \centering
@@ -2281,6 +2295,13 @@ Evaluation (grounding) & The model answers only from context and refuses otherwi
 
 \section{Design}
 
+The RAG sprint is designed around the use case diagram
+(Figure~\ref{fig:ch6_fig1}), a clean starter pipeline of Document,
+Vector Store, and Chat nodes (Figure~\ref{fig:clean_rag_pipeline}), the
+document-to-chat sequence (Figure~\ref{fig:ch6_fig2}), and the class
+diagram for ingestion plus the chat orchestrator
+(Figure~\ref{fig:ch6_fig3}).
+
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch6_fig1}
@@ -2384,7 +2405,8 @@ builds the prompt with the retrieved context, and forwards Ollama's
 \texttt{stream=true} chunks straight into the
 \texttt{/chat/<pipeline\_id>} room. The frontend appends each token
 to the current assistant message as it arrives, on a laptop, with
-no network call at any point in the loop.
+no network call at any point in the loop. Figure~\ref{fig:ch6_fig4}
+shows the RAG canvas and the grounded chat with its source chunks.
 
 \begin{figure}[H]
   \centering

@@ -309,7 +309,9 @@ telecommunications operator takes seriously.
 
 \subsection{Project description, the no-code AI platform}
 
-The platform is a self-hosted web application. A signed-in user can:
+The platform is a self-hosted web application whose landing page is the
+entry point to the three pipeline modes, as shown in
+Figure~\ref{fig:ch1_fig1}. A signed-in user can:
 
 \begin{itemize}
     \item Upload tabular data (CSV, Excel), pull it from a Postgres or
@@ -441,7 +443,8 @@ GPU-bound workload. No cloud AI vendor sits in the request path, and
 that constraint is hard, not a preference. The full stack must come
 up with a single \texttt{make up} on a clean machine, and continuous
 integration must complete in under fifteen minutes for a full-stack
-change. These limits shaped almost every later design choice.
+change. These limits, summarised in Figure~\ref{fig:ch1_fig2}, shaped
+almost every later design choice.
 
 \begin{figure}[H]
   \centering
@@ -491,7 +494,15 @@ sign-in/sign-up surface, an optional TOTP entry that only appears
 once the credentials are validated, and a `Forgot your password?'
 link that opens the MailHog round-trip described in Chapter~4. The
 mockup deliberately leaves the visual treatment of the verification
-banner open, because that landed during Sprint~6 polish.
+banner open, because that landed during Sprint~6 polish. The mockup is
+shown in Figure~\ref{fig:ch1_fig3}.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch1_fig3}
+  \caption{Authentication interface: email/password with optional TOTP.}
+  \label{fig:ch1_fig3}
+\end{figure}
 
 \subsection{Home page interface}
 The signed-in home page sets the layout the rest of the platform
@@ -501,7 +512,15 @@ top bar with the language toggle, contrast toggle, notification
 bell, tier chip and account menu, and a content area that
 renders the active page. The mockup commits to the get-started
 checklist on the dashboard, a deliberate choice to give a new user a
-clear first step instead of an empty screen.
+clear first step instead of an empty screen. The home page is shown in
+Figure~\ref{fig:ch1_fig4}.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\textwidth, keepaspectratio]{diagrams/populated_dashboard_after_login}
+  \caption{Home page interface for a signed-in user.}
+  \label{fig:ch1_fig4}
+\end{figure}
 
 \subsection{Admin dashboard interface}
 The admin mockup is deliberately different from the user surface:
@@ -510,21 +529,8 @@ Announcements / Ops Console), and a single red impersonation
 banner that hangs above every page once a `view-as' session is
 active. The mockup made it explicit from day one that the admin
 console is a separate surface, not a privileged view of the user
-app.
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch1_fig3}
-  \caption{Authentication interface: email/password with optional TOTP.}
-  \label{fig:ch1_fig3}
-\end{figure}
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.95\textwidth, keepaspectratio]{diagrams/populated_dashboard_after_login}
-  \caption{Home page interface for a signed-in user.}
-  \label{fig:ch1_fig4}
-\end{figure}
+app. Its realised form is the admin operations console shown later in
+Chapter~9 (Figure~\ref{fig:ch9_fig7}).
 
 \section{Project Duration}
 
@@ -577,7 +583,8 @@ RandomForestClassifier} hits a wall on line one of the first cell.
 in spirit. Their centre of gravity is data preparation rather than
 model training, and their LLM panels almost always route requests
 back through OpenAI. The locality story they tell only holds for the
-tabular path.
+tabular path. Figure~\ref{fig:ch2_fig1} positions these three families
+against this project's design intent.
 
 \begin{figure}[H]
   \centering
@@ -649,7 +656,7 @@ quantisation has collapsed model footprints. A three-billion-parameter
 model in FP16 occupies roughly $12$\,GB of weights; the
 \texttt{Q4\_K\_M} four-bit quantisation~\cite{quantization} shrinks that to about
 $2$\,GB, while preserving most of the original quality on
-conversational tasks. The other shift is first-class GPU inference
+conversational tasks, as shown in Figure~\ref{fig:ch2_fig2}. The other shift is first-class GPU inference
 runtimes for consumer hardware. Ollama, llama.cpp, and vLLM all
 expose efficient batched inference on cards with $4$--$8$\,GB of
 VRAM. A 1660 Super, with $6$\,GB of VRAM and $30$\,TFLOPS of FP16
@@ -754,6 +761,9 @@ with no story to tell along the way and no fallback when a late
 feature falls through.
 
 \section{Scrum Methodology}
+
+The project followed a lightweight Scrum framework, whose roles,
+artefacts, and events are summarised in Figure~\ref{fig:ch3_fig1}.
 
 \begin{figure}[H]
   \centering
@@ -971,6 +981,10 @@ the host only needs the NVIDIA driver plus
 \texttt{nvidia-container-toolkit}.
 
 \section{Architecture}
+
+The system decomposes into six Flask microservices behind a single
+gateway, whose high-level topology is shown in
+Figure~\ref{fig:ch3_fig3}.
 
 \begin{figure}[p]
   \centering
@@ -1230,6 +1244,11 @@ Post-conditions & Account is now eligible for sign-in. \\
 \end{tabular}
 \end{table}
 
+In development the verification mail is captured by MailHog
+(Figure~\ref{fig:mailhog_verify}); clicking its link completes the
+round-trip and the account becomes eligible for sign-in
+(Figure~\ref{fig:mail_verified}).
+
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/mailhog_confimation_mail}
@@ -1269,6 +1288,12 @@ RG-06 & External database credentials are never stored in clear text; they are e
 \end{table}
 
 \section{Design}
+
+The sprint's design is captured in three diagrams: the use case diagram
+for authentication and ingestion (Figure~\ref{fig:ch4_fig1}), the login
+plus refresh-token-rotation sequence (Figure~\ref{fig:ch4_fig2}), and
+the class diagram spanning the auth and data-ingestion services
+(Figure~\ref{fig:ch4_fig4}).
 
 \begin{figure}[H]
   \centering
@@ -1453,7 +1478,9 @@ canvas: it names every column, its type, and the cleaning the profiler
 will recommend, the missing-value imputation, the casing
 normalisation, the negative-tenure fix, the overtime outlier, and the
 thirteen-way \texttt{has\_promotion} encoding that collapses to a clean
-binary.
+binary. On the dataset page this surfaces as the per-column profiling
+view (Figure~\ref{fig:data_profiling}) and the data-quality insights the
+user sees before training (Figure~\ref{fig:data_insights}).
 
 \begin{figure}[H]
   \centering
@@ -1503,7 +1530,8 @@ document for the canvas to read.
 \subsection{SQL connectors and Fernet encryption}
 
 Users can configure a Postgres or MySQL connector inside the
-platform. Credentials are encrypted with a Fernet key
+platform through the connector wizard shown in
+Figure~\ref{fig:ch4_fig6}. Credentials are encrypted with a Fernet key
 (AES-128-CBC plus HMAC) held in the service's environment, then
 stored in Mongo. The same key is reused for any other secret the
 ingestion service needs to hold, and rotation is a documented

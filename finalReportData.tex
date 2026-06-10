@@ -226,8 +226,7 @@ DSI       & D\'eveloppement des Syst\`emes d'Information \\
 
 Machine learning has become routine in almost every industry, but the
 tooling around it still defaults to one of two extremes. On one end sit
-the cloud-managed services --- DataRobot, Vertex AI, Azure ML Studio
---- which hide complexity behind polished interfaces and require users
+the cloud-managed services (DataRobot, Vertex AI, Azure ML Studio), which hide complexity behind polished interfaces and require users
 to ship their data into a vendor's infrastructure. On the other end
 live the open notebooks where everything is possible and nothing is
 easy: Jupyter, Colab, raw Python. The space between those two poles,
@@ -235,8 +234,8 @@ where a non-technical user might want to build a model without either
 learning Python or surrendering their data, is surprisingly thin.
 
 That gap is the question this project answers. The goal was a platform
-that gives a domain expert --- a clinician, an analyst, a small
-business owner --- enough visual scaffolding to build, train, and
+that gives a domain expert (a clinician, an analyst, a small
+business owner) enough visual scaffolding to build, train, and
 inspect a model on their own machine. Not a tutorial, not a hosted
 SaaS, but a real piece of software that runs locally, accepts local
 data, and never phones home to an AI vendor.
@@ -260,8 +259,8 @@ would build with another quarter.
 
 % ═════════════════════════════════════════════════════════════════════════════
 \chapter{General Context of the Project}
-\chapterabstract{This chapter frames the problem the platform addresses --- where
-no-code ML tools fail privacy-sensitive users --- and sets out the host context,
+\chapterabstract{This chapter frames the problem the platform addresses, where
+no-code ML tools fail privacy-sensitive users, and sets out the host context,
 the functional and non-functional requirements, the high-level technical
 architecture, and the deliverables the work is evaluated against.}
 % ═════════════════════════════════════════════════════════════════════════════
@@ -286,7 +285,7 @@ rather than corporate: the supervisor is the academic advisor, the
 audience is the jury, and the reference deployment is a personal
 laptop with a single consumer GPU.
 
-\subsection{Project description --- the no-code AI platform}
+\subsection{Project description, the no-code AI platform}
 
 The platform is a self-hosted web application. A signed-in user can:
 
@@ -294,22 +293,21 @@ The platform is a self-hosted web application. A signed-in user can:
     \item Upload tabular data (CSV, Excel), pull it from a Postgres or
         MySQL connector, or upload a zip of images organised by class
         folder.
-    \item Inspect a profile of the dataset --- missing values, skew,
-        outliers, target imbalance, correlations --- before doing
+    \item Inspect a profile of the dataset, missing values, skew,
+        outliers, target imbalance, correlations, before doing
         anything else with it.
     \item Build a pipeline visually on a React Flow canvas, in one of
         three modes:
     \begin{itemize}
-        \item \textbf{Traditional ML} --- fourteen supervised and
+        \item \textbf{Traditional ML}, fourteen supervised and
             unsupervised algorithms spanning classification,
             regression, clustering, and time-series forecasting.
-        \item \textbf{Generative AI} --- index documents into a local
+        \item \textbf{Generative AI}, index documents into a local
             vector store and chat with a RAG pipeline.
-        \item \textbf{Deep Learning} --- image classification on a
+        \item \textbf{Deep Learning}, image classification on a
             fixed catalogue of three CNN architectures.
     \end{itemize}
-    \item Train, evaluate, download the trained artefact, and ---
-        for image models --- run live inference on a hand-uploaded
+    \item Train, evaluate, download the trained artefact, and, for image models, run live inference on a hand-uploaded
         test image.
     \item Collaborate with teammates inside a company workspace, with
         role-based access control, real-time canvas presence,
@@ -324,7 +322,7 @@ five-minute TTL.
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.95\textwidth, keepaspectratio]{diagrams/ch1_fig1}
-  \caption{Landing page mockup --- entry point to the three pipeline modes.}
+  \caption{Landing page mockup: entry point to the three pipeline modes.}
   \label{fig:ch1_fig1}
 \end{figure}
 
@@ -362,7 +360,7 @@ Admin operations & User management, audit logs, queue and hardware monitoring, u
 \hline
 \textbf{Property} & \textbf{Commitment} \\
 \hline
-Data sovereignty & No outbound calls to AI vendors. Stripe is the only third-party service in the deployment graph, and it is optional --- without an API key the platform still works on the free tier. \\ \hline
+Data sovereignty & No outbound calls to AI vendors. Stripe is the only third-party service in the deployment graph, and it is optional, without an API key the platform still works on the free tier. \\ \hline
 Modularity & Six independent Python services so a long training run cannot block an authentication request. \\ \hline
 Reproducibility & Every dataset version is profiled, every training run is recorded, every model artefact is versioned and downloadable. \\ \hline
 Hardware envelope & Single consumer machine: $16$\,GB RAM, GTX~1660~Super (6\,GB VRAM). The platform runs on it, not just compiles on it. \\ \hline
@@ -426,7 +424,7 @@ change. These limits shaped almost every later design choice.
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch1_fig2}
-  \caption{Deployment envelope --- a single host, a single GPU, fifteen containers.}
+  \caption{Deployment envelope: a single host, a single GPU, fifteen containers.}
   \label{fig:ch1_fig2}
 \end{figure}
 
@@ -495,7 +493,7 @@ app.
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch1_fig3}
-  \caption{Authentication interface --- email/password with optional TOTP.}
+  \caption{Authentication interface: email/password with optional TOTP.}
   \label{fig:ch1_fig3}
 \end{figure}
 
@@ -516,17 +514,15 @@ actual timeline across the six sprints.
 
 \section*{Conclusion}
 
-This chapter framed the problem the rest of the report addresses ---
-how to make machine learning approachable without surrendering data
-sovereignty --- and sketched the platform that emerged in response.
+This chapter framed the problem the rest of the report addresses, how to make machine learning approachable without surrendering data
+sovereignty, and sketched the platform that emerged in response.
 The next chapter reviews the existing landscape and explains why the
 question is harder to answer with off-the-shelf tools than first
 appears.
 
 % ═════════════════════════════════════════════════════════════════════════════
 \chapter{Preliminary Study}
-\chapterabstract{A study and critique of the existing no-code ML landscape ---
-why each family of tools falls short on data sovereignty --- followed by the
+\chapterabstract{A study and critique of the existing no-code ML landscape, why each family of tools falls short on data sovereignty, followed by the
 solution this project proposes and the technical foundations it builds on.}
 % ═════════════════════════════════════════════════════════════════════════════
 
@@ -550,7 +546,7 @@ audience this project targets it is not.
 
 \textbf{Open-source notebooks} (Jupyter, Google Colab, DataLab) are
 powerful for experts. Every workflow eventually bottoms out in raw
-Python --- which is exactly the friction the no-code category was
+Python, which is exactly the friction the no-code category was
 invented to remove. A domain expert who can read a confusion matrix
 but cannot write \texttt{from sklearn.ensemble import
 RandomForestClassifier} hits a wall on line one of the first cell.
@@ -574,7 +570,7 @@ tabular path.
 
 A clinician analysing patient records, or a bank analyst classifying
 transactions, cannot lawfully upload that data to a vendor bucket.
-The problem is regulatory, not contractual --- GDPR, HIPAA, and
+The problem is regulatory, not contractual, GDPR, HIPAA, and
 country-specific banking rules forbid the upload entirely. Every
 SaaS AutoML platform listed above assumes the user is fine with that
 upload. The audience this project targets is not.
@@ -612,8 +608,8 @@ The platform sets out to satisfy four objectives at once.
 database runs inside the same Docker Compose stack on the user's own
 machine.
 
-\textbf{Coverage.} Three workloads --- tabular ML, RAG-style
-generative AI, and image classification --- share the same canvas.
+\textbf{Coverage.} Three workloads, tabular ML, RAG-style
+generative AI, and image classification, share the same canvas.
 The user does not need a different product for each.
 
 \textbf{Approachability.} A canvas-based UI that a non-programmer can
@@ -636,7 +632,7 @@ runtimes for consumer hardware. Ollama, llama.cpp, and vLLM all
 expose efficient batched inference on cards with $4$--$8$\,GB of
 VRAM. A 1660 Super, with $6$\,GB of VRAM and $30$\,TFLOPS of FP16
 throughput, served roughly $30$ tokens per second on a 3B model in
-our own runs --- enough latency budget for an interactive RAG chat.
+our own runs, enough latency budget for an interactive RAG chat.
 
 \begin{figure}[H]
   \centering
@@ -661,14 +657,14 @@ fits in minutes on a CPU and its hyperparameter surface is mature.
 framework~\cite{shap} attributes a model's output to its input
 features using Shapley values from cooperative game theory. The
 optimised TreeExplainer variant lifts the cost of SHAP from
-prohibitive to interactive on tree models --- the only reason SHAP is a
+prohibitive to interactive on tree models, the only reason SHAP is a
 live feature in this platform rather than a batch job.
 
 \textbf{Retrieval-Augmented Generation.} Lewis et al.~\cite{rag}
 introduced the RAG formulation: embed query and corpus, retrieve top-k
 chunks by similarity, condition a generative model on the retrieved
 context. This formulation is what makes a local LLM useful on private
-documents --- the model is small (3B), the corpus does the heavy
+documents, the model is small (3B), the corpus does the heavy
 lifting.
 
 \textbf{Compact CNN architectures.} Three architecture families are
@@ -689,15 +685,14 @@ hardware appetite to run on a laptop.
 
 % ═════════════════════════════════════════════════════════════════════════════
 \chapter{Methodology and Working Environment}
-\chapterabstract{The working method --- an Agile, Scrum-lite cadence augmented with
-data-science lifecycles (CRISP-DM for ML, and MLOps practices for the AI sprints)
---- together with the toolchain and the microservice architecture those choices
+\chapterabstract{The working method, an Agile, Scrum-lite cadence augmented with
+data-science lifecycles (CRISP-DM for ML, and MLOps practices for the AI sprints), together with the toolchain and the microservice architecture those choices
 produced.}
 % ═════════════════════════════════════════════════════════════════════════════
 
 \section*{Introduction}
 
-Six sprints, one team, three AI workloads on a single GPU --- the
+Six sprints, one team, three AI workloads on a single GPU, the
 project's primary risk was scope, not technique. This chapter
 explains the methodology used to keep that risk in check, the
 toolchain that anchored the build, and the layout of the services
@@ -717,7 +712,7 @@ constraints of an ML-heavy solo project.
 \hline
 \textbf{Approach} & \textbf{Strengths} & \textbf{Why rejected (or chosen)} \\
 \hline
-Waterfall & Predictable cost, single up-front spec, easy to communicate. & Fails an ML project where the cost of a feature is genuinely unpredictable --- Prophet's CmdStan dependency alone pushed a ``trivial'' algorithm into half a sprint. \textbf{Rejected.} \\ \hline
+Waterfall & Predictable cost, single up-front spec, easy to communicate. & Fails an ML project where the cost of a feature is genuinely unpredictable, Prophet's CmdStan dependency alone pushed a ``trivial'' algorithm into half a sprint. \textbf{Rejected.} \\ \hline
 Pure Kanban & Continuous flow, no ceremony overhead. & Removes the dated checkpoints needed to demo to a supervisor; produces no natural fallback point if a late feature fails. \textbf{Rejected.} \\ \hline
 Scrum-lite & Short fixed-length sprints, runnable demo + git tag at each boundary, written retro. & Enough ceremony to enforce scope discipline without consuming the sprint. \textbf{Chosen.} \\
 \hline
@@ -741,7 +736,7 @@ feature falls through.
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch3_fig1}
-  \caption{The Scrum framework~\cite{scrum} --- roles, artefacts, events.}
+  \caption{The Scrum framework~\cite{scrum}: roles, artefacts, events.}
   \label{fig:ch3_fig1}
 \end{figure}
 
@@ -749,10 +744,10 @@ feature falls through.
 
 In a small team the roles collapse onto a single person at a time.
 What does not collapse is the discipline of switching hats. When
-planning, the operator is the Product Owner --- writing user stories
+planning, the operator is the Product Owner, writing user stories
 and prioritising the backlog. When building, the operator is the
 Developer. When reviewing the sprint, the operator becomes the Scrum
-Master --- asking what went wrong, what would change next time.
+Master, asking what went wrong, what would change next time.
 Treating those as three roles, even when they share one head, keeps
 the practice honest.
 
@@ -786,7 +781,7 @@ the practice honest.
 
 Scrum is a project-management discipline: it organises \emph{time and
 tasks}, not \emph{data and models}. On its own it says nothing about the
-parts of an AI project that actually carry the risk --- where the data
+parts of an AI project that actually carry the risk, where the data
 comes from, whether a training run is reproducible, how a model is
 versioned, or how its quality is judged once it ships. A sprint that
 delivers ``a trained model'' means little if the run cannot be repeated
@@ -794,19 +789,18 @@ or the metric cannot be trusted. Pure Scrum, in other words, is
 necessary but not sufficient for machine-learning work.
 
 Each AI sprint is therefore run as Scrum \emph{plus} a domain lifecycle,
-in the spirit of \textbf{MLOps} --- the practice of bringing
+in the spirit of \textbf{MLOps}, the practice of bringing
 software-engineering rigour (versioning, automation, monitoring,
 reproducibility) to the machine-learning lifecycle:
 
 \begin{itemize}
-    \item \textbf{Sprint~2 (tabular ML)} follows \textbf{CRISP-DM} ---
-        business understanding, data understanding, data preparation,
+    \item \textbf{Sprint~2 (tabular ML)} follows \textbf{CRISP-DM}, business understanding, data understanding, data preparation,
         modelling, evaluation, deployment.
     \item \textbf{Sprint~3 (RAG / LLM)} follows a \textbf{retrieval
-        lifecycle} --- collect, chunk, embed, index, retrieve, augment,
+        lifecycle}, collect, chunk, embed, index, retrieve, augment,
         generate, and evaluate for grounding.
     \item \textbf{Sprint~4 (deep learning)} follows a \textbf{DL
-        training lifecycle} --- data, augmentation, architecture
+        training lifecycle}, data, augmentation, architecture
         selection, a VRAM-feasibility gate, train, validate, and serve.
 \end{itemize}
 
@@ -823,19 +817,19 @@ Six sprints, each closing with a runnable demo and a self-contained
 git tag:
 
 \begin{itemize}
-    \item \textbf{Sprint~1 --- Authentication, Gateway, Data
+    \item \textbf{Sprint~1, Authentication, Gateway, Data
         Ingestion.} Foundational service mesh.
-    \item \textbf{Sprint~2 --- Visual Pipeline Editor and Tabular
+    \item \textbf{Sprint~2, Visual Pipeline Editor and Tabular
         ML.} Canvas, fourteen algorithms, SHAP, model export.
-    \item \textbf{Sprint~3 --- Local Generative AI and RAG.} Ollama,
+    \item \textbf{Sprint~3, Local Generative AI and RAG.} Ollama,
         \texttt{pgvector}, streamed chat.
-    \item \textbf{Sprint~4 --- Deep Learning for Image
+    \item \textbf{Sprint~4, Deep Learning for Image
         Classification.} PyTorch service, three CNNs, the VRAM
         guard.
-    \item \textbf{Sprint~5 --- Multi-tenancy and Real-Time
+    \item \textbf{Sprint~5, Multi-tenancy and Real-Time
         Collaboration.} Project ACL, cursors, threaded chat, Meet
         links.
-    \item \textbf{Sprint~6 --- Dashboard, i18n, Accessibility, Admin
+    \item \textbf{Sprint~6, Dashboard, i18n, Accessibility, Admin
         Console.} Operability and polish.
 \end{itemize}
 
@@ -847,7 +841,7 @@ without rebuilding any of them.
 
 \section{Project Planning}
 
-The project ran from 20 February to 1 June 2026 --- about fifteen
+The project ran from 20 February to 1 June 2026, about fifteen
 weeks of development, closing with the report write-up and the defense
 preparation. The work was cut into six sprints of two to three weeks
 each. Figure~\ref{fig:ch3_gantt} shows the schedule as a Gantt chart,
@@ -856,7 +850,7 @@ ones side by side.
 
 \begin{table}[H]
 \centering
-\caption{Planned versus actual sprint timeline (20 February --- 1 June 2026).}
+\caption{Planned versus actual sprint timeline (20 February: 1 June 2026).}
 \label{tab:timeline}
 \begin{tabular}{|p{0.06\linewidth}|L{0.30\linewidth}|L{0.21\linewidth}|L{0.21\linewidth}|p{0.06\linewidth}|}
 \hline
@@ -868,7 +862,7 @@ ones side by side.
 4 & Deep learning (images) & 3 Apr -- 16 Apr & 10 Apr -- 30 Apr & 3 \\ \hline
 5 & Multi-tenancy + collaboration & 17 Apr -- 30 Apr & 1 May -- 14 May & 2 \\ \hline
 6 & Dashboard, i18n, a11y, admin & 1 May -- 14 May & 15 May -- 28 May & 2 \\ \hline
-\multicolumn{2}{|l|}{\textit{Report finalisation \& defense prep}} & --- & 29 May -- 1 Jun & 1 \\
+\multicolumn{2}{|l|}{\textit{Report finalisation \& defense prep}} &, & 29 May -- 1 Jun & 1 \\
 \hline
 \end{tabular}
 \end{table}
@@ -889,16 +883,16 @@ ones side by side.
 ]{1}{15}
   \gantttitle{Feb}{2}\gantttitle{March}{4}\gantttitle{April}{4}\gantttitle{May}{4}\gantttitle{Jun}{1} \\
   \gantttitlelist{1,...,15}{1} \\
-  \ganttbar{Sprint 1 --- Foundation}{1}{2} \\
-  \ganttbar[bar/.append style={fill=orange!50, draw=orange!80}]{Sprint 2 --- Canvas + Tabular ML}{3}{5} \\
-  \ganttbar{Sprint 3 --- RAG}{6}{7} \\
-  \ganttbar[bar/.append style={fill=orange!50, draw=orange!80}]{Sprint 4 --- Deep Learning}{8}{10} \\
-  \ganttbar{Sprint 5 --- Collaboration}{11}{12} \\
-  \ganttbar{Sprint 6 --- Operability + Polish}{13}{14} \\
+  \ganttbar{Sprint 1, Foundation}{1}{2} \\
+  \ganttbar[bar/.append style={fill=orange!50, draw=orange!80}]{Sprint 2, Canvas + Tabular ML}{3}{5} \\
+  \ganttbar{Sprint 3, RAG}{6}{7} \\
+  \ganttbar[bar/.append style={fill=orange!50, draw=orange!80}]{Sprint 4, Deep Learning}{8}{10} \\
+  \ganttbar{Sprint 5, Collaboration}{11}{12} \\
+  \ganttbar{Sprint 6, Operability + Polish}{13}{14} \\
   \ganttbar[bar/.append style={fill=black!25, draw=black!45}]{Report + defense prep}{15}{15}
 \end{ganttchart}%
 }
-\caption{Six-sprint Gantt chart (20 February --- 1 June 2026), weeks
+\caption{Six-sprint Gantt chart (20 February: 1 June 2026), weeks
 W1--W15. The two orange sprints (2 and 4) each ran a week longer than
 planned, pushing every later sprint back by a week; the planned versus
 actual dates are in Table~\ref{tab:timeline}.}
@@ -907,7 +901,7 @@ actual dates are in Table~\ref{tab:timeline}.}
 
 Two sprints slipped by roughly a week each. Sprint~2 ran long because
 the live training visualisation had a Plotly autoscale bug that took
-a day to diagnose --- progress percentage and metric values lived on
+a day to diagnose, progress percentage and metric values lived on
 incompatible Y-axis ranges. Sprint~4 ran long because the static VRAM
 estimate needed an empirical recalibration pass after the first real
 GPU run exceeded the predicted budget by roughly $15\%$ on
@@ -915,18 +909,17 @@ MobileNet-V3 at 224\,px batch~32.
 
 \section{Technologies}
 
-\textbf{Frontend --- React~18 + Vite + TypeScript + MUI.} React for
+\textbf{Frontend, React~18 + Vite + TypeScript + MUI.} React for
 the ecosystem, Vite because cold starts under
 \texttt{create-react-app} were unworkable, MUI because it ships
 accessible components that already satisfy WCAG~AA without bespoke
 work.
 
-\textbf{Backend --- Flask + Celery + Flask-SocketIO.} Flask was the
+\textbf{Backend, Flask + Celery + Flask-SocketIO.} Flask was the
 lowest-common-denominator choice for a microservice. FastAPI would
 have given typed routes for free, but every template used as a
 starting point assumed Flask, and rewriting six services for typing
-was not a fight worth picking. Celery handles every CPU-bound task ---
-profiling, preprocessing, H2O training, RAG ingestion, image
+was not a fight worth picking. Celery handles every CPU-bound task, profiling, preprocessing, H2O training, RAG ingestion, image
 extraction, and PyTorch training all live on their own queue.
 
 \textbf{Postgres + pgvector for relational and vector data~\cite{pgvector}.}
@@ -936,13 +929,13 @@ enough for the few hundred thousand chunks a single-tenant local
 deployment is ever likely to hold.
 
 \textbf{MongoDB for everything schemaless.} Datasets, pipelines,
-model versions, task results --- anything whose shape evolves
+model versions, task results, anything whose shape evolves
 between sprints lives in Mongo. A Postgres JSONB column was
 considered for this and rejected: lossless storage, flexible queries,
 and zero migrations as new statistics get added all favoured Mongo.
 
 \textbf{Redis for queue + cache + socket message bus.} Three logical
-databases on the same instance --- DB~0 for Celery, DB~1 for Celery
+databases on the same instance, DB~0 for Celery, DB~1 for Celery
 results, DB~2 for the SocketIO message queue.
 
 \textbf{Ollama for local LLM inference~\cite{ollama}.} The alternative was calling
@@ -967,33 +960,33 @@ the host only needs the NVIDIA driver plus
 \begin{figure}[p]
   \centering
   \includegraphics[angle=90, height=0.95\textheight, keepaspectratio]{diagrams/ch3_fig_db_schema}
-  \caption{Relational schema --- Postgres tables across auth-service, RAG, and pipeline collaboration (every relation, with column types and keys).}
+  \caption{Relational schema: Postgres tables across auth-service, RAG, and pipeline collaboration (every relation, with column types and keys).}
   \label{fig:ch3_fig_db_schema}
 \end{figure}
 
 \begin{figure}[p]
   \centering
   \includegraphics[width=\textwidth, height=0.92\textheight, keepaspectratio]{diagrams/ch3_fig_db_schema_mongo}
-  \caption{Document schema --- the MongoDB collections, each field marked \texttt{<<embedded>>} (read with its parent) or \texttt{<<ref>>} (an id pointing at a Postgres row, a named-volume artefact, or another collection).}
+  \caption{Document schema: the MongoDB collections, each field marked \texttt{<<embedded>>} (read with its parent) or \texttt{<<ref>>} (an id pointing at a Postgres row, a named-volume artefact, or another collection).}
   \label{fig:ch3_fig_db_schema_mongo}
 \end{figure}
 
 \begin{itemize}
-    \item \texttt{api-gateway} (port 8000) --- decodes JWTs~\cite{jwt}, injects
+    \item \texttt{api-gateway} (port 8000), decodes JWTs~\cite{jwt}, injects
         \texttt{X-User-Id} / \texttt{X-User-Tier} /
         \texttt{X-User-Role} headers, proxies to the upstream
         services. Hosts the SocketIO server for chat and training
         presence.
-    \item \texttt{auth-service} (port 8001) --- user accounts,
+    \item \texttt{auth-service} (port 8001), user accounts,
         billing, admin operations, project and company ACL.
-    \item \texttt{data-ingestion-service} (port 8002) --- file
+    \item \texttt{data-ingestion-service} (port 8002), file
         uploads, SQL connectors (Postgres / MySQL), profiling,
         preprocessing, RAG ingestion, image-dataset extraction.
-    \item \texttt{ml-training-service} (port 8003) --- the fourteen
+    \item \texttt{ml-training-service} (port 8003), the fourteen
         tabular algorithms, model registry, RAG chat orchestration.
-    \item \texttt{metrics-service} (port 8004) --- TimescaleDB-backed
+    \item \texttt{metrics-service} (port 8004), TimescaleDB-backed
         hardware-telemetry collection.
-    \item \texttt{dl-training-service} (port 8005) --- PyTorch image
+    \item \texttt{dl-training-service} (port 8005), PyTorch image
         classification.
 \end{itemize}
 
@@ -1006,14 +999,14 @@ tests (Postgres + Mongo + Redis spun up as service containers,
 roughly six minutes for a frontend-only change, nine minutes for a
 backend change, and fourteen minutes when both sides move at once.
 
-\subsection{Data storage model --- relational, document, and hybrid}
+\subsection{Data storage model, relational, document, and hybrid}
 
 Two stores share the data layer, split along a single line. Anything
-with a fixed shape and relational integrity --- identities, ACL,
-billing, the RAG vector index --- lives in Postgres
+with a fixed shape and relational integrity, identities, ACL,
+billing, the RAG vector index, lives in Postgres
 (Figure~\ref{fig:ch3_fig_db_schema}). Anything whose shape evolves
-between sprints --- dataset profiles, the node/edge pipeline graph,
-training results --- lives in MongoDB
+between sprints, dataset profiles, the node/edge pipeline graph,
+training results, lives in MongoDB
 (Figure~\ref{fig:ch3_fig_db_schema_mongo}).
 
 Inside MongoDB, every relationship is modelled with one of the three
@@ -1023,7 +1016,7 @@ classic document patterns:
   \item \textbf{Embedded.} A nested subdocument stored inside its
       parent and read in the same query (denormalised).
   \item \textbf{Referenced (linked).} The document stores an id that
-      points elsewhere --- the document-store equivalent of a foreign
+      points elsewhere, the document-store equivalent of a foreign
       key.
   \item \textbf{Hybrid.} A deliberate mix: embed what is read with the
       parent and evolves with it; reference what is large, shared, or
@@ -1067,7 +1060,7 @@ The document side of the platform uses seven collections in the
 is given in Annex~\ref{annex:datadict}; Table~\ref{tab:collections}
 lists them with their role, and Table~\ref{tab:mongo_indexes} the
 indexes created at startup (\texttt{infra/mongo/init.js}). MongoDB has
-no server-side views here --- read models are built with aggregation
+no server-side views here, read models are built with aggregation
 pipelines and the indexed queries below.
 
 \begin{table}[H]
@@ -1081,7 +1074,7 @@ pipelines and the indexed queries below.
 \texttt{datasets} & Uploaded tabular/image datasets and their profiling summary. \\ \hline
 \texttt{pipelines} & The visual canvas: the node/edge graph of each ML/RAG/DL pipeline. \\ \hline
 \texttt{task\_results} & Status, progress and live metrics of asynchronous Celery jobs (auto-expires after 7 days). \\ \hline
-\texttt{model\_versions} & Every trained model version --- tabular and deep learning --- with hyper-parameters, metrics and artefact path. \\ \hline
+\texttt{model\_versions} & Every trained model version, tabular and deep learning, with hyper-parameters, metrics and artefact path. \\ \hline
 \texttt{rag\_documents} & Metadata of documents ingested for RAG (the chunk vectors live in pgvector). \\ \hline
 \texttt{rag\_chat\_turns} & History of RAG chat turns (question, answer, source count) per pipeline. \\ \hline
 \texttt{pipeline\_step\_notes} & Free-text notes attached to a specific canvas node. \\
@@ -1117,7 +1110,7 @@ pipelines and the indexed queries below.
 \section*{Conclusion}
 
 The methodology and toolchain held throughout the six sprints. Some
-choices --- Flask in particular --- are ones we would revisit if
+choices, Flask in particular, are ones we would revisit if
 starting over, but they shipped a working system without rework. The
 next chapter opens the sprint walkthrough.
 
@@ -1131,8 +1124,8 @@ pipeline every later sprint builds on.}
 
 \section*{Introduction}
 
-Sprint~1 was the foundation sprint. Nothing glamorous --- no
-canvases, no models --- but the design choices made in these two
+Sprint~1 was the foundation sprint. Nothing glamorous, no
+canvases, no models, but the design choices made in these two
 weeks shaped every later sprint. The gateway pattern and the
 shared-volume convention introduced here are the quiet load-bearing
 decisions of the whole project.
@@ -1141,7 +1134,7 @@ decisions of the whole project.
 
 \begin{table}[H]
 \centering
-\caption{Sprint~1 backlog --- foundation services.}
+\caption{Sprint~1 backlog: foundation services.}
 \label{tab:sprint1_backlog}
 \begin{tabular}{|p{0.05\linewidth}|L{0.55\linewidth}|p{0.1\linewidth}|p{0.18\linewidth}|}
 \hline
@@ -1162,7 +1155,7 @@ US-11 & Mongo-backed dataset metadata + Parquet preprocessing output. & High & 1
 \end{tabular}
 \end{table}
 
-\subsection{Use case --- Sign in with optional 2FA}
+\subsection{Use case, Sign in with optional 2FA}
 
 \begin{table}[H]
 \centering
@@ -1189,7 +1182,7 @@ Post-conditions & Refresh token JTI persisted; previous JTI blacklisted on next 
 \end{tabular}
 \end{table}
 
-\subsection{Use case --- Verify email via MailHog}
+\subsection{Use case, Verify email via MailHog}
 
 \begin{table}[H]
 \centering
@@ -1231,7 +1224,7 @@ collects them.
 \hline
 RG-01 & A user can sign in only once their email address has been verified. \\ \hline
 RG-02 & Every request reaching a downstream service carries identity headers injected by the gateway from a valid JWT; any client-supplied identity header is discarded first. \\ \hline
-RG-03 & A refresh token is single-use --- each refresh rotates it and revokes the previous one. \\ \hline
+RG-03 & A refresh token is single-use, each refresh rotates it and revokes the previous one. \\ \hline
 RG-04 & An email-verification link is valid for 24 hours and for one use only. \\ \hline
 RG-05 & Two-factor authentication is optional per user, but a super-admin may make it mandatory for a whole tier. \\ \hline
 RG-06 & External database credentials are never stored in clear text; they are encrypted before they are persisted. \\
@@ -1244,28 +1237,22 @@ RG-06 & External database credentials are never stored in clear text; they are e
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch4_fig1}
-  \caption{Use case diagram --- authentication and ingestion.}
+  \caption{Use case diagram: authentication and ingestion.}
   \label{fig:ch4_fig1}
 \end{figure}
 
 \begin{figure}[p]
   \centering
   \includegraphics[height=0.95\textheight, keepaspectratio]{diagrams/ch4_fig2}
-  \caption{Sequence diagram --- login plus refresh-token rotation.}
+  \caption{Sequence diagram: login plus refresh-token rotation.}
   \label{fig:ch4_fig2}
 \end{figure}
 
-\begin{figure}[p]
-  \centering
-  \includegraphics[width=\textwidth, height=0.92\textheight, keepaspectratio]{diagrams/ch4_fig3}
-  \caption{Sequence diagram --- upload plus asynchronous profiling.}
-  \label{fig:ch4_fig3}
-\end{figure}
 
 \begin{figure}[p]
   \centering
   \includegraphics[width=\textwidth, height=0.92\textheight, keepaspectratio]{diagrams/ch4_fig4}
-  \caption{Class diagram --- auth-service plus data-ingestion-service.}
+  \caption{Class diagram: auth-service plus data-ingestion-service.}
   \label{fig:ch4_fig4}
 \end{figure}
 
@@ -1283,8 +1270,7 @@ Two reasonable architectures sat on the table.
 The second option won, and we would make the same call again. The
 gateway is on the hot path; a synchronous HTTP round-trip per
 request adds latency that compounds badly under load. The price is
-that the gateway needs the same signing secret as the auth service
---- which, in a shared environment-file deployment, is a non-issue.
+that the gateway needs the same signing secret as the auth service, which, in a shared environment-file deployment, is a non-issue.
 A horizontally scaled production setup would need a key-distribution
 mechanism; for the demo target the in-process decode is the right
 trade.
@@ -1308,8 +1294,7 @@ files to the worker over the network. That approach was built halfway
 before a simpler one became obvious: the Docker Compose stack already
 had a named volume (\texttt{uploaded\_files}) that both the API
 container and the worker container could mount. Mounting it in both
-places collapsed the streaming-upload protocol into a one-line write
---- the API saves to \texttt{/uploads/<id>.csv}, the worker reads
+places collapsed the streaming-upload protocol into a one-line write, the API saves to \texttt{/uploads/<id>.csv}, the worker reads
 from the same path. That pattern then became the convention for
 every binary artefact in the system: trained models, RAG documents,
 and image-dataset extracts all live on named volumes mounted into
@@ -1325,7 +1310,7 @@ document model is lossless, queryable enough for the use case, and
 imposes no schema migration when a new statistic is added in a later
 sprint.
 
-\subsection{Data profiling --- what the platform computes and why}
+\subsection{Data profiling, what the platform computes and why}
 
 Profiling is the step that separates a usable platform from a thin
 wrapper around scikit-learn. Without an automatic profile the user
@@ -1362,7 +1347,7 @@ Pearson correlation matrix for every numerical pair and emits a
 computes the mutual information between each feature and the target,
 ranks the top ten, and flags any feature whose mutual information
 with the target is suspiciously high ($> 0.7$ for non-trivial
-features) --- often the signature of a leaked feature.
+features), often the signature of a leaked feature.
 
 \paragraph{Performance envelope.} The full profile of the reference
 $250\,000$-row salary dataset (10 columns, mixed dtypes) runs in
@@ -1395,7 +1380,7 @@ Suspected leakage  & mutual\_info(target, col) $> 0.7$ for a non-trivial feature
 \end{tabular}
 \end{table}
 
-\subsection{Worked example --- a data dictionary for the demo dataset}
+\subsection{Worked example, a data dictionary for the demo dataset}
 
 The platform ships a deliberately messy demo dataset,
 \texttt{employee\_attrition\_dirty.csv} (90 rows, 10 columns), used to
@@ -1406,7 +1391,7 @@ issue the profiler flags. \texttt{attrition} is the target.
 
 \begin{table}[H]
 \centering
-\caption{Data dictionary --- the \texttt{employee\_attrition\_dirty} demo dataset (90 rows).}
+\caption{Data dictionary: the \texttt{employee\_attrition\_dirty} demo dataset (90 rows).}
 \label{tab:data_dictionary}
 \begin{tabular}{|p{0.20\linewidth}|p{0.14\linewidth}|p{0.07\linewidth}|L{0.41\linewidth}|}
 \hline
@@ -1421,14 +1406,14 @@ issue the profiler flags. \texttt{attrition} is the target.
 \texttt{satisfaction} & integer (1--5) & 6\% & Self-reported satisfaction (Likert scale). \\ \hline
 \texttt{remote\_days\_per\_week} & integer (0--5) & 7\% & Remote working days per week. \\ \hline
 \texttt{has\_promotion} & categorical $\to$ binary & 0\% & Promotion flag stored in 13 raw forms (\texttt{?}, \texttt{N/A}, \texttt{-}, \texttt{0}, \texttt{No}, \texttt{NO}, \texttt{yes}\ldots) mapped to yes/no. \\ \hline
-\texttt{attrition} & integer (0/1) & 0\% & \textbf{Target} --- whether the employee left the company. \\
+\texttt{attrition} & integer (0/1) & 0\% & \textbf{Target}, whether the employee left the company. \\
 \hline
 \end{tabular}
 \end{table}
 
 This dictionary is what a domain expert reads before touching the
 canvas: it names every column, its type, and the cleaning the profiler
-will recommend --- the missing-value imputation, the casing
+will recommend, the missing-value imputation, the casing
 normalisation, the negative-tenure fix, the overtime outlier, and the
 thirteen-way \texttt{has\_promotion} encoding that collapses to a clean
 binary.
@@ -1485,7 +1470,7 @@ def profile_dataset(self, dataset_id):
         previous token's JTI lands in the Redis blacklist so a
         stolen refresh token can actually be revoked.
     \item Passwords use \texttt{bcrypt}~\cite{bcrypt} at cost~12. Refresh tokens
-        themselves are stored as SHA-256 hashes in Postgres --- the
+        themselves are stored as SHA-256 hashes in Postgres, the
         database-breach scenario yields a hash, not a usable token.
     \item TOTP-based two-factor authentication is optional per user;
         super-admins can require it per-tier from the admin panel.
@@ -1519,16 +1504,10 @@ injection structurally impossible rather than merely unlikely.
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.78\textwidth, keepaspectratio]{diagrams/connect_database_as_dataset}
-  \caption{SQL connector wizard --- credentials encrypted at rest.}
+  \caption{SQL connector wizard: credentials encrypted at rest.}
   \label{fig:ch4_fig6}
 \end{figure}
 
-\begin{figure}[p]
-  \centering
-  \includegraphics[width=\textwidth, height=0.92\textheight, keepaspectratio]{diagrams/ch4_fig_seq_password_reset}
-  \caption{Sequence diagram --- password-reset round-trip via MailHog.}
-  \label{fig:ch4_fig_seq_password_reset}
-\end{figure}
 
 \section{Unit Tests}
 
@@ -1558,33 +1537,32 @@ By the end of Sprint~1 the platform had end-to-end authentication, a
 working refresh-token loop, a gateway pattern the next five sprints
 would build on, and an ingestion service that profiled arbitrarily
 messy CSVs asynchronously. The authoritative-headers convention
-became one of the project's most quietly useful design decisions ---
-every subsequent service trusts \texttt{X-User-Id} without a second
+became one of the project's most quietly useful design decisions, every subsequent service trusts \texttt{X-User-Id} without a second
 thought, because the gateway is the only path along which it can be
 set.
 
 % ═════════════════════════════════════════════════════════════════════════════
 \chapter{Sprint 2: Visual Pipeline Editor and Tabular Machine Learning}
-\chapterabstract{The visual pipeline canvas and the tabular ML engine --- fourteen
+\chapterabstract{The visual pipeline canvas and the tabular ML engine, fourteen
 algorithms behind one \texttt{BaseMLModel} abstraction, live training telemetry,
-SHAP explanations, and one-click model export --- framed through the CRISP-DM
+SHAP explanations, and one-click model export, framed through the CRISP-DM
 data-mining lifecycle.}
 % ═════════════════════════════════════════════════════════════════════════════
 
 \section*{Introduction}
 
 Sprint~2 was the largest single sprint of the project. It pulled
-together four pieces --- the visual pipeline editor, the
+together four pieces, the visual pipeline editor, the
 \texttt{ml-training-service} with its fourteen tabular algorithms,
 the live metric visualisations, and the post-training surface (SHAP
-explainability, model export) --- into a coherent flow that a user
+explainability, model export), into a coherent flow that a user
 could follow from canvas to artefact.
 
 \section{Sprint Backlog}
 
 \begin{table}[H]
 \centering
-\caption{Sprint~2 backlog --- canvas plus tabular ML stack.}
+\caption{Sprint~2 backlog: canvas plus tabular ML stack.}
 \label{tab:sprint2_backlog}
 \begin{tabular}{|p{0.05\linewidth}|L{0.55\linewidth}|p{0.1\linewidth}|p{0.18\linewidth}|}
 \hline
@@ -1616,7 +1594,7 @@ model version comes to exist. Table~\ref{tab:sprint2_rules} lists them.
 \hline
 \textbf{ID} & \textbf{Business rule} \\
 \hline
-RG-07 & A pipeline runs only when its nodes are valid --- a Train node needs an upstream Dataset, an Evaluate node needs a completed training run. \\ \hline
+RG-07 & A pipeline runs only when its nodes are valid, a Train node needs an upstream Dataset, an Evaluate node needs a completed training run. \\ \hline
 RG-08 & Every dataset is split 70/15/15 into train/validation/test before any model is fitted. \\ \hline
 RG-09 & Re-running a pipeline mints a new model version; an existing version is never overwritten. \\ \hline
 RG-10 & When the target is imbalanced, the summary card reports F1 rather than accuracy as the headline metric. \\ \hline
@@ -1663,7 +1641,7 @@ the registry, evaluated with metrics and SHAP, and finally exported.
 \begin{figure}[H]
   \centering
   \includegraphics[width=\textwidth, keepaspectratio]{diagrams/ch5_fig_ml_pipeline}
-  \caption{Tabular ML pipeline --- the six linear steps from dataset to exported artefact.}
+  \caption{Tabular ML pipeline: the six linear steps from dataset to exported artefact.}
   \label{fig:ch5_fig_ml_pipeline}
 \end{figure}
 
@@ -1672,37 +1650,31 @@ the registry, evaluated with metrics and SHAP, and finally exported.
 \begin{figure}[p]
   \centering
   \includegraphics[width=\textwidth, height=0.9\textheight, keepaspectratio]{diagrams/ch5_fig1}
-  \caption{Use case diagram --- canvas plus tabular ML.}
+  \caption{Use case diagram: canvas plus tabular ML.}
   \label{fig:ch5_fig1}
 \end{figure}
 
 \begin{figure}[p]
   \centering
   \includegraphics[angle=90, height=0.95\textheight, keepaspectratio]{diagrams/ch5_fig2}
-  \caption{Class diagram --- BaseMLModel hierarchy and the algorithm registry.}
+  \caption{Class diagram: BaseMLModel hierarchy and the algorithm registry.}
   \label{fig:ch5_fig2}
 \end{figure}
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=\textwidth, keepaspectratio]{diagrams/ml_canvas_running_with_all_nodes}
-  \caption{Pipeline editor in tabular ML mode --- Dataset $\to$ Train $\to$ Evaluate, with the metrics and SHAP panel after a completed run.}
+  \caption{Pipeline editor in tabular ML mode: Dataset $\to$ Train $\to$ Evaluate, with the metrics and SHAP panel after a completed run.}
   \label{fig:ch5_fig3}
 \end{figure}
 
 \begin{figure}[p]
   \centering
   \includegraphics[width=\textwidth, height=0.92\textheight, keepaspectratio]{diagrams/ch5_fig_seq_training}
-  \caption{Sequence diagram --- tabular ML training, browser to artefact.}
+  \caption{Sequence diagram: tabular ML training, browser to artefact.}
   \label{fig:ch5_fig_seq_training}
 \end{figure}
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch5_fig_state_pipeline}
-  \caption{State diagram --- pipeline lifecycle transitions.}
-  \label{fig:ch5_fig_state_pipeline}
-\end{figure}
 
 \subsection{Graph schema}
 
@@ -1761,8 +1733,7 @@ the abstraction above.
 
 \textbf{Classification and regression.} For tree-based methods,
 XGBoost is the default because boosted trees consistently dominate on
-structured data with mixed numerical and categorical features ---
-they capture non-linear feature interactions without explicit
+structured data with mixed numerical and categorical features, they capture non-linear feature interactions without explicit
 feature engineering, and the H2O implementation we use ships
 TreeSHAP for fast post-hoc explanation. Random Forest and Gradient
 Boosting Machines are exposed as alternatives for users who prefer
@@ -1785,7 +1756,7 @@ already stationary or short.
 the platform uses H2O-3~\cite{h2o} in place of the scikit-learn implementations.
 H2O's algorithms run faster on tabular data, parallelise across the
 host's CPU cores by default, and expose feature importance plus SHAP
-values out of the box --- which removed an entire subtask from the
+values out of the box, which removed an entire subtask from the
 explainability work. H2O-3 runs as an in-process JVM started inside
 the \texttt{ml-training-service} container, not as a separate cluster
 node, so it adds nothing to the deployment graph.
@@ -1821,9 +1792,9 @@ ARIMA & Forecasting & statsmodels & Stationary or already-detrended series. \\
 \subsection{The drag-and-drop pipeline editor}
 
 The pipeline editor is the surface that earns the platform its
-``no-code'' label. Everything the user does --- pick a dataset,
+``no-code'' label. Everything the user does, pick a dataset,
 choose an algorithm, set hyperparameters, run a training job,
-inspect SHAP --- is mediated by dragging coloured nodes onto a
+inspect SHAP, is mediated by dragging coloured nodes onto a
 canvas and connecting them with edges. The editor is a React Flow
 instance with custom node components for every step of every
 workflow (ML, RAG, DL).
@@ -1832,7 +1803,7 @@ workflow (ML, RAG, DL).
 the same canvas runtime but expose disjoint node palettes (Table
 \ref{tab:canvas_nodes}). The mode toggle at the top of the canvas
 gates which palette is active; once a node of any family lands, the
-two other families lock until the canvas is cleared --- the user
+two other families lock until the canvas is cleared, the user
 cannot accidentally mix an XGBoost Train node with a RAG Chat node.
 
 \begin{table}[H]
@@ -1895,13 +1866,13 @@ camera position is also persisted so the user lands back exactly
 where they left.
 
 \paragraph{Templates and presets.} Three starter presets ship out of
-the box --- \texttt{mlStarter} (Dataset $\to$ Train $\to$ Evaluate),
+the box, \texttt{mlStarter} (Dataset $\to$ Train $\to$ Evaluate),
 \texttt{ragStarter} (Document $\to$ VectorStore $\to$ Chat), and
 \texttt{dlStarter} (ImageDataset $\to$ CNNArch $\to$ DLTrain). One
 click drops the preset onto an empty canvas and runs the
 auto-layout, which positions nodes in a left-to-right flow with
 even spacing. For a typical demo session the user never builds a
-graph from scratch --- they drop the preset and edit two
+graph from scratch, they drop the preset and edit two
 parameters.
 
 \subsection{Frontend canvas implementation}
@@ -1916,7 +1887,7 @@ parameters.
 Each node component renders four regions: a header strip with the
 node type and the live status chip (\texttt{idle}, \texttt{running},
 \texttt{done}, \texttt{error}), a body with a one-line summary
-(``XGBoost --- 200 estimators --- max\_depth 5''), input and output
+(``XGBoost, 200 estimators, max\_depth 5''), input and output
 ports on the left and right edges, and a validation badge in the
 corner. The body is intentionally compact so a user can fit a 5-node
 pipeline in one viewport; clicking the node opens a right-rail panel
@@ -1933,19 +1904,19 @@ its default and the algorithms it is skipped for.
 
 \begin{table}[H]
 \centering
-\caption{Preprocessing pipeline for the tabular ML mode --- default per stage and per-algorithm skip rules.}
+\caption{Preprocessing pipeline for the tabular ML mode: default per stage and per-algorithm skip rules.}
 \label{tab:preprocessing}
 \begin{tabular}{|p{0.22\linewidth}|L{0.42\linewidth}|L{0.30\linewidth}|}
 \hline
 \textbf{Stage} & \textbf{Default behaviour} & \textbf{Skipped for} \\
 \hline
-Train / val / test split & $70\%$ / $15\%$ / $15\%$, stratified by target for classification, time-ordered for forecasting. Random seed pinned to $42$ for reproducibility. & --- \\ \hline
-Missing-value imputation & Median for numeric columns, mode for categorical. Columns with $>50\%$ missing are dropped with a warning. & Tree-based algorithms tolerate missing values directly (XGBoost, LightGBM, CatBoost) --- imputation is still applied but configurable to off. \\ \hline
+Train / val / test split & $70\%$ / $15\%$ / $15\%$, stratified by target for classification, time-ordered for forecasting. Random seed pinned to $42$ for reproducibility. &, \\ \hline
+Missing-value imputation & Median for numeric columns, mode for categorical. Columns with $>50\%$ missing are dropped with a warning. & Tree-based algorithms tolerate missing values directly (XGBoost, LightGBM, CatBoost), imputation is still applied but configurable to off. \\ \hline
 Feature scaling & StandardScaler on numeric columns (mean $0$, variance $1$). Fit on train only, applied to val/test. & Tree-based algorithms (scaling has no effect on splits). \\ \hline
-Categorical encoding & One-hot for cardinality $\le 10$, target encoding (mean target value per category) for cardinality $> 10$. & CatBoost handles categoricals natively --- raw column passed through. \\ \hline
+Categorical encoding & One-hot for cardinality $\le 10$, target encoding (mean target value per category) for cardinality $> 10$. & CatBoost handles categoricals natively, raw column passed through. \\ \hline
 Outlier handling & Tukey IQR rule emitted as a warning; no automatic capping. User opts in via a checkbox on the Train node. & Robust algorithms (Random Forest, GBM). \\ \hline
 Target transform & Identity. User can opt in to log-transform for skewed regression targets (toggle on the Train node). & Classification. \\ \hline
-Persistence & The fitted transformer pipeline is serialised next to the model artefact so inference uses the exact same transformations. & --- \\
+Persistence & The fitted transformer pipeline is serialised next to the model artefact so inference uses the exact same transformations. &, \\
 \hline
 \end{tabular}
 \end{table}
@@ -1966,14 +1937,14 @@ queue. The \texttt{LiveTrainingChart} component subscribes to the
 pipeline's room (\texttt{pipeline\_<id>}) on the \texttt{/training}
 namespace and plots the points on a Plotly scatter. The Y-axis is
 auto-scaled because progress percentage ($0$--$100$) and metric
-values (typically $0$--$1$) live on different ranges --- progress on
+values (typically $0$--$1$) live on different ranges, progress on
 the primary axis, metrics on the secondary. A small detail, but the
 chart was unreadable until that split landed.
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch5_fig5}
-  \caption{Live training chart --- progress on the primary axis, metric on the secondary.}
+  \caption{Live training chart: progress on the primary axis, metric on the secondary.}
   \label{fig:ch5_fig5}
 \end{figure}
 
@@ -1985,12 +1956,11 @@ multiclass. The validation report flags imbalanced targets (minority
 class below $20\%$) and prefers F1 over raw accuracy in the
 summary card, because accuracy on imbalanced data lies to the user.
 For regression, the report ships R$^2$, mean absolute error, root
-mean squared error, and the residual distribution as a histogram ---
-R$^2$ alone is misleading on heavy-tailed errors, and the histogram
+mean squared error, and the residual distribution as a histogram, R$^2$ alone is misleading on heavy-tailed errors, and the histogram
 catches that visually.
 
-The reference validation run --- a $250{,}000$-row salary dataset with a
-Random Forest regressor --- exercises this full canvas-to-artefact path
+The reference validation run, a $250{,}000$-row salary dataset with a
+Random Forest regressor, exercises this full canvas-to-artefact path
 end to end; its score is reported alongside the deep-learning run in the
 General Conclusion (Validation results).
 
@@ -2001,8 +1971,8 @@ subset of the test set. The bar chart of mean absolute SHAP values
 surfaces in the \texttt{Evaluate} node's results panel. SHAP
 (SHapley Additive exPlanations) attributes each prediction to a
 combination of feature contributions, drawing on Shapley values from
-cooperative game theory. For tree-based models --- XGBoost, Random
-Forest, GBM, LightGBM, CatBoost --- the platform uses the optimised
+cooperative game theory. For tree-based models, XGBoost, Random
+Forest, GBM, LightGBM, CatBoost, the platform uses the optimised
 \texttt{TreeExplainer} path, which is roughly two orders of magnitude
 faster than the general-purpose \texttt{KernelExplainer}. On a
 $5{,}000$-row test set that is the difference between SHAP being a
@@ -2011,7 +1981,7 @@ feature and SHAP being a wait.
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch5_fig6}
-  \caption{SHAP feature importance bar chart --- top contributors to the prediction.}
+  \caption{SHAP feature importance bar chart: top contributors to the prediction.}
   \label{fig:ch5_fig6}
 \end{figure}
 
@@ -2020,20 +1990,19 @@ feature and SHAP being a wait.
 The export step packages the trained \texttt{.joblib} artefact along
 with a generated FastAPI inference script. The user downloads a zip
 that they can drop onto any container runtime to serve the model
-without the platform at all. That property --- being able to leave
---- mattered on principle. A no-code platform that locks a user in
+without the platform at all. That property, being able to leave, mattered on principle. A no-code platform that locks a user in
 is not removing friction; it is relocating it.
 
 \subsection{Why \texttt{joblib} and not \texttt{pickle}}
 
 \texttt{joblib} was the deliberate choice for the tabular path
 because its custom pickler is optimised for objects containing large
-NumPy arrays --- which every scikit-learn estimator holds --- and
+NumPy arrays, which every scikit-learn estimator holds, and
 can memory-map them on load. For a Random Forest of $500$ trees the
 on-disk size difference was roughly $8\times$ in our measurements;
 the load-time difference was larger. For the deep-learning path in
 Sprint~4 we use \texttt{torch.save} on a \texttt{state\_dict()}
-instead --- a different ecosystem, a different convention.
+instead, a different ecosystem, a different convention.
 
 \subsection{Results}
 
@@ -2049,7 +2018,7 @@ a completed run on the results dashboard.
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ml_model_registry}
-  \caption{Model registry after training runs --- versioned artefacts with their metrics, ready to download.}
+  \caption{Model registry after training runs: versioned artefacts with their metrics, ready to download.}
   \label{fig:ml_run_results}
 \end{figure}
 
@@ -2060,8 +2029,7 @@ a completed run on the results dashboard.
         a tiny fixture dataset (50 rows, four columns, a binary
         target). Assertions cover output shape and the presence of
         the documented metric keys.
-    \item The algorithm-factory is exercised by parametrised tests
-        --- one per algorithm string --- that construct the model,
+    \item The algorithm-factory is exercised by parametrised tests, one per algorithm string, that construct the model,
         train, predict, and inspect the result envelope.
     \item Node validation: parametrised tests over
         (node-type, upstream-edges, expected-status) tuples.
@@ -2085,7 +2053,7 @@ model and being able to do something with it.
 \chapter{Sprint 3: Local Generative AI and Retrieval-Augmented Chat}
 \chapterabstract{Local Generative AI: a Retrieval-Augmented Generation pipeline
 that embeds documents into \texttt{pgvector} and streams grounded answers from a
-local Llama~3.2 model served by Ollama --- with no token ever leaving the machine.}
+local Llama~3.2 model served by Ollama, with no token ever leaving the machine.}
 % ═════════════════════════════════════════════════════════════════════════════
 
 \section*{Introduction}
@@ -2093,7 +2061,7 @@ local Llama~3.2 model served by Ollama --- with no token ever leaving the machin
 This was the most technically ambitious sprint of the project. A
 fully local Retrieval-Augmented Generation pipeline meant fitting an
 embedding model, a vector store, and an LLM inside the same Docker
-stack as the rest of the platform --- and making the chat experience
+stack as the rest of the platform, and making the chat experience
 responsive enough that users would not notice they were running it
 on a consumer GPU.
 
@@ -2101,7 +2069,7 @@ on a consumer GPU.
 
 \begin{table}[H]
 \centering
-\caption{Sprint~3 backlog --- local RAG.}
+\caption{Sprint~3 backlog: local RAG.}
 \label{tab:sprint3_backlog}
 \begin{tabular}{|p{0.05\linewidth}|L{0.55\linewidth}|p{0.1\linewidth}|p{0.18\linewidth}|}
 \hline
@@ -2111,7 +2079,7 @@ US-21 & Document ingestion pipeline (PDF, DOCX, plain text). & High & 1 \\ \hlin
 US-22 & Local embedding via \texttt{sentence-transformers}. & High & 0.5 \\ \hline
 US-23 & Vector store in \texttt{pgvector} (IVFFlat index). & High & 1 \\ \hline
 US-24 & Ollama integration serving Llama~3.2~3B Q4\_K\_M. & High & 1 \\ \hline
-US-25 & Chat orchestration --- embed, retrieve top-$k$, build prompt, stream. & High & 2 \\ \hline
+US-25 & Chat orchestration, embed, retrieve top-$k$, build prompt, stream. & High & 2 \\ \hline
 US-26 & Streamed UI: tokens render as they arrive over SocketIO. & High & 1.5 \\ \hline
 US-27 & RAG-mode toggle on the canvas with three node types. & Medium & 1 \\ \hline
 US-28 & Source-chunks chip showing retrieved chunks + similarity. & Low & 0.5 \\
@@ -2155,7 +2123,7 @@ inverted back into the chunk.
 \texttt{pgvector}'s IVFFlat index partitions the vector space into
 clusters at index-build time, then at query time visits the closest
 clusters only. For the local-tenant scale this project targets, the
-recall/latency trade-off lands firmly on the latency side --- under
+recall/latency trade-off lands firmly on the latency side, under
 $50$\,ms for top-$k$ over a few hundred thousand chunks.
 
 \textbf{Retrieval-Augmented Generation.} Rather than fine-tuning a
@@ -2163,7 +2131,7 @@ model on the user's documents, the pipeline retrieves the top-$k$
 most similar chunks at query time and concatenates them into the
 prompt as context. The model is instructed to answer from the
 provided context and to refuse rather than guess. This trades a
-training step for a retrieval step --- the right trade when the
+training step for a retrieval step, the right trade when the
 corpus changes faster than a fine-tune can keep up with.
 
 \section{RAG Lifecycle (LLMOps)}
@@ -2178,7 +2146,7 @@ this sprint delivered.
 \begin{figure}[H]
   \centering
   \includegraphics[width=\textwidth, keepaspectratio]{diagrams/ch6_fig_rag_pipeline}
-  \caption{RAG pipeline --- the ingestion path (document $\to$ chunk $\to$ embed $\to$ index) and the query path (question $\to$ retrieve $\to$ augment $\to$ generate $\to$ answer).}
+  \caption{RAG pipeline: the ingestion path (document $\to$ chunk $\to$ embed $\to$ index) and the query path (question $\to$ retrieve $\to$ augment $\to$ generate $\to$ answer).}
   \label{fig:ch6_fig_rag_pipeline}
 \end{figure}
 
@@ -2192,7 +2160,7 @@ this sprint delivered.
 \hline
 Document collection & PDF / DOCX / text upload through the ingestion service; the raw file is stored on a named volume and referenced (not embedded) from Mongo. \\ \hline
 Chunking & Recursive character splitting at 500 characters with 50-character overlap; the size chosen empirically (see the chunk-sizing trade-offs below). \\ \hline
-Embedding & Local \texttt{all-MiniLM-L6-v2}, 384-dim, CPU-only --- no outbound network call. \\ \hline
+Embedding & Local \texttt{all-MiniLM-L6-v2}, 384-dim, CPU-only, no outbound network call. \\ \hline
 Indexing & Vectors written to \texttt{pgvector} with an IVFFlat index, co-located in the auth Postgres. \\ \hline
 Retrieval & Top-$k$ ($k=4$) nearest chunks by cosine similarity at query time. \\ \hline
 Augmentation & Retrieved chunks concatenated into the prompt as context, each tagged with its source. \\ \hline
@@ -2207,21 +2175,21 @@ Evaluation (grounding) & The model answers only from context and refuses otherwi
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch6_fig1}
-  \caption{Use case diagram --- RAG pipeline.}
+  \caption{Use case diagram: RAG pipeline.}
   \label{fig:ch6_fig1}
 \end{figure}
 
 \begin{figure}[p]
   \centering
   \includegraphics[width=\textwidth, height=0.92\textheight, keepaspectratio]{diagrams/ch6_fig2}
-  \caption{Sequence diagram --- document to embed to store to chat.}
+  \caption{Sequence diagram: document to embed to store to chat.}
   \label{fig:ch6_fig2}
 \end{figure}
 
 \begin{figure}[p]
   \centering
   \includegraphics[width=\textwidth, height=0.92\textheight, keepaspectratio]{diagrams/ch6_fig3}
-  \caption{Class diagram --- RAG ingestion plus chat orchestrator.}
+  \caption{Class diagram: RAG ingestion plus chat orchestrator.}
   \label{fig:ch6_fig3}
 \end{figure}
 
@@ -2279,13 +2247,13 @@ question, queries pgvector for the top-$k$ chunks (default $k=4$),
 builds the prompt with the retrieved context, and forwards Ollama's
 \texttt{stream=true} chunks straight into the
 \texttt{/chat/<pipeline\_id>} room. The frontend appends each token
-to the current assistant message as it arrives --- on a laptop, with
+to the current assistant message as it arrives, on a laptop, with
 no network call at any point in the loop.
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=\textwidth, keepaspectratio]{diagrams/rag_canvas_running_showing_everything}
-  \caption{RAG mode --- the document/vector-store/chat canvas above, and the grounded chat with streamed answers and sources below.}
+  \caption{RAG mode: the document/vector-store/chat canvas above, and the grounded chat with streamed answers and sources below.}
   \label{fig:ch6_fig4}
 \end{figure}
 
@@ -2310,7 +2278,7 @@ cover the question. The retrieved chunks are inserted in similarity
 order, each prefixed with a document identifier so the model can
 cite. The user-facing chip ``$n$ sources used'' lists the chunks and
 their cosine similarity scores, which gives the reader a way to
-verify the answer against the original source --- the closest thing
+verify the answer against the original source, the closest thing
 to accountability that a generative system can offer.
 
 \subsection{Results}
@@ -2325,16 +2293,16 @@ screenshots below capture a chat turn and the retrieved-chunks panel.
 % \begin{figure}[H]
 %   \centering
 %   \includegraphics[width=0.9\textwidth, keepaspectratio]{diagrams/rag_chat_panel}
-%   \caption{RAG chat --- a streamed, grounded answer with its source chunks.}
+%   \caption{RAG chat: a streamed, grounded answer with its source chunks.}
 %   \label{fig:rag_chat_panel}
 % \end{figure}
 
 \section{Unit Tests}
 
 \begin{itemize}
-    \item Chunking determinism --- the same input file produces the
+    \item Chunking determinism, the same input file produces the
         same chunks across runs.
-    \item Embedding shape --- 384 dimensions, normalised.
+    \item Embedding shape, 384 dimensions, normalised.
     \item Retrieval top-$k$ on a deterministic five-chunk corpus
         with hand-labelled relevance.
     \item Chat orchestrator: Ollama is mocked at the HTTP boundary,
@@ -2342,7 +2310,7 @@ screenshots below capture a chat turn and the retrieved-chunks panel.
         events in the right order.
 \end{itemize}
 
-The Ollama process itself is not exercised in unit tests --- it sits
+The Ollama process itself is not exercised in unit tests, it sits
 behind the smoke-test script in the deployment chapter.
 
 \section*{Conclusion}
@@ -2363,8 +2331,8 @@ refuses oversize jobs before they ever reach the 6\,GB GPU.}
 \section*{Introduction}
 
 This sprint added the third pipeline mode. Deep learning on the demo
-hardware is a constrained problem --- 6\,GB of VRAM does not forgive
-carelessness --- so the design started from the constraint and
+hardware is a constrained problem, 6\,GB of VRAM does not forgive
+carelessness, so the design started from the constraint and
 worked backwards. The result is a small, opinionated catalogue
 rather than a kitchen-sink layer builder, and the opinionation is
 the feature.
@@ -2373,7 +2341,7 @@ the feature.
 
 \begin{table}[H]
 \centering
-\caption{Sprint~4 backlog --- deep learning for image classification.}
+\caption{Sprint~4 backlog: deep learning for image classification.}
 \label{tab:sprint4_backlog}
 \begin{tabular}{|p{0.05\linewidth}|L{0.55\linewidth}|p{0.1\linewidth}|p{0.18\linewidth}|}
 \hline
@@ -2440,7 +2408,7 @@ documented below.
 
 \section{Deep-Learning Lifecycle}
 
-Image classification follows its own lifecycle --- close to MLOps, but
+Image classification follows its own lifecycle, close to MLOps, but
 with a hardware-feasibility gate tabular ML does not need: a run must be
 \emph{proven to fit in VRAM} before it is allowed to start.
 Figure~\ref{fig:ch7_fig_dl_pipeline} shows the eight linear steps and
@@ -2450,7 +2418,7 @@ delivered.
 \begin{figure}[H]
   \centering
   \includegraphics[width=\textwidth, keepaspectratio]{diagrams/ch7_fig_dl_pipeline}
-  \caption{Deep-learning pipeline --- eight linear steps, with the VRAM-guard feasibility gate placed before any training begins.}
+  \caption{Deep-learning pipeline: eight linear steps, with the VRAM-guard feasibility gate placed before any training begins.}
   \label{fig:ch7_fig_dl_pipeline}
 \end{figure}
 
@@ -2465,7 +2433,7 @@ delivered.
 Data collection \& labelling & Upload a zip of \texttt{<class>/<file>} folders, extracted into the PyTorch \texttt{ImageFolder} layout. \\ \hline
 Preprocessing \& augmentation & Resize to the architecture's input size, ImageNet normalisation for transfer learning, conservative train-time flips and small rotations. \\ \hline
 Architecture selection & LeNet, custom ResNet-9, or MobileNet-V3-Small (optional ImageNet weights), chosen from the catalogue. \\ \hline
-Feasibility check (VRAM) & The static VRAM guard estimates memory and rejects oversize runs before any GPU work --- the gate unique to this lifecycle. \\ \hline
+Feasibility check (VRAM) & The static VRAM guard estimates memory and rejects oversize runs before any GPU work, the gate unique to this lifecycle. \\ \hline
 Training & Tier-clamped epochs and batch size; per-epoch metrics streamed live over SocketIO. \\ \hline
 Validation & Train/validation loss curves and validation accuracy tracked per epoch. \\ \hline
 Inference / serving & Inline single-image ``Try it'' prediction; the model saved as a \texttt{state\_dict} on a named volume (ONNX export a one-file follow-up). \\ \hline
@@ -2479,28 +2447,28 @@ Versioning & Each run recorded as a \texttt{dl\_versions} document with metrics,
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch7_fig1}
-  \caption{Use case diagram --- DL pipeline.}
+  \caption{Use case diagram: DL pipeline.}
   \label{fig:ch7_fig1}
 \end{figure}
 
 \begin{figure}[p]
   \centering
   \includegraphics[angle=90, height=0.92\textheight, keepaspectratio]{diagrams/ch7_fig2}
-  \caption{Architecture --- \texttt{dl-training-service}, Celery worker, GPU allocation.}
+  \caption{Architecture: \texttt{dl-training-service}, Celery worker, GPU allocation.}
   \label{fig:ch7_fig2}
 \end{figure}
 
 \begin{figure}[p]
   \centering
   \includegraphics[width=\textwidth, height=0.9\textheight, keepaspectratio]{diagrams/ch7_fig3}
-  \caption{Class diagram --- architecture catalogue plus VRAM guard.}
+  \caption{Class diagram: architecture catalogue plus VRAM guard.}
   \label{fig:ch7_fig3}
 \end{figure}
 
 \begin{figure}[p]
   \centering
   \includegraphics[width=\textwidth, height=0.9\textheight, keepaspectratio]{diagrams/ch7_fig_seq_training_b}
-  \caption{Sequence diagram --- DL training flow. The tier ceiling and VRAM guard reject oversize requests before any GPU work happens; a valid run then streams its epochs over SocketIO.}
+  \caption{Sequence diagram: DL training flow. The tier ceiling and VRAM guard reject oversize requests before any GPU work happens; a valid run then streams its epochs over SocketIO.}
   \label{fig:ch7_fig_seq_training_b}
 \end{figure}
 
@@ -2526,12 +2494,12 @@ What stayed in:
 What stayed out, deliberately:
 
 \begin{itemize}
-    \item Freeform layer-builder DAG --- too easy for the user to
+    \item Freeform layer-builder DAG, too easy for the user to
         configure something that does not fit.
-    \item LLM fine-tuning --- won't fit inside 6\,GB.
-    \item Object detection and segmentation --- different label
+    \item LLM fine-tuning, won't fit inside 6\,GB.
+    \item Object detection and segmentation, different label
         format, different demo, different scope.
-    \item ONNX export --- a one-file follow-up if needed, not in
+    \item ONNX export, a one-file follow-up if needed, not in
         scope.
     \item Multi-GPU and distributed training.
 \end{itemize}
@@ -2553,7 +2521,7 @@ to span three operating points.
 
 \textbf{LeNet} (roughly $60$\,k parameters) is the smoke-test
 architecture. It trains in seconds on Fashion-MNIST-class data and
-serves as the smallest credible CNN --- useful for verifying the
+serves as the smallest credible CNN, useful for verifying the
 training path end-to-end before committing to a longer run.
 
 \textbf{Tiny ResNet} (a custom ResNet-9, roughly $2.7$\,M parameters)
@@ -2561,7 +2529,7 @@ is the workhorse. Two residual blocks with channels
 $64 \to 128 \to 256$, skip connections that ease gradient flow, and
 batch normalisation throughout. The architecture reaches around
 $90\%$ accuracy on CIFAR-10 in five epochs at batch~64, input
-$64$\,px --- a defensible accuracy/time trade-off for an on-stage
+$64$\,px, a defensible accuracy/time trade-off for an on-stage
 demo.
 
 \textbf{MobileNet-V3-Small} (roughly $2.5$\,M parameters) is the
@@ -2638,7 +2606,7 @@ The constants in \texttt{\_ACTIVATION\_PER\_PIXEL\_MB} are
 conservative empirical estimates. The unit-test suite enforces that
 every \texttt{(arch, input\_size, batch\_size)} triple in the
 documented catalogue fits on a 6\,GB card after headroom, but it
-does not pin the absolute numbers --- those drift slightly between
+does not pin the absolute numbers, those drift slightly between
 GPU generations and need recalibration on first deploy.
 
 \subsection{Tier-aware ceilings}
@@ -2653,7 +2621,7 @@ The defence-in-depth chain runs:
 \begin{enumerate}
     \item The frontend's \texttt{DLTrainNode} reads the user's
         \texttt{limits} from \texttt{/users/me} and clamps the
-        slider \texttt{max} accordingly --- a free-tier user
+        slider \texttt{max} accordingly, a free-tier user
         literally cannot select 20 epochs from the UI.
     \item The route enforces the tier ceiling regardless: a custom
         client posting 50 epochs to \texttt{/dl/train} on a
@@ -2666,13 +2634,12 @@ The defence-in-depth chain runs:
 \end{enumerate}
 
 Four layers may sound paranoid, but each one catches a different
-class of mistake --- accidental, malicious, oversized, pathological
---- and none of them is expensive.
+class of mistake, accidental, malicious, oversized, pathological, and none of them is expensive.
 
 \begin{figure}[p]
   \centering
   \includegraphics[width=\textwidth, height=0.9\textheight, keepaspectratio]{diagrams/ch7_fig_activity_vram_guard}
-  \caption{Activity diagram --- the four-layer VRAM-guard defence chain.}
+  \caption{Activity diagram: the four-layer VRAM-guard defence chain.}
   \label{fig:ch7_fig_activity_vram_guard}
 \end{figure}
 
@@ -2681,7 +2648,7 @@ class of mistake --- accidental, malicious, oversized, pathological
 \begin{figure}[H]
   \centering
   \includegraphics[width=\textwidth, keepaspectratio]{diagrams/dl_canvas_running}
-  \caption{Pipeline editor in deep-learning mode --- Image Dataset $\to$ CNN Arch $\to$ DL Train.}
+  \caption{Pipeline editor in deep-learning mode: Image Dataset $\to$ CNN Arch $\to$ DL Train.}
   \label{fig:ch7_fig4}
 \end{figure}
 
@@ -2697,7 +2664,7 @@ count, and a deterministically seeded thumbnail strip (three images
 per class, pulled from \texttt{/datasets/<id>/image-preview} as
 base64-encoded JPEGs). The \texttt{CNNArchNode} surfaces a
 \texttt{pretrained} toggle that disables itself when the chosen
-architecture has no canonical ImageNet checkpoint --- the user sees
+architecture has no canonical ImageNet checkpoint, the user sees
 \textit{why} the option is unavailable rather than having a control
 silently disappear, which is the small UX detail that decides
 whether people trust the interface.
@@ -2705,7 +2672,7 @@ whether people trust the interface.
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.55\textwidth, keepaspectratio]{diagrams/dl_data_node}
-  \caption{ImageDatasetNode --- class chips, image count, thumbnail strip.}
+  \caption{ImageDatasetNode: class chips, image count, thumbnail strip.}
   \label{fig:ch7_fig5}
 \end{figure}
 
@@ -2725,7 +2692,7 @@ top-five softmax probabilities render as ranked horizontal bars.
 \begin{figure}[H]
   \centering
   \includegraphics[width=\textwidth, keepaspectratio]{diagrams/dl_test_1}
-  \caption{Inline ``Try it'' prediction --- a dropped image and the top-five softmax probabilities, above the trained DL pipeline.}
+  \caption{Inline ``Try it'' prediction: a dropped image and the top-five softmax probabilities, above the trained DL pipeline.}
   \label{fig:ch7_fig6}
 \end{figure}
 
@@ -2735,14 +2702,14 @@ For the live demo, the path is:
 
 \begin{enumerate}
     \item \texttt{python scripts/seed\_demo\_image\_dataset.py
-        /tmp/demo.zip} --- generates a 30-image, 3-class synthetic
+        /tmp/demo.zip}, generates a 30-image, 3-class synthetic
         dataset (red circles, green squares, blue triangles).
     \item Upload the zip from the Data page.
     \item Drop the \texttt{dlStarter} preset onto a fresh pipeline.
     \item Click Run. Roughly 30 seconds later, the predict panel
         renders.
-    \item Drop an image --- one of the synthetic ones, or a real
-        one from a phone --- and inference returns in roughly
+    \item Drop an image, one of the synthetic ones, or a real
+        one from a phone, and inference returns in roughly
         $5$\,ms on CPU.
 \end{enumerate}
 
@@ -2751,8 +2718,7 @@ batch~32, five epochs against the synthetic dataset. Mean validation
 accuracy lands at roughly $97\%$ in $30$ seconds on a 1660 Super
 (mean across five runs; individual runs ranged $95\%$--$100\%$
 depending on weight initialisation). The number is honest about the
-dataset's simplicity --- three visually distinct synthetic classes ---
-but proves the full pipeline end to end.
+dataset's simplicity, three visually distinct synthetic classes, but proves the full pipeline end to end.
 
 A separate \texttt{scripts/dl\_smoke.sh} script exercises the entire
 chain non-interactively: gateway reachability, GPU visibility, the
@@ -2783,18 +2749,18 @@ screenshots below capture each.
 The \texttt{dl-training-service} ships 22 unit tests:
 
 \begin{itemize}
-    \item Architecture forward-pass shapes --- one test per
+    \item Architecture forward-pass shapes, one test per
         architecture on a known input tensor.
-    \item VRAM-guard envelope --- parametrised over every
+    \item VRAM-guard envelope, parametrised over every
         documented \texttt{(arch, input\_size, batch\_size)}
         triple, asserts the estimate sits under the
         6\,GB-minus-1\,GB budget.
-    \item Oversize refusal --- a request with an obviously oversized
+    \item Oversize refusal, a request with an obviously oversized
         batch is rejected by the route before training starts.
     \item End-to-end \texttt{build $\to$ save $\to$ predict} on
         a tiny LeNet against a 12-image fixture dataset, against
         a real torch instance (CPU on CI).
-    \item Tier-ceiling enforcement --- a free-tier token posting
+    \item Tier-ceiling enforcement, a free-tier token posting
         20 epochs is rejected with the documented error code.
 \end{itemize}
 
@@ -2804,8 +2770,8 @@ Sprint~4 was the riskiest sprint of the project. Bolting an entirely
 new workload onto a platform that had calmed down into three sprints
 of mostly-tabular and RAG work could have destabilised the whole
 thing. It did not, mostly because the conventions established in
-earlier sprints --- the shared-volume pattern, the Celery-per-service
-split, the gateway header injection --- absorbed the new service
+earlier sprints, the shared-volume pattern, the Celery-per-service
+split, the gateway header injection, absorbed the new service
 without bending.
 
 % ═════════════════════════════════════════════════════════════════════════════
@@ -2827,7 +2793,7 @@ other's work.
 
 \begin{table}[H]
 \centering
-\caption{Sprint~5 backlog --- multi-tenancy and collaboration.}
+\caption{Sprint~5 backlog: multi-tenancy and collaboration.}
 \label{tab:sprint5_backlog}
 \begin{tabular}{|p{0.05\linewidth}|L{0.55\linewidth}|p{0.1\linewidth}|p{0.18\linewidth}|}
 \hline
@@ -2892,36 +2858,36 @@ single-layered.
 \begin{figure}[H]
   \centering
   \includegraphics[height=0.9\textheight, keepaspectratio]{diagrams/ch8_fig1}
-  \caption{Use case diagram --- collaboration roles and actions.}
+  \caption{Use case diagram: collaboration roles and actions.}
   \label{fig:ch8_fig1}
 \end{figure}
 
 \begin{figure}[p]
   \centering
   \includegraphics[width=\textwidth, height=0.92\textheight, keepaspectratio]{diagrams/ch8_fig2}
-  \caption{Sequence diagram --- cursor and node-selection events over SocketIO.}
+  \caption{Sequence diagram: cursor and node-selection events over SocketIO.}
   \label{fig:ch8_fig2}
 \end{figure}
 
 \begin{figure}[p]
   \centering
   \includegraphics[width=\textwidth, height=0.9\textheight, keepaspectratio]{diagrams/ch8_fig3}
-  \caption{Class diagram --- pipeline membership, chat threads, Meet integration.}
+  \caption{Class diagram: pipeline membership, chat threads, Meet integration.}
   \label{fig:ch8_fig3}
 \end{figure}
 
 \subsection{The role hierarchy}
 
 \begin{itemize}
-    \item \textbf{Owner} --- the user who created the pipeline.
+    \item \textbf{Owner}, the user who created the pipeline.
         Cannot be removed.
-    \item \textbf{Project Manager} --- can invite, can edit, cannot
+    \item \textbf{Project Manager}, can invite, can edit, cannot
         remove the owner.
-    \item \textbf{Data Scientist} --- can edit nodes, can run
+    \item \textbf{Data Scientist}, can edit nodes, can run
         training, cannot manage members.
-    \item \textbf{Analyst} --- can view metrics and download
+    \item \textbf{Analyst}, can view metrics and download
         artefacts, cannot run training.
-    \item \textbf{Viewer} --- read-only.
+    \item \textbf{Viewer}, read-only.
 \end{itemize}
 
 The role is enforced both server-side and client-side. The gateway
@@ -2932,11 +2898,11 @@ Server-side enforcement is authoritative; the client-side disable is
 UX, not security. Mixing those up is one of the easier mistakes in
 this area.
 
-% [FIGURE NEEDED: Manage Access dialog screenshot --- invite by email, change role, remove]
+% [FIGURE NEEDED: Manage Access dialog screenshot, invite by email, change role, remove]
 % \begin{figure}[H]
 %   \centering
 %   \includegraphics[width=0.75\textwidth]{figures/placeholder_ch8_fig4}
-%   \caption{Manage Access dialog --- invite, role change, remove.}
+%   \caption{Manage Access dialog: invite, role change, remove.}
 %   \label{fig:ch8_fig4}
 % \end{figure}
 
@@ -2955,7 +2921,7 @@ quite does.
 \begin{figure}[H]
   \centering
   \includegraphics[width=\textwidth, keepaspectratio]{diagrams/real_time_collab_messages}
-  \caption{Real-time collaboration --- two browser windows on the same pipeline, threaded chat syncing live between them.}
+  \caption{Real-time collaboration: two browser windows on the same pipeline, threaded chat syncing live between them.}
   \label{fig:ch8_fig5}
 \end{figure}
 
@@ -2963,8 +2929,7 @@ quite does.
 
 Each pipeline gets its own threaded chat, persisted to Postgres.
 An ``@'' mention fires a notification (which the Sprint~6 bell
-surfaces). The Google Meet integration relies on Google's OAuth flow
---- not for data-sharing reasons, but because a Meet link generated
+surfaces). The Google Meet integration relies on Google's OAuth flow, not for data-sharing reasons, but because a Meet link generated
 server-side without OAuth is not tied to the inviting user's
 calendar, which makes the link useless for the actual workflow.
 
@@ -2975,7 +2940,7 @@ each downstream service. Two reasons.
 
 First, the gateway already maintains the request-scoped user
 identity. Adding role resolution here keeps the zero-trust pattern
-intact --- downstream services trust the stamped
+intact, downstream services trust the stamped
 \texttt{X-Project-Role} the same way they trust
 \texttt{X-User-Id}.
 
@@ -3004,7 +2969,7 @@ without spreading caching logic across four services.
 The collaboration layer turned the platform from a personal tool
 into something a team could share. The interesting part of this
 sprint was how little of the existing architecture had to change to
-support it --- the gateway already injected user identity, the
+support it, the gateway already injected user identity, the
 SocketIO bus was already in place for live training, and the role
 check fit naturally into the existing header convention.
 
@@ -3021,7 +2986,7 @@ Every project has the sprint where the punch list of small things
 finally gets crossed off. This was that sprint. The dashboard, the
 billing UI, internationalisation, the high-contrast theme, the
 notification bell, the admin operations dashboard, user
-impersonation, and undo/redo on the canvas --- each modest on its
+impersonation, and undo/redo on the canvas, each modest on its
 own, but together they moved the platform from ``demonstrably
 works'' to ``demonstrably operable''.
 
@@ -3029,7 +2994,7 @@ works'' to ``demonstrably operable''.
 
 \begin{table}[H]
 \centering
-\caption{Sprint~6 backlog --- operability and polish.}
+\caption{Sprint~6 backlog: operability and polish.}
 \label{tab:sprint6_backlog}
 \begin{tabular}{|p{0.05\linewidth}|L{0.55\linewidth}|p{0.1\linewidth}|p{0.18\linewidth}|}
 \hline
@@ -3062,7 +3027,7 @@ and the impersonation window. Table~\ref{tab:sprint6_rules} lists them.
 \hline
 RG-25 & A super-admin ``view as user'' session expires automatically after a hard five-minute limit. \\ \hline
 RG-26 & A user's tier (free / solo / company) sets the quotas that apply; a super-admin may override a quota per user. \\ \hline
-RG-27 & Sensitive admin actions --- impersonation, role changes, quota overrides --- are written to the audit log. \\ \hline
+RG-27 & Sensitive admin actions, impersonation, role changes, quota overrides, are written to the audit log. \\ \hline
 RG-28 & The platform runs on the free tier with no Stripe key configured; billing is needed only to go beyond free-tier quotas. \\
 \hline
 \end{tabular}
@@ -3073,21 +3038,21 @@ RG-28 & The platform runs on the free tier with no Stripe key configured; billin
 \begin{figure}[H]
   \centering
   \includegraphics[height=0.9\textheight, keepaspectratio]{diagrams/ch9_fig1}
-  \caption{Use case diagram --- dashboard plus admin operations.}
+  \caption{Use case diagram: dashboard plus admin operations.}
   \label{fig:ch9_fig1}
 \end{figure}
 
 \begin{figure}[p]
   \centering
   \includegraphics[width=\textwidth, height=0.9\textheight, keepaspectratio]{diagrams/ch9_fig3}
-  \caption{Class diagram --- notifications, audit log, impersonation token.}
+  \caption{Class diagram: notifications, audit log, impersonation token.}
   \label{fig:ch9_fig3}
 \end{figure}
 
 \begin{figure}[p]
   \centering
   \includegraphics[width=\textwidth, height=0.95\textheight, keepaspectratio]{diagrams/ch9_fig_seq_impersonate}
-  \caption{Sequence diagram --- super-admin ``view as user'' impersonation with 5-minute TTL.}
+  \caption{Sequence diagram: super-admin ``view as user'' impersonation with 5-minute TTL.}
   \label{fig:ch9_fig_seq_impersonate}
 \end{figure}
 
@@ -3099,7 +3064,7 @@ RG-28 & The platform runs on the free tier with no Stripe key configured; billin
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.95\textwidth, keepaspectratio]{diagrams/billing_and_plans_page}
-  \caption{Billing page --- tier selection, Stripe checkout.}
+  \caption{Billing page: tier selection, Stripe checkout.}
   \label{fig:ch9_fig5}
 \end{figure}
 
@@ -3109,7 +3074,7 @@ The right rail shows the user's quota (datasets, model versions, RAG
 documents) for the current tier plus a ``Manage Plan'' link to the
 billing UI. Billing itself goes through Stripe Checkout for
 purchases and the Stripe Customer Portal for upgrades and
-cancellations --- the platform never handles a card number directly.
+cancellations, the platform never handles a card number directly.
 
 \subsection{Internationalisation}
 
@@ -3124,7 +3089,7 @@ translate a label.
 % \begin{figure}[H]
 %   \centering
 %   \includegraphics[width=0.95\textwidth, keepaspectratio]{diagrams/ch9_fig6}
-%   \caption{Language toggle --- English / French side by side.}
+%   \caption{Language toggle: English / French side by side.}
 %   \label{fig:ch9_fig6}
 % \end{figure}
 
@@ -3134,7 +3099,7 @@ A high-contrast theme was added for users with visual impairments,
 toggleable from the navbar. Every interactive element gained an
 \texttt{aria-label}; the colour palette was checked against WCAG~AA
 contrast ratios. Accessibility is not an optional extra at the
-company tier --- in some jurisdictions it is a procurement
+company tier, in some jurisdictions it is a procurement
 requirement.
 
 \subsection{Notification bell with persistence}
@@ -3150,16 +3115,16 @@ the first version is built and the count keeps resetting to zero.
 The super-admin role gained a dedicated page with five panels:
 
 \begin{itemize}
-    \item \textbf{User management} --- search, suspend, delete,
+    \item \textbf{User management}, search, suspend, delete,
         override quotas.
-    \item \textbf{Audit log viewer} --- paginated table of every
+    \item \textbf{Audit log viewer}, paginated table of every
         sensitive action (login, password reset, impersonation,
         suspension), with IP and JSON detail.
-    \item \textbf{Queue monitor} --- live stats from each Celery
+    \item \textbf{Queue monitor}, live stats from each Celery
         queue.
-    \item \textbf{Hardware monitor} --- CPU, RAM, GPU utilisation
+    \item \textbf{Hardware monitor}, CPU, RAM, GPU utilisation
         sampled from the metrics-service every five seconds.
-    \item \textbf{Migration drift panel} --- compares each
+    \item \textbf{Migration drift panel}, compares each
         service's latest Alembic revision against the database and
         surfaces the diff.
 \end{itemize}
@@ -3167,7 +3132,7 @@ The super-admin role gained a dedicated page with five panels:
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.95\textwidth, keepaspectratio]{diagrams/admin_ops_consol}
-  \caption{Admin operations dashboard --- five-panel layout.}
+  \caption{Admin operations dashboard: five-panel layout.}
   \label{fig:ch9_fig7}
 \end{figure}
 
@@ -3187,11 +3152,11 @@ The hard TTL is the load-bearing piece. An impersonation session
 that does not time out is, sooner or later, an incident waiting to
 happen.
 
-% [FIGURE NEEDED: Impersonation banner screenshot --- red bar across the top with target email and 5-minute countdown]
+% [FIGURE NEEDED: Impersonation banner screenshot, red bar across the top with target email and 5-minute countdown]
 % \begin{figure}[H]
 %   \centering
 %   \includegraphics[width=0.95\textwidth]{figures/placeholder_ch9_fig8}
-%   \caption{Impersonation banner --- target email plus live countdown.}
+%   \caption{Impersonation banner: target email plus live countdown.}
 %   \label{fig:ch9_fig8}
 % \end{figure}
 
@@ -3212,7 +3177,7 @@ under any one feature.
 
 First, auth state moved to \texttt{sessionStorage}. Before this
 sprint, refreshing the page during impersonation lost the original
-super-admin token --- the Zustand auth store was in-memory only.
+super-admin token, the Zustand auth store was in-memory only.
 Wrapping it in \texttt{persist(\ldots,\,sessionStorage)} fixed the
 impersonation case and quietly improved refresh behaviour for normal
 users at the same time.
@@ -3246,7 +3211,7 @@ live demo, and once was enough.
 The punch-list sprint never makes for thrilling reading, but it is
 where the platform earned the right to be presented to a real user.
 The admin console in particular changed how we think about the
-platform --- having a single place to inspect queue health, hardware
+platform, having a single place to inspect queue health, hardware
 load, and migration state turned operations from a vague worry into
 a tractable one.
 
@@ -3262,7 +3227,7 @@ topology.}
 
 Testing and deployment evolved in parallel with the rest of the
 system. By the end they looked nothing like what we had at the
-start. This chapter covers both --- how the tests are organised,
+start. This chapter covers both, how the tests are organised,
 what they actually verify, and how the whole thing ships.
 
 \section{Test Strategy}
@@ -3299,7 +3264,7 @@ service.
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch10_fig1}
-  \caption{Backend coverage report --- per-service line coverage.}
+  \caption{Backend coverage report: per-service line coverage.}
   \label{fig:ch10_fig1}
 \end{figure}
 
@@ -3314,13 +3279,13 @@ runner. Typing is the cheapest test you can write.
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch10_fig2}
-  \caption{Frontend coverage report --- vitest output.}
+  \caption{Frontend coverage report: vitest output.}
   \label{fig:ch10_fig2}
 \end{figure}
 
 \subsection{CI runs}
 
-% [FIGURE NEEDED: GitHub Actions backend job screenshot --- parallel lint + test steps, all green]
+% [FIGURE NEEDED: GitHub Actions backend job screenshot, parallel lint + test steps, all green]
 % \begin{figure}[H]
 %   \centering
 %   \includegraphics[width=0.85\textwidth]{figures/placeholder_ch10_fig3}
@@ -3328,7 +3293,7 @@ runner. Typing is the cheapest test you can write.
 %   \label{fig:ch10_fig3}
 % \end{figure}
 
-% [FIGURE NEEDED: GitHub Actions frontend job screenshot --- tsc + eslint + vitest steps]
+% [FIGURE NEEDED: GitHub Actions frontend job screenshot, tsc + eslint + vitest steps]
 % \begin{figure}[H]
 %   \centering
 %   \includegraphics[width=0.85\textwidth]{figures/placeholder_ch10_fig4}
@@ -3343,7 +3308,7 @@ when both sides move at once.
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch10_fig_cicd_flow}
-  \caption{CI/CD pipeline flow --- GitHub Actions parallel jobs and merge gate.}
+  \caption{CI/CD pipeline flow: GitHub Actions parallel jobs and merge gate.}
   \label{fig:ch10_fig_cicd_flow}
 \end{figure}
 
@@ -3355,7 +3320,7 @@ Table~\ref{tab:deployment_services}.
 
 \begin{table}[H]
 \centering
-\caption{Deployment topology --- 15 containers, three named volumes.}
+\caption{Deployment topology: 15 containers, three named volumes.}
 \label{tab:deployment_services}
 \begin{tabular}{|L{0.27\linewidth}|L{0.12\linewidth}|L{0.51\linewidth}|}
 \hline
@@ -3387,7 +3352,7 @@ the CUDA wheels on first build (around $1$\,GB). After that,
 \begin{figure}[p]
   \centering
   \includegraphics[angle=90, height=0.92\textheight, keepaspectratio]{diagrams/ch10_fig5}
-  \caption{Deployment diagram --- 15 containers, three named volumes.}
+  \caption{Deployment diagram: 15 containers, three named volumes.}
   \label{fig:ch10_fig5}
 \end{figure}
 
@@ -3398,8 +3363,7 @@ container restarts: \texttt{uploaded\_files} (datasets and image
 zips), \texttt{model\_artifacts} (trained models), and
 \texttt{ollama\_models} (LLM weights). \texttt{uploaded\_files} is
 mounted into the gateway, both ingestion containers (API and
-worker), the ml-training containers, and the dl-training containers
---- the shared-volume convention from Sprint~1 ended up applied
+worker), the ml-training containers, and the dl-training containers, the shared-volume convention from Sprint~1 ended up applied
 very broadly, arguably more broadly than originally planned.
 
 \subsection{Healthchecks and dependency ordering}
@@ -3417,7 +3381,7 @@ non-negotiable for any service that touches a database ever since.
 \begin{figure}[p]
   \centering
   \includegraphics[width=\textwidth, height=0.9\textheight, keepaspectratio]{diagrams/ch10_fig6}
-  \caption{Network topology --- gateway as the single ingress.}
+  \caption{Network topology: gateway as the single ingress.}
   \label{fig:ch10_fig6}
 \end{figure}
 
@@ -3475,7 +3439,7 @@ A non-exhaustive list, in roughly the order they bit us:
 
 \section*{Conclusion}
 
-The stack is, by deployment-engineering standards, modest --- one
+The stack is, by deployment-engineering standards, modest, one
 host, fifteen containers, \texttt{make up}. That simplicity is the
 point. A platform whose deployment story requires Kubernetes
 expertise would not be a credible answer to the question this
@@ -3490,8 +3454,8 @@ The end-of-studies project set out to build a privacy-first, no-code
 AI platform that could stand alongside cloud-managed ML services
 without making the data-sovereignty compromises those services
 demand. After six sprints, the platform supports three pipeline
-modes --- tabular ML with fourteen algorithms, fully-local
-RAG-augmented chat, and image-classification deep learning --- runs
+modes, tabular ML with fourteen algorithms, fully-local
+RAG-augmented chat, and image-classification deep learning, runs
 on a single consumer machine with $6$\,GB of VRAM, and exposes that
 capability through a visual canvas designed for users who do not
 write Python.
@@ -3534,7 +3498,7 @@ write Python.
 The platform was validated end-to-end on two representative
 workloads. On a $250{,}000$-row salary dataset with a Random Forest
 regressor, the system reached an R$^2$ of $0.9785$ in
-$4$\,min\,$12$\,s on the demo machine --- roughly $97.85\%$ of the
+$4$\,min\,$12$\,s on the demo machine, roughly $97.85\%$ of the
 variance in the target explained by the features, on synthetic data
 where that level of fit is achievable but on real data would warrant
 a closer look at residual structure. On the synthetic 30-image,
@@ -3548,7 +3512,7 @@ of the task.
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/conclusion_fig1}
-  \caption{Final results dashboard --- tabular plus DL validation runs.}
+  \caption{Final results dashboard: tabular plus DL validation runs.}
   \label{fig:conclusion_fig1}
 \end{figure}
 
@@ -3559,10 +3523,9 @@ was the gateway-only header-injection rule from Sprint~1. Every
 downstream service can trust \texttt{X-User-Id} without inspection,
 which removed an entire category of cross-service auth bugs a more
 permissive setup would have invited. The shared-volume convention
-came second --- it saved us from writing a streaming-upload protocol
+came second, it saved us from writing a streaming-upload protocol
 and generalised cleanly to RAG documents, image zips, and
-trained-model artefacts. The Celery-per-service split came third ---
-a long XGBoost run cannot block an authentication request, and a
+trained-model artefacts. The Celery-per-service split came third, a long XGBoost run cannot block an authentication request, and a
 20-epoch DL run cannot starve the fast tabular queue.
 
 \textbf{What we would change.} Flask in favour of FastAPI: the
@@ -3581,7 +3544,7 @@ shipped.
 
 \section*{Limitations and future work}
 
-The platform is single-host by construction --- the shared-volume
+The platform is single-host by construction, the shared-volume
 convention assumes a single filesystem. Scaling out the workers
 would need either a network filesystem or an S3-compatible object
 store. Per-user quota overrides require a JWT refresh to take
@@ -3591,7 +3554,7 @@ would instrument a one-time calibration run on first boot.
 
 Future work, in approximate order of effort: ONNX export for DL
 versions (the dl-training service already saves a clean
-\texttt{state\_dict} --- this is a one-file change away); object
+\texttt{state\_dict}, this is a one-file change away); object
 detection via a pre-built YOLOv8 model for inference only; per-user
 quota override invalidation via a Redis-backed override cache the
 gateway consults on each request; and a typed schema for the
@@ -3605,7 +3568,7 @@ framing that ``cloud AI is the only way to scale ML'' is not exactly
 wrong, but it understates how much can be done locally. A laptop
 with $6$\,GB of VRAM, a competent CPU, and $16$\,GB of RAM is enough
 to host an AutoML platform, a small generative-AI workspace, and a
-deep-learning training loop --- all at once, and without any of the
+deep-learning training loop, all at once, and without any of the
 data ever leaving the machine. For the regulated audiences this
 project was framed against, that is not a marginal improvement. It
 is the difference between machine learning being usable at all and
@@ -3736,7 +3699,7 @@ San Diego, CA, USA, May 2015.
 \renewcommand{\thechapter}{\Alph{chapter}}
 \titleformat{\chapter}[hang]
   {\normalfont\fontsize{16}{19}\bfseries}
-  {Annex \thechapter\;---}{0.6em}{}
+  {Annex \thechapter\;, }{0.6em}{}
 
 \chapter{Demo accounts and credentials}
 \label{annex:accounts}
@@ -3784,7 +3747,7 @@ critical ones for the demo:
 \end{tabular}
 \end{table}
 
-\chapter{Data Dictionary --- MongoDB Collections}
+\chapter{Data Dictionary, MongoDB Collections}
 \label{annex:datadict}
 
 Per-attribute data dictionary for the seven MongoDB collections
@@ -3834,7 +3797,7 @@ schema diagram in Chapter~3.
 \texttt{pipeline\_id} & string & Source pipeline (R). \\
 \texttt{dataset\_id} & string & Training dataset (R). \\
 \texttt{user\_id} & string & Owner (R). \\
-\texttt{framework} & string & \texttt{sklearn} / \texttt{h2o} / \texttt{pytorch} --- discriminates tabular vs DL. \\
+\texttt{framework} & string & \texttt{sklearn} / \texttt{h2o} / \texttt{pytorch}, discriminates tabular vs DL. \\
 \texttt{algorithm} / \texttt{arch} & string & Algorithm (tabular) or architecture (DL). \\
 \texttt{status} & string & \texttt{training} / \texttt{ready} / \texttt{failed}. \\
 \texttt{hparams} & document & Hyper-parameters (E). \\

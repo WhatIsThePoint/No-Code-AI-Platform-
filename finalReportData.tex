@@ -19,6 +19,7 @@
 \usepackage{subcaption}
 \usepackage{pdflscape}
 \usepackage{pgfgantt}     % dated sprint Gantt chart (Chapter 3)
+\usepackage{pdfpages}     % include the official ISET cover page (PDF)
 \usepackage{setspace}     % 1.5 line spacing
 \onehalfspacing
 
@@ -114,7 +115,8 @@
 
 \begin{document}
 
-\maketitle
+% Official ISET Rades cover page (replaces the generated title page)
+\includepdf[pages=1,fitpaper=true]{cover_page.pdf}
 
 \chapter*{Acknowledgements}
 \addcontentsline{toc}{chapter}{Acknowledgements}
@@ -1208,6 +1210,20 @@ Post-conditions & Account is now eligible for sign-in. \\
 \end{tabular}
 \end{table}
 
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/mailhog_confimation_mail}
+  \caption{Verification email captured by MailHog during signup.}
+  \label{fig:mailhog_verify}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.7\textwidth, keepaspectratio]{diagrams/platform_mail_verified}
+  \caption{Email verified: the account is now eligible for sign-in.}
+  \label{fig:mail_verified}
+\end{figure}
+
 \section{Business Rules}
 
 The authentication and ingestion logic rests on a handful of rules
@@ -1417,6 +1433,20 @@ will recommend, the missing-value imputation, the casing
 normalisation, the negative-tenure fix, the overtime outlier, and the
 thirteen-way \texttt{has\_promotion} encoding that collapses to a clean
 binary.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.92\textwidth, keepaspectratio]{diagrams/data_profiling_1}
+  \caption{Automatic dataset profiling: per-column statistics, types, and missing-value rates.}
+  \label{fig:data_profiling}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.92\textwidth, keepaspectratio]{diagrams/data_insights_quality}
+  \caption{Data-quality insights surfaced to the user before training (alerts and distributions).}
+  \label{fig:data_insights}
+\end{figure}
 
 \section{Implementation}
 
@@ -1654,6 +1684,30 @@ the registry, evaluated with metrics and SHAP, and finally exported.
   \label{fig:ch5_fig1}
 \end{figure}
 
+\begin{table}[H]
+\centering
+\caption{Textual description of the ``Train a tabular ML model'' use case.}
+\label{tab:uc_train_ml}
+\begin{tabular}{|p{0.22\linewidth}|L{0.7\linewidth}|}
+\hline
+\textbf{Field} & \textbf{Value} \\
+\hline
+Use case & Train a tabular ML model \\ \hline
+Primary actor & Signed-in user (Owner or Data Scientist) \\ \hline
+Pre-conditions & A profiled dataset with a chosen target; a pipeline in ML mode. \\ \hline
+Trigger & User wires Dataset $\to$ Train $\to$ Evaluate and clicks Run. \\ \hline
+Nominal scenario & (1) Gateway validates the node graph.
+(2) A Celery task preprocesses the data (70/15/15 split, impute, scale, encode).
+(3) The selected algorithm is fitted.
+(4) Metrics and SHAP importances are computed.
+(5) The model version is saved and the results panel is shown. \\ \hline
+Alt. scenario A & Invalid graph (Train with no upstream Dataset) $\to$ run blocked with an inline node error. \\ \hline
+Alt. scenario B & Training raises $\to$ task status \texttt{failure}; the error is surfaced on the node. \\ \hline
+Post-conditions & A versioned model artefact is downloadable from the registry. \\
+\hline
+\end{tabular}
+\end{table}
+
 \begin{figure}[p]
   \centering
   \includegraphics[angle=90, height=0.95\textheight, keepaspectratio]{diagrams/ch5_fig2}
@@ -1787,9 +1841,49 @@ ARIMA & Forecasting & statsmodels & Stationary or already-detrended series. \\
 \end{tabular}
 \end{table}
 
+\subsection{Comparing algorithms on a dataset}
+
+The catalogue is not a black box: the platform trains the chosen
+algorithm and reports its metrics, so a user can compare candidates on
+their own data before committing to one. Table~\ref{tab:algo_comparison}
+shows such a comparison on the \texttt{customer\_churn} demo dataset
+(100 rows, 9 features, binary target), with each model trained through
+the same preprocessing pipeline and evaluated on a held-out 30\% split.
+
+\begin{table}[H]
+\centering
+\caption{Algorithm comparison on the \texttt{customer\_churn} demo dataset (held-out test split, seed 42).}
+\label{tab:algo_comparison}
+\begin{tabular}{|L{0.24\linewidth}|c|c|c|c|}
+\hline
+\textbf{Algorithm} & \textbf{Accuracy} & \textbf{F1} & \textbf{ROC-AUC} & \textbf{Train time} \\
+\hline
+Logistic Regression & 0.800 & 0.769 & 0.921 & 48\,ms \\ \hline
+Random Forest & 0.767 & 0.720 & 0.889 & 206\,ms \\ \hline
+XGBoost & \textbf{0.800} & 0.750 & \textbf{0.935} & 72\,ms \\ \hline
+LightGBM & 0.800 & 0.750 & 0.917 & \textbf{31\,ms} \\
+\hline
+\end{tabular}
+\end{table}
+
+On this small set the four models land close together; XGBoost edges
+the others on ROC-AUC ($0.935$) while LightGBM trains fastest
+($31$\,ms). The headline result is that the comparison is one click ---
+the user sees the trade-off rather than being told which model to pick.
+On larger, noisier data the gap between the boosted-tree models and the
+linear baseline widens, which is why the catalogue defaults to a
+gradient booster for tabular tasks.
+
 \section{Implementation}
 
 \subsection{The drag-and-drop pipeline editor}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/pipeline_creation_choosing_betweeen_ml_dl_rag}
+  \caption{Creating a pipeline: choosing between the ML, RAG, and DL modes.}
+  \label{fig:mode_chooser}
+\end{figure}
 
 The pipeline editor is the surface that earns the platform its
 ``no-code'' label. Everything the user does, pick a dataset,
@@ -1920,6 +2014,13 @@ Persistence & The fitted transformer pipeline is serialised next to the model ar
 \hline
 \end{tabular}
 \end{table}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.92\textwidth, keepaspectratio]{diagrams/data_preprocessing_screen}
+  \caption{Preprocessing configuration: per-stage defaults the user can review and adjust before training.}
+  \label{fig:preprocessing_screen}
+\end{figure}
 
 The preprocessing task emits intermediate progress events
 (\texttt{stage=splitting}, \texttt{stage=imputing},
@@ -2178,6 +2279,30 @@ Evaluation (grounding) & The model answers only from context and refuses otherwi
   \caption{Use case diagram: RAG pipeline.}
   \label{fig:ch6_fig1}
 \end{figure}
+
+\begin{table}[H]
+\centering
+\caption{Textual description of the ``Ask a question over indexed documents'' use case.}
+\label{tab:uc_rag}
+\begin{tabular}{|p{0.22\linewidth}|L{0.7\linewidth}|}
+\hline
+\textbf{Field} & \textbf{Value} \\
+\hline
+Use case & Ask a question over indexed documents (RAG) \\ \hline
+Primary actor & Signed-in user \\ \hline
+Pre-conditions & At least one document ingested and indexed (status \texttt{ready}) in a RAG pipeline. \\ \hline
+Trigger & User submits a question in the RAG chat panel. \\ \hline
+Nominal scenario & (1) The question is embedded locally (MiniLM).
+(2) Top-$k$ chunks are retrieved from \texttt{pgvector}.
+(3) A prompt is built with the retrieved context.
+(4) The local Llama~3.2 model streams the answer token by token over SocketIO.
+(5) The ``sources used'' chip lists the chunks with similarity scores. \\ \hline
+Alt. scenario A & Context does not cover the question $\to$ the model refuses rather than guesses. \\ \hline
+Alt. scenario B & Document still indexing $\to$ chat is disabled until status is \texttt{ready}. \\ \hline
+Post-conditions & The chat turn (question, answer, sources) is stored in \texttt{rag\_chat\_turns}. \\
+\hline
+\end{tabular}
+\end{table}
 
 \begin{figure}[p]
   \centering
@@ -2450,6 +2575,30 @@ Versioning & Each run recorded as a \texttt{dl\_versions} document with metrics,
   \caption{Use case diagram: DL pipeline.}
   \label{fig:ch7_fig1}
 \end{figure}
+
+\begin{table}[H]
+\centering
+\caption{Textual description of the ``Train an image classifier'' use case.}
+\label{tab:uc_dl}
+\begin{tabular}{|p{0.22\linewidth}|L{0.7\linewidth}|}
+\hline
+\textbf{Field} & \textbf{Value} \\
+\hline
+Use case & Train an image classifier \\ \hline
+Primary actor & Signed-in user (subject to tier limits) \\ \hline
+Pre-conditions & An image dataset uploaded as \texttt{<class>/<file>}; a pipeline in DL mode. \\ \hline
+Trigger & User picks an architecture, sets epochs/batch, and clicks Run. \\ \hline
+Nominal scenario & (1) The tier ceiling on epochs/batch is checked.
+(2) The VRAM guard estimates memory.
+(3) If it fits, training is enqueued.
+(4) Per-epoch metrics stream live over SocketIO.
+(5) The model is saved and the inline ``Try it'' prediction is enabled. \\ \hline
+Alt. scenario A & Estimate exceeds the VRAM budget $\to$ rejected before any GPU work. \\ \hline
+Alt. scenario B & Epochs/batch over tier $\to$ \texttt{400 epochs\_over\_tier\_limit}. \\ \hline
+Post-conditions & A \texttt{model\_versions} record with metrics, class names, and the artefact path. \\
+\hline
+\end{tabular}
+\end{table}
 
 \begin{figure}[p]
   \centering
@@ -2862,6 +3011,29 @@ single-layered.
   \label{fig:ch8_fig1}
 \end{figure}
 
+\begin{table}[H]
+\centering
+\caption{Textual description of the ``Invite a collaborator and edit together'' use case.}
+\label{tab:uc_collab}
+\begin{tabular}{|p{0.22\linewidth}|L{0.7\linewidth}|}
+\hline
+\textbf{Field} & \textbf{Value} \\
+\hline
+Use case & Invite a collaborator and edit a pipeline together \\ \hline
+Primary actor & Pipeline Owner or Project Manager \\ \hline
+Pre-conditions & An existing pipeline; the invitee has an account. \\ \hline
+Trigger & The owner opens Manage Access and invites a user by email with a role. \\ \hline
+Nominal scenario & (1) A membership is created with the chosen role.
+(2) The invitee gains role-gated access to the pipeline.
+(3) Both open it; cursors and presence sync over SocketIO.
+(4) Edits and threaded chat broadcast live to the pipeline room. \\ \hline
+Alt. scenario A & A non-privileged role tries to invite $\to$ denied (enforced server-side at the gateway). \\ \hline
+Alt. scenario B & An Analyst or Viewer tries to run training $\to$ blocked by role. \\ \hline
+Post-conditions & Membership persisted; notifications fan out to pipeline members. \\
+\hline
+\end{tabular}
+\end{table}
+
 \begin{figure}[p]
   \centering
   \includegraphics[width=\textwidth, height=0.92\textheight, keepaspectratio]{diagrams/ch8_fig2}
@@ -3042,6 +3214,28 @@ RG-28 & The platform runs on the free tier with no Stripe key configured; billin
   \label{fig:ch9_fig1}
 \end{figure}
 
+\begin{table}[H]
+\centering
+\caption{Textual description of the ``View as user'' (impersonation) use case.}
+\label{tab:uc_impersonate}
+\begin{tabular}{|p{0.22\linewidth}|L{0.7\linewidth}|}
+\hline
+\textbf{Field} & \textbf{Value} \\
+\hline
+Use case & Super-admin ``view as user'' impersonation \\ \hline
+Primary actor & Super-admin \\ \hline
+Pre-conditions & The target user exists; the super-admin is authenticated. \\ \hline
+Trigger & The admin clicks ``view as'' on a user in user management. \\ \hline
+Nominal scenario & (1) The auth-service mints a 5-minute impersonation token carrying an \texttt{imp\_actor} claim.
+(2) A red banner shows the target email and a live countdown.
+(3) The admin sees the application as that user.
+(4) Exit (or Logout) restores the admin's original token. \\ \hline
+Alt. scenario A & The token reaches its 5-minute TTL $\to$ the session ends automatically. \\ \hline
+Post-conditions & \texttt{admin.impersonate\_start} and \texttt{admin.impersonate\_end} audit events are recorded. \\
+\hline
+\end{tabular}
+\end{table}
+
 \begin{figure}[p]
   \centering
   \includegraphics[width=\textwidth, height=0.9\textheight, keepaspectratio]{diagrams/ch9_fig3}
@@ -3064,8 +3258,15 @@ RG-28 & The platform runs on the free tier with no Stripe key configured; billin
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.95\textwidth, keepaspectratio]{diagrams/billing_and_plans_page}
-  \caption{Billing page: tier selection, Stripe checkout.}
+  \caption{Billing page: tier selection and plans.}
   \label{fig:ch9_fig5}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.8\textwidth, keepaspectratio]{diagrams/stripe_checkout}
+  \caption{Stripe checkout for a tier upgrade.}
+  \label{fig:stripe_checkout}
 \end{figure}
 
 The dashboard is a single page with three tabs (Datasets, Pipelines,
@@ -3132,8 +3333,22 @@ The super-admin role gained a dedicated page with five panels:
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.95\textwidth, keepaspectratio]{diagrams/admin_ops_consol}
-  \caption{Admin operations dashboard: five-panel layout.}
+  \caption{Admin operations console: queue, hardware, and migration panels.}
   \label{fig:ch9_fig7}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\textwidth, keepaspectratio]{diagrams/admin_stats_and_logs}
+  \caption{Admin console: platform statistics and the audit-log viewer.}
+  \label{fig:admin_stats}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\textwidth, keepaspectratio]{diagrams/admin_user_management}
+  \caption{Admin console: user management (search, suspend, quota overrides, impersonation).}
+  \label{fig:admin_users}
 \end{figure}
 
 \subsection{User impersonation}

@@ -3256,6 +3256,12 @@ RG-28 & The platform runs on the free tier with no Stripe key configured; billin
 
 \section{Design}
 
+The sprint is designed around the use case diagram for the dashboard
+plus admin operations (Figure~\ref{fig:ch9_fig1}), the class diagram for
+notifications, the audit log, and the impersonation token
+(Figure~\ref{fig:ch9_fig3}), and the impersonation sequence with its
+5-minute TTL (Figure~\ref{fig:ch9_fig_seq_impersonate}).
+
 \begin{figure}[H]
   \centering
   \includegraphics[height=0.9\textheight, keepaspectratio]{diagrams/ch9_fig1}
@@ -3322,7 +3328,8 @@ The dashboard is a single page with three tabs (Datasets, Pipelines,
 Models), each backed by a paginated table with server-side sorting.
 The right rail shows the user's quota (datasets, model versions, RAG
 documents) for the current tier plus a ``Manage Plan'' link to the
-billing UI. Billing itself goes through Stripe Checkout for
+billing UI (Figure~\ref{fig:ch9_fig5}). Billing itself goes through
+Stripe Checkout (Figure~\ref{fig:stripe_checkout}) for
 purchases and the Stripe Customer Portal for upgrades and
 cancellations, the platform never handles a card number directly.
 
@@ -3378,6 +3385,11 @@ The super-admin role gained a dedicated page with five panels:
         service's latest Alembic revision against the database and
         surfaces the diff.
 \end{itemize}
+
+The console's operations panels are shown in
+Figure~\ref{fig:ch9_fig7}, the platform statistics and audit-log viewer
+in Figure~\ref{fig:admin_stats}, and the user-management surface in
+Figure~\ref{fig:admin_users}.
 
 \begin{figure}[H]
   \centering
@@ -3506,7 +3518,8 @@ on a CI runner without spinning up the real stack.
 
 Coverage is unevenly distributed, which is worth being honest about.
 Table~\ref{tab:coverage} summarises the load-bearing paths per
-service.
+service, and the per-service line-coverage report is shown in
+Figure~\ref{fig:ch10_fig1}.
 
 \begin{table}[H]
 \centering
@@ -3538,7 +3551,8 @@ The frontend uses \texttt{vitest} for unit tests but relies mostly
 on TypeScript strict mode plus ESLint as the structural guarantee.
 In practice the large majority of structural regressions in this
 codebase are caught by \texttt{tsc --noEmit} before they ever reach a
-runner. Typing is the cheapest test you can write.
+runner. Typing is the cheapest test you can write. The \texttt{vitest}
+coverage output is shown in Figure~\ref{fig:ch10_fig2}.
 
 \begin{figure}[H]
   \centering
@@ -3567,7 +3581,10 @@ runner. Typing is the cheapest test you can write.
 
 End-to-end CI runs in roughly six minutes for a frontend-only
 change, nine minutes for a backend change, and fourteen minutes
-when both sides move at once.
+when both sides move at once. The parallel-job layout and merge gate
+are shown in Figure~\ref{fig:ch10_fig_cicd_flow}, and the aggregated
+runtime logs that give end-to-end observability during a run in
+Figure~\ref{fig:runtime_logs}.
 
 \begin{figure}[H]
   \centering
@@ -3583,11 +3600,70 @@ when both sides move at once.
   \label{fig:runtime_logs}
 \end{figure}
 
+\subsection{Model performance}
+
+Beyond unit coverage, the platform was validated on the trained models
+themselves. Table~\ref{tab:model_performance} consolidates the
+measured results across the two representative workloads exercised end
+to end on the demo machine.
+
+\begin{table}[H]
+\centering
+\caption{Measured model performance across the validation workloads.}
+\label{tab:model_performance}
+\begin{tabular}{|L{0.20\linewidth}|L{0.26\linewidth}|L{0.18\linewidth}|L{0.24\linewidth}|}
+\hline
+\textbf{Workload} & \textbf{Dataset} & \textbf{Model} & \textbf{Headline metric} \\
+\hline
+Tabular regression & Salary, $250{,}000$ rows (same data and preprocessing) & CatBoost & R$^2$ = \textbf{0.9818}, MAE $\approx 4{,}010$ \\ \hline
+                   &  & XGBoost & R$^2$ = 0.9764 \\ \hline
+                   &  & Random Forest & R$^2$ = 0.8302 \\ \hline
+Deep learning      & Synthetic 3-class, 30 images & \texttt{tiny\_resnet} & Val.\ accuracy $\approx 97\%$ (5 epochs, $\sim$30\,s) \\
+\hline
+\end{tabular}
+\end{table}
+
+The three regressors were trained on identical data and preprocessing
+so the comparison is fair: the gradient-boosted models clearly lead,
+with CatBoost first and XGBoost a close second, while the Random Forest
+trails. The same three runs are visible side by side in the model
+registry (Figure~\ref{fig:algo_comparison}), each with its regression
+metrics and SHAP chart. On the synthetic image dataset, the
+\texttt{tiny\_resnet} architecture reaches roughly $97\%$ validation
+accuracy in five epochs; the dataset is intentionally simple, so the
+number demonstrates that the deep-learning pipeline trains, evaluates,
+and predicts correctly rather than the difficulty of the task. Both
+workloads are also collected on the final results dashboard
+(Figure~\ref{fig:conclusion_fig1}).
+
+\subsection{API and endpoint testing}
+
+Alongside the automated suites, the running stack was exercised
+directly against its HTTP surface to confirm the gateway, authentication,
+and the protected routes behave end to end.
+
+On the backend, every request is driven through the gateway on
+\texttt{localhost:8000}. A call to \texttt{/auth/login} returns a JWT,
+which is then presented as an \texttt{Authorization: Bearer} header on
+the protected routes. The checks confirm the expected contract: the
+health endpoint answers, login issues a token, and a protected route
+such as \texttt{/datasets} returns \texttt{401} without a token and
+\texttt{200} with a valid one, which is exactly the zero-trust boundary
+the gateway is meant to enforce.
+% [SCREENSHOT NEEDED: api_test_backend.png --- curl run through the gateway: health 200, login returning a token, /datasets 401 (no token) vs 200 (token), /billing/plans]
+
+On the frontend, the \texttt{vitest} suite runs the component and store
+tests headlessly and reports each file as it passes.
+% [SCREENSHOT NEEDED: frontend_vitest.png --- npm test output, all suites passing]
+
+% Once captured, reference the two screenshots here, e.g.\ ``as shown in Figure~\ref{fig:api_test_backend}'' and ``Figure~\ref{fig:frontend_vitest}''.
+
 \section{Deployment}
 
 The whole stack ships as a single \texttt{docker-compose.yml} with
 15 services, summarised in
-Table~\ref{tab:deployment_services}.
+Table~\ref{tab:deployment_services} and diagrammed in
+Figure~\ref{fig:ch10_fig5}.
 
 \begin{table}[H]
 \centering
@@ -3656,7 +3732,8 @@ non-negotiable for any service that touches a database ever since.
   \label{fig:ch10_fig6}
 \end{figure}
 
-The gateway is the only container exposed on the host. All other
+As shown in Figure~\ref{fig:ch10_fig6}, the gateway is the only
+container exposed on the host. All other
 services bind to the internal Docker network. The Postgres instance
 is not reachable from outside the Compose stack; the only path to
 it is through the auth-service or the ml-training-service, and the
@@ -3778,7 +3855,8 @@ tiny\_resnet at $64$\,px batch~32 over five epochs reached a mean
 validation accuracy of roughly $97\%$ in $30$ seconds on a 1660
 Super (averaged across five runs). The dataset is intentionally
 simple; the number proves the pipeline rather than the difficulty
-of the task.
+of the task. Both validation runs are collected on the final results
+dashboard in Figure~\ref{fig:conclusion_fig1}.
 
 \begin{figure}[H]
   \centering

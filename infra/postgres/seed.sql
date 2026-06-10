@@ -64,6 +64,11 @@ BEGIN
         -- Pre-registered user with pending invite (demonstrates invite flow)
         (uid_frank, 'frank@acme-ml.com',   demo_pwd, 'Frank Torres',    'engineer',       'free',        FALSE, TRUE, FALSE);
 
+    -- Demo accounts are pre-verified so they can sign in immediately (RG-01).
+    UPDATE users SET email_verified = TRUE
+    WHERE id IN (uid_admin, uid_alice, uid_bob, uid_carol, uid_dave, uid_eve,
+                 uid_frank, uid_grace, uid_henry, uid_iris, uid_jack, uid_kate);
+
     -- ── Company ───────────────────────────────────────────────────────────
     INSERT INTO companies (id, name, slug, owner_id)
     VALUES (cid_acme, 'ACME Machine Learning', 'acme-ml', uid_alice);

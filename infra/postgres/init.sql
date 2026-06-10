@@ -23,6 +23,16 @@ CREATE TABLE IF NOT EXISTS users (
     totp_secret     VARCHAR(64),          -- NULL = 2FA not set up
     totp_enabled    BOOLEAN NOT NULL DEFAULT FALSE,
     is_active       BOOLEAN NOT NULL DEFAULT TRUE,
+    -- email verification (migration ab8e6f4d3c60)
+    email_verified                BOOLEAN NOT NULL DEFAULT FALSE,
+    email_verification_token_hash VARCHAR(255),   -- sha256 of one-time token
+    email_verification_sent_at    TIMESTAMPTZ,
+    -- password reset (migration bc9f7a5d4e70)
+    password_reset_token_hash     VARCHAR(255),   -- sha256 of one-time token
+    password_reset_sent_at        TIMESTAMPTZ,
+    -- google oauth tokens (migration 5c3f0a8e2d15)
+    google_oauth_refresh_token    TEXT,
+    google_oauth_expires_at       TIMESTAMPTZ,
     has_seen_pipeline_tour BOOLEAN NOT NULL DEFAULT FALSE,
     has_seen_genai_tour BOOLEAN NOT NULL DEFAULT FALSE,
     has_seen_dl_tour BOOLEAN NOT NULL DEFAULT FALSE,
@@ -31,6 +41,8 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);
+CREATE INDEX IF NOT EXISTS ix_users_email_verification_token_hash ON users (email_verification_token_hash);
+CREATE INDEX IF NOT EXISTS ix_users_password_reset_token_hash ON users (password_reset_token_hash);
 
 -- ── Refresh Tokens ────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS refresh_tokens (

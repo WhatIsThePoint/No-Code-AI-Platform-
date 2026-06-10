@@ -108,9 +108,10 @@ def ch1_fig2_envelope():
     ax.add_patch(stripe)
     ax.text(91, 29, "Stripe\n(optional,\ntest mode)", ha="center", va="center", fontsize=9, color=PALETTE["muted"])
 
-    # Arrow from gateway out to Stripe
+    # Arrow from a microservice (billing, in auth-service) out to Stripe.
+    # Routed straight along the inter-row gap so it does not cross any box.
     ax.annotate(
-        "", xy=(85, 28), xytext=(18, 34),
+        "", xy=(85, 29), xytext=(38, 29),
         arrowprops=dict(arrowstyle="-|>", color=PALETTE["muted"], lw=1, linestyle=(0, (4, 3))),
     )
 

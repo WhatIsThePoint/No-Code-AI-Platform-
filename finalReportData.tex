@@ -121,27 +121,31 @@
 \chapter*{Acknowledgements}
 \addcontentsline{toc}{chapter}{Acknowledgements}
 
-I would like to thank my academic supervisor, Dr.~Riadh Ghlala,
-whose classes gave me the confidence to take on a project of this
-size, and whose steady guidance, sharp technical questions, and
-patience with the inevitable mid-sprint pivots shaped the work from
-start to finish.
+I would like to express my sincere gratitude to everyone who, directly
+or indirectly, helped bring this end-of-studies project to life.
 
-I am grateful to my professional supervisor, Mohamed Rahal, who
-showed me how professional paths are actually walked and gave me a
-clearer sense of what this work looks like outside the classroom.
+First, I warmly thank my academic supervisor, Dr.~Riadh Ghlala, whose
+classes gave me the confidence to take on a project of this size. His
+steady guidance, sharp technical questions, and patience with the
+inevitable mid-sprint pivots shaped the work from start to finish and
+consistently raised the bar for its quality.
 
-My thanks also go to my academic teachers, who consistently
-appreciated my work and thought highly of it. Their encouragement
-over the years is a large part of why I reached this point. I also
-thank the jury for the time and attention given to reading this
-report.
+I am equally grateful to my company supervisor at Orange, Mr.~Mohamed
+Rahal, for his trust, his availability, and the way he showed me how
+professional paths are actually walked. His feedback kept the project
+grounded in what real engineering looks like beyond the classroom, and
+his encouragement pushed me to keep raising the level of the work.
 
-A heartfelt thank you to my family, who were nothing but supportive
-and helpful throughout, and to my friends, who kept me motivated even
-in the moments when I felt like giving up. This end-of-studies
-project, and the years that led up to it, would not have been
-possible without them.
+My thanks also go to the wider team at Orange for their warm welcome
+and their readiness to help, and to my teachers across these years,
+whose appreciation and support are a large part of why I reached this
+point. I thank the members of the jury for the time and attention they
+give to reading and evaluating this report.
+
+Finally, a heartfelt thank you to my family, whose support never
+wavered, and to my friends, who kept me motivated even in the moments
+when I felt like giving up. This project, and the years that led up to
+it, would not have been possible without them.
 
 \newpage
 
@@ -279,13 +283,29 @@ deliverables the work is evaluated against.
 
 \subsection{Host context}
 
-The project was developed as an end-of-studies (PFE) project for a
+This project was carried out as an end-of-studies (PFE) project for a
 National Bachelor's Degree in Information Technologies, specialisation
-Development of Information Systems. The deliverable is a working
-software product plus this report. The host setting is academic
-rather than corporate: the supervisor is the academic advisor, the
-audience is the jury, and the reference deployment is a personal
-laptop with a single consumer GPU.
+Development of Information Systems, in partnership with \textbf{Orange}
+as the host company. It was supervised jointly: by an academic
+supervisor on the institute side (Dr.~Riadh Ghlala, ISET Rad\`es) and a
+company supervisor on the Orange side (Mr.~Mohamed Rahal). The
+deliverable is a working software product plus this report, evaluated by
+an academic jury. The reference deployment target is a single consumer
+machine with one GPU, in keeping with the platform's privacy-first,
+run-anywhere goal.
+
+\subsection{About Orange}
+
+Orange is one of the world's leading telecommunications operators,
+serving hundreds of millions of customers across Europe, Africa, and the
+Middle East with mobile, fixed, and internet services, alongside a
+growing portfolio of digital and IT services. In Tunisia, Orange is a
+major mobile and internet provider and runs digital and innovation
+initiatives that host engineering and end-of-studies projects such as
+this one. Carrying out the work in this environment grounded it in a
+real engineering setting --- and the privacy and data-sovereignty
+concerns that motivate the platform are exactly the kind of constraint a
+telecommunications operator takes seriously.
 
 \subsection{Project description, the no-code AI platform}
 
@@ -1891,6 +1911,13 @@ a gradient booster for tabular tasks.
   \label{fig:mode_chooser}
 \end{figure}
 
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.9\textwidth, keepaspectratio]{diagrams/cleanly_created_ml_pipeline}
+  \caption{A complete tabular ML pipeline assembled on the canvas: Dataset $\to$ Train $\to$ Evaluate.}
+  \label{fig:clean_ml_pipeline}
+\end{figure}
+
 The pipeline editor is the surface that earns the platform its
 ``no-code'' label. Everything the user does, pick a dataset,
 choose an algorithm, set hyperparameters, run a training job,
@@ -2309,6 +2336,13 @@ Post-conditions & The chat turn (question, answer, sources) is stored in \texttt
 \hline
 \end{tabular}
 \end{table}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.9\textwidth, keepaspectratio]{diagrams/cleanly_created_rag_pipeline}
+  \caption{A complete RAG pipeline assembled on the canvas: Document $\to$ Vector Store $\to$ Chat.}
+  \label{fig:clean_rag_pipeline}
+\end{figure}
 
 \begin{figure}[p]
   \centering

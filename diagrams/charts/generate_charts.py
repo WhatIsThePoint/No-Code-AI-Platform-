@@ -246,7 +246,7 @@ def ch5_fig6_shap():
     ax.set_yticklabels(features)
     ax.invert_yaxis()
     ax.set_xlabel("mean(|SHAP value|)")
-    ax.set_title("SHAP feature importance — Random Forest on salary dataset (250 k rows, R² = 0.9785)")
+    ax.set_title("SHAP feature importance — top contributors on the salary dataset")
     for i, v in enumerate(shap_vals):
         ax.text(v + 0.005, i, f"{v:.2f}", va="center", fontsize=10)
     ax.grid(axis="x", linestyle=":", alpha=0.5)
@@ -313,14 +313,14 @@ def conclusion_fig1_results():
     ax1.text(0.5, 0.82, "Salary dataset · 250 000 rows", ha="center", va="top",
              transform=ax1.transAxes, fontsize=11, style="italic")
 
-    ax1.text(0.5, 0.62, "0.9785", ha="center", va="center",
+    ax1.text(0.5, 0.62, "0.9818", ha="center", va="center",
              transform=ax1.transAxes, fontsize=42, weight="bold", color=PALETTE["primary"])
     ax1.text(0.5, 0.5, "R²", ha="center", va="center",
              transform=ax1.transAxes, fontsize=14, color="#555")
 
-    ax1.text(0.5, 0.35, "Random Forest (H2O)", ha="center", transform=ax1.transAxes, fontsize=11)
-    ax1.text(0.5, 0.27, "4 min 12 s on GTX 1660 Super", ha="center", transform=ax1.transAxes, fontsize=10)
-    ax1.text(0.5, 0.18, "TreeSHAP explanations in 8 s", ha="center", transform=ax1.transAxes, fontsize=10)
+    ax1.text(0.5, 0.35, "CatBoost (best of 3 compared)", ha="center", transform=ax1.transAxes, fontsize=11)
+    ax1.text(0.5, 0.27, "2.7 s on GTX 1660 Super", ha="center", transform=ax1.transAxes, fontsize=10)
+    ax1.text(0.5, 0.18, "MAE ≈ 4,010  ·  RMSE ≈ 5,022", ha="center", transform=ax1.transAxes, fontsize=10)
     ax1.text(0.5, 0.09, "Joblib export + FastAPI inference zip",
              ha="center", transform=ax1.transAxes, fontsize=10, style="italic")
 

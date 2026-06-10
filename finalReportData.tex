@@ -501,7 +501,7 @@ app.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch1_fig4}
+  \includegraphics[width=0.95\textwidth, keepaspectratio]{diagrams/populated_dashboard_after_login}
   \caption{Home page interface for a signed-in user.}
   \label{fig:ch1_fig4}
 \end{figure}
@@ -1517,13 +1517,12 @@ injection structurally impossible rather than merely unlikely.
 %   \label{fig:ch4_fig5}
 % \end{figure}
 
-% [SCREENSHOT NEEDED: real SQL connector wizard]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch4_fig6}
-%   \caption{SQL connector wizard --- credentials encrypted at rest.}
-%   \label{fig:ch4_fig6}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.78\textwidth, keepaspectratio]{diagrams/connect_database_as_dataset}
+  \caption{SQL connector wizard --- credentials encrypted at rest.}
+  \label{fig:ch4_fig6}
+\end{figure}
 
 \begin{figure}[p]
   \centering
@@ -1685,13 +1684,12 @@ the registry, evaluated with metrics and SHAP, and finally exported.
   \label{fig:ch5_fig2}
 \end{figure}
 
-% [FIGURE NEEDED: Pipeline editor screenshot in ML mode --- Dataset, Train, Evaluate nodes with the live metric chart below]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.95\textwidth]{figures/placeholder_ch5_fig3}
-%   \caption{Pipeline editor in tabular ML mode.}
-%   \label{fig:ch5_fig3}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth, keepaspectratio]{diagrams/ml_canvas_running_with_all_nodes}
+  \caption{Pipeline editor in tabular ML mode --- Dataset $\to$ Train $\to$ Evaluate, with the metrics and SHAP panel after a completed run.}
+  \label{fig:ch5_fig3}
+\end{figure}
 
 \begin{figure}[p]
   \centering
@@ -1909,13 +1907,12 @@ parameters.
 
 \subsection{Frontend canvas implementation}
 
-% [FIGURE NEEDED: Anatomy of a canvas node --- header with status, body with summary, input/output ports, validation badge in the corner]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.85\textwidth]{figures/placeholder_ch5_fig4}
-%   \caption{Anatomy of a canvas node component.}
-%   \label{fig:ch5_fig4}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.45\textwidth, keepaspectratio]{diagrams/ml_model_node}
+  \caption{Anatomy of a canvas node component.}
+  \label{fig:ch5_fig4}
+\end{figure}
 
 Each node component renders four regions: a header strip with the
 node type and the live status chip (\texttt{idle}, \texttt{running},
@@ -2050,13 +2047,12 @@ importance chart. The live training chart
 (Figure~\ref{fig:ch5_fig6}) appear above; the screenshot below captures
 a completed run on the results dashboard.
 
-% [SCREENSHOT NEEDED: ml_run_results.png — results dashboard after a completed ML run: metric summary card + confusion matrix / residual plot]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.9\textwidth, keepaspectratio]{diagrams/ml_run_results}
-%   \caption{Tabular ML results after a completed run --- metric summary and confusion matrix.}
-%   \label{fig:ml_run_results}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ml_model_registry}
+  \caption{Model registry after training runs --- versioned artefacts with their metrics, ready to download.}
+  \label{fig:ml_run_results}
+\end{figure}
 
 \section{Unit Tests}
 
@@ -2287,13 +2283,12 @@ builds the prompt with the retrieved context, and forwards Ollama's
 to the current assistant message as it arrives --- on a laptop, with
 no network call at any point in the loop.
 
-% [SCREENSHOT NEEDED: real RAG chat panel with streamed answer + source-chunks chip]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch6_fig4}
-%   \caption{RAG chat panel --- tokens stream in as the model emits them.}
-%   \label{fig:ch6_fig4}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth, keepaspectratio]{diagrams/rag_canvas_running_showing_everything}
+  \caption{RAG mode --- the document/vector-store/chat canvas above, and the grounded chat with streamed answers and sources below.}
+  \label{fig:ch6_fig4}
+\end{figure}
 
 \subsection{Chunk sizing trade-offs}
 
@@ -2684,13 +2679,12 @@ class of mistake --- accidental, malicious, oversized, pathological
 
 \subsection{Frontend integration}
 
-% [FIGURE NEEDED: Pipeline editor screenshot in deep-learning mode --- Image Dataset, CNN Arch, DL Train nodes wired together]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.95\textwidth]{figures/placeholder_ch7_fig4}
-%   \caption{Pipeline editor in deep-learning mode.}
-%   \label{fig:ch7_fig4}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth, keepaspectratio]{diagrams/dl_canvas_running}
+  \caption{Pipeline editor in deep-learning mode --- Image Dataset $\to$ CNN Arch $\to$ DL Train.}
+  \label{fig:ch7_fig4}
+\end{figure}
 
 The canvas gained a third toggle button (``Deep Learning''), three
 new node components (\texttt{ImageDatasetNode},
@@ -2709,13 +2703,12 @@ architecture has no canonical ImageNet checkpoint --- the user sees
 silently disappear, which is the small UX detail that decides
 whether people trust the interface.
 
-% [FIGURE NEEDED: Close-up of the ImageDatasetNode --- class chips, image count, thumbnail strip]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.75\textwidth]{figures/placeholder_ch7_fig5}
-%   \caption{ImageDatasetNode --- class chips, image count, thumbnail strip.}
-%   \label{fig:ch7_fig5}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.55\textwidth, keepaspectratio]{diagrams/dl_data_node}
+  \caption{ImageDatasetNode --- class chips, image count, thumbnail strip.}
+  \label{fig:ch7_fig5}
+\end{figure}
 
 \subsection{Live progress and inference}
 
@@ -2730,13 +2723,12 @@ inline immediately under the success alert. The user drops an image,
 the panel POSTs it to \texttt{/dl/predict/<version\_id>}, and the
 top-five softmax probabilities render as ranked horizontal bars.
 
-% [FIGURE NEEDED: DLPredictPanel screenshot --- dropped image preview, top-five softmax probabilities as ranked bars]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.85\textwidth]{figures/placeholder_ch7_fig6}
-%   \caption{Inline DL prediction panel --- top-five softmax probabilities.}
-%   \label{fig:ch7_fig6}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth, keepaspectratio]{diagrams/dl_test_1}
+  \caption{Inline ``Try it'' prediction --- a dropped image and the top-five softmax probabilities, above the trained DL pipeline.}
+  \label{fig:ch7_fig6}
+\end{figure}
 
 \subsection{Demo path end-to-end}
 
@@ -2961,13 +2953,12 @@ another user's cursor move across your screen is a small touch that
 makes the platform feel inhabited in a way that chat alone never
 quite does.
 
-% [FIGURE NEEDED: Side-by-side screenshot --- two browser windows on the same pipeline, each showing the other's cursor and node highlight]
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.95\textwidth]{figures/placeholder_ch8_fig5}
-%   \caption{Real-time presence --- two users editing the same pipeline.}
-%   \label{fig:ch8_fig5}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth, keepaspectratio]{diagrams/real_time_collab_messages}
+  \caption{Real-time collaboration --- two browser windows on the same pipeline, threaded chat syncing live between them.}
+  \label{fig:ch8_fig5}
+\end{figure}
 
 \subsection{Pipeline chat and Google Meet}
 
@@ -3121,7 +3112,7 @@ RG-28 & The platform runs on the free tier with no Stripe key configured; billin
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch9_fig5}
+  \includegraphics[width=0.95\textwidth, keepaspectratio]{diagrams/billing_and_plans_page}
   \caption{Billing page --- tier selection, Stripe checkout.}
   \label{fig:ch9_fig5}
 \end{figure}
@@ -3189,7 +3180,7 @@ The super-admin role gained a dedicated page with five panels:
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch9_fig7}
+  \includegraphics[width=0.95\textwidth, keepaspectratio]{diagrams/admin_ops_consol}
   \caption{Admin operations dashboard --- five-panel layout.}
   \label{fig:ch9_fig7}
 \end{figure}

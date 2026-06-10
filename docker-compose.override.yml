@@ -49,7 +49,7 @@ services:
       - ./services/ml-training-service:/app
       - uploaded_files:/uploads
       - model_artifacts:/models
-    command: celery -A app.tasks.celery_app worker --loglevel=debug -Q training --concurrency=1 --include=app.tasks.train
+    command: celery -A app.tasks.celery_app worker --loglevel=debug -Q training --pool=solo --include=app.tasks.train
 
   metrics-service:
     volumes:

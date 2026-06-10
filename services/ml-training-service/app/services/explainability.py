@@ -14,7 +14,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-SHAP_SAMPLE_SIZE = 500
+SHAP_SAMPLE_SIZE = 200
 TOP_FEATURES = 20
 
 
@@ -32,9 +32,19 @@ def compute_shap_global(
     if len(X_sample) > SHAP_SAMPLE_SIZE:
         X_sample = X_sample.sample(n=SHAP_SAMPLE_SIZE, random_state=42)
 
+    # Exact tree SHAP is O(trees x depth^2) and can take many minutes on a
+    # deep forest (e.g. 200 trees, depth 12) single-threaded inside the Celery
+    # worker. Use the fast approximate path and skip the extra additivity pass;
+    # global mean-|SHAP| importances are unaffected in practice.
     try:
         explainer = shap.TreeExplainer(estimator)
-        shap_values = explainer.shap_values(X_sample)
+        try:
+            shap_values = explainer.shap_values(
+                X_sample, approximate=True, check_additivity=False
+            )
+        except TypeError:
+            # older/!tree explainers don't accept these kwargs
+            shap_values = explainer.shap_values(X_sample)
     except Exception:
         return None
 

@@ -537,7 +537,7 @@ already on the market quite fits the problem. The no-code ML space
 is crowded, but the products in it cluster into families that all
 share the same blind spot.
 
-\section{\'Etude de l'existant}
+\section{Study of the Existing Solutions}
 
 Three categories of product dominate the space.
 
@@ -568,7 +568,7 @@ tabular path.
   \label{fig:ch2_fig1}
 \end{figure}
 
-\section{Critique de l'existant}
+\section{Limitations of the Existing Solutions}
 
 \subsection{Forced data exfiltration}
 
@@ -604,7 +604,7 @@ team that has a workstation and an ambition. A platform whose
 deployment story requires cluster administration is not really a
 self-hostable product; it is a hosted product that pretends.
 
-\section{Solution propos\'ee}
+\section{Proposed Solution}
 
 The platform sets out to satisfy four objectives at once.
 
@@ -645,7 +645,7 @@ our own runs --- enough latency budget for an interactive RAG chat.
   \label{fig:ch2_fig2}
 \end{figure}
 
-\section{Fondements techniques retenus}
+\section{Technical Foundations}
 
 The platform builds on four well-documented technique families. We
 summarise the relevant prior art here so the sprint chapters can
@@ -815,8 +815,7 @@ version is profiled and stored immutably, every training run is recorded
 and re-runnable (random seeds pinned, artefacts versioned in a
 registry), and training is monitored live rather than inspected only at
 the end. These conventions are what turn ``it trained once on my
-machine'' into a result a jury can reproduce
-(Annex~\ref{annex:validation}).
+machine'' into a result a jury can reproduce.
 
 \section{Product Backlog}
 
@@ -1061,7 +1060,7 @@ with the binary on a named volume; and user identity is never copied
 into Mongo because it is referenced back to the Postgres \texttt{users}
 table, which stays the single source of truth for auth and ACL.
 
-\subsection{Liste des collections et index}
+\subsection{Collections and Indexes}
 
 The document side of the platform uses seven collections in the
 \texttt{nocode\_ingestion} database. Their per-attribute data dictionary
@@ -1216,7 +1215,7 @@ Post-conditions & Account is now eligible for sign-in. \\
 \end{tabular}
 \end{table}
 
-\section{Règles métier}
+\section{Business Rules}
 
 The authentication and ingestion logic rests on a handful of rules
 the rest of the sprint enforces in code. Table~\ref{tab:sprint1_rules}
@@ -1604,7 +1603,7 @@ US-20 & Model export (joblib + generated FastAPI inference script). & Medium & 1
 \end{tabular}
 \end{table}
 
-\section{Règles métier}
+\section{Business Rules}
 
 A few rules govern how a pipeline may be built and run, and how a
 model version comes to exist. Table~\ref{tab:sprint2_rules} lists them.
@@ -2036,7 +2035,7 @@ the load-time difference was larger. For the deep-learning path in
 Sprint~4 we use \texttt{torch.save} on a \texttt{state\_dict()}
 instead --- a different ecosystem, a different convention.
 
-\subsection{R\'esultats}
+\subsection{Results}
 
 After a run completes, the \texttt{Evaluate} node and the results
 dashboard surface the outcome: the metric summary card
@@ -2120,7 +2119,7 @@ US-28 & Source-chunks chip showing retrieved chunks + similarity. & Low & 0.5 \\
 \end{tabular}
 \end{table}
 
-\section{Règles métier}
+\section{Business Rules}
 
 The RAG pipeline is governed by rules that keep its answers grounded
 and the data local. Table~\ref{tab:sprint3_rules} states them.
@@ -2141,7 +2140,7 @@ RG-15 & No document, embedding, or prompt ever leaves the local machine. \\
 \end{tabular}
 \end{table}
 
-\section{Concepts fondamentaux}
+\section{Core Concepts}
 
 Three concepts carry the weight of this sprint; the design and
 implementation sections below assume them.
@@ -2167,7 +2166,7 @@ provided context and to refuse rather than guess. This trades a
 training step for a retrieval step --- the right trade when the
 corpus changes faster than a fine-tune can keep up with.
 
-\section{Cycle de vie RAG (LLMOps)}
+\section{RAG Lifecycle (LLMOps)}
 
 Where the tabular sprint followed CRISP-DM, the RAG sprint follows a
 retrieval-and-generation lifecycle: the \emph{document} is the unit of
@@ -2314,7 +2313,7 @@ their cosine similarity scores, which gives the reader a way to
 verify the answer against the original source --- the closest thing
 to accountability that a generative system can offer.
 
-\subsection{R\'esultats}
+\subsection{Results}
 
 A query returns a streamed answer together with the ``$n$ sources used''
 chip, which lists the retrieved chunks and their cosine-similarity
@@ -2392,7 +2391,7 @@ US-36 & DL-mode canvas toggle with three new node components. & Medium & 1.5 \\
 \end{tabular}
 \end{table}
 
-\section{Règles métier}
+\section{Business Rules}
 
 Training on a 6\,GB GPU stays safe only because of a few hard rules.
 Table~\ref{tab:sprint4_rules} collects them.
@@ -2413,7 +2412,7 @@ RG-19 & Single-image inference (the ``Try it'' panel) is available only after a 
 \end{tabular}
 \end{table}
 
-\section{Concepts fondamentaux}
+\section{Core Concepts}
 
 \textbf{Convolutional layers.} A 2D convolution slides a small
 trainable kernel across the input image, producing a feature map
@@ -2439,7 +2438,7 @@ which doubles the optimiser-state memory compared to plain SGD.
 This factor is the dominant term in the VRAM guard's static estimate
 documented below.
 
-\section{Cycle de vie deep learning}
+\section{Deep-Learning Lifecycle}
 
 Image classification follows its own lifecycle --- close to MLOps, but
 with a hardware-feasibility gate tabular ML does not need: a run must be
@@ -2761,7 +2760,7 @@ oversize-refusal path, the demo run, and the polling loop. The
 script has caught regressions in seemingly unrelated services more
 than once.
 
-\subsection{R\'esultats}
+\subsection{Results}
 
 Three results matter for the deep-learning flow: the ingested image
 dataset (class chips and per-class counts), the per-epoch training
@@ -2844,7 +2843,7 @@ US-42 & Per-pipeline notification fan-out. & Medium & 0.5 \\
 \end{tabular}
 \end{table}
 
-\section{Règles métier}
+\section{Business Rules}
 
 Collaboration is governed by the role a member holds on a given
 pipeline. Table~\ref{tab:sprint5_rules} states the rules that follow
@@ -2867,7 +2866,7 @@ RG-24 & A role is enforced on the server; the client-side disabling of buttons i
 \end{tabular}
 \end{table}
 
-\section{Concepts fondamentaux}
+\section{Core Concepts}
 
 \textbf{SocketIO rooms.} A room is a server-side label that groups
 client connections; emitting to a room fans the message out to every
@@ -3048,7 +3047,7 @@ US-50 & Undo / redo on the canvas with drag-coalescing. & Medium & 1 \\
 \end{tabular}
 \end{table}
 
-\section{Règles métier}
+\section{Business Rules}
 
 The operability features carry their own rules, mostly around tiers
 and the impersonation window. Table~\ref{tab:sprint6_rules} lists them.
@@ -3078,13 +3077,6 @@ RG-28 & The platform runs on the free tier with no Stripe key configured; billin
   \label{fig:ch9_fig1}
 \end{figure}
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch9_fig2}
-  \caption{Wireframe --- user dashboard with datasets, pipelines, versions.}
-  \label{fig:ch9_fig2}
-\end{figure}
-
 \begin{figure}[p]
   \centering
   \includegraphics[width=\textwidth, height=0.9\textheight, keepaspectratio]{diagrams/ch9_fig3}
@@ -3103,12 +3095,6 @@ RG-28 & The platform runs on the free tier with no Stripe key configured; billin
 
 \subsection{The user dashboard and billing UI}
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.85\textwidth, keepaspectratio]{diagrams/ch9_fig4}
-  \caption{User dashboard --- datasets, pipelines, model versions, quota.}
-  \label{fig:ch9_fig4}
-\end{figure}
 
 \begin{figure}[H]
   \centering
@@ -3752,32 +3738,6 @@ San Diego, CA, USA, May 2015.
   {\normalfont\fontsize{16}{19}\bfseries}
   {Annex \thechapter\;---}{0.6em}{}
 
-\chapter{Repository layout}
-\label{annex:repo}
-
-The full source tree of the platform is available at
-\url{https://github.com/WhatIsThePoint/No-Code-AI-Platform-}.
-
-\begin{itemize}
-    \item \texttt{services/} --- the six Python microservices
-        (\texttt{api-gateway}, \texttt{auth-service},
-        \texttt{data-ingestion-service}, \texttt{ml-training-service},
-        \texttt{metrics-service}, \texttt{dl-training-service}).
-    \item \texttt{frontend/} --- the React + TypeScript single-page app.
-    \item \texttt{infra/} --- Postgres seed file, test DB fixtures
-        (Postgres + MySQL), sample CSVs.
-    \item \texttt{scripts/} --- demo seeds (synthetic image dataset),
-        smoke tests, screenshot tours.
-    \item \texttt{docs/} --- the demo-day runbook, the report audit
-        notes, the PFE submission decks (FR + EN), and the
-        tour-captured screenshots.
-    \item \texttt{diagrams/} --- 35 PlantUML sources, 8 matplotlib
-        chart generators, and the rendered PNGs that ship inside this
-        report.
-    \item \texttt{docker-compose.yml} --- one-command bring-up of the
-        full 15-container stack.
-\end{itemize}
-
 \chapter{Demo accounts and credentials}
 \label{annex:accounts}
 
@@ -3824,44 +3784,7 @@ critical ones for the demo:
 \end{tabular}
 \end{table}
 
-\chapter{Re-running the validation experiments}
-\label{annex:validation}
-
-The two reference validation runs reported in the General Conclusion
-can be reproduced on any GTX 1660 Super class machine.
-
-\paragraph{Tabular ML reference run.}
-\begin{enumerate}
-    \item \texttt{make up} to bring the stack online.
-    \item \texttt{make seed} to load the demo users.
-    \item Sign in as \texttt{alice@acme-ml.com}.
-    \item Datasets $\to$ Load Demo Dataset $\to$ \textbf{Salary (250 k rows)}.
-    \item Pipelines $\to$ New Pipeline $\to$ ML mode $\to$ ML starter
-        template.
-    \item Train node: algorithm \texttt{random\_forest}, task
-        \texttt{regression}, target \texttt{salary}, n\_estimators
-        $= 200$, max\_depth $= 12$.
-    \item Click Run. Expected: $R^2$ between $0.97$ and $0.98$ in
-        roughly $4$\,min on the demo machine.
-\end{enumerate}
-
-\paragraph{Deep-learning reference run.}
-\begin{enumerate}
-    \item \texttt{python3 scripts/seed\_demo\_image\_dataset.py
-        /tmp/demo\_images.zip} to mint the synthetic 30-image,
-        3-class dataset.
-    \item Upload the zip via the Image Dataset upload route.
-    \item Pipelines $\to$ New Pipeline $\to$ DL mode $\to$ DL starter
-        template.
-    \item Arch node: \texttt{tiny\_resnet} at $64$\,px,
-        pretrained \texttt{false}.
-    \item Train node: $5$ epochs, batch $32$, lr $0.001$.
-    \item Click Run. Expected: terminal validation accuracy averaging
-        $\sim 97\%$ across five runs in roughly $30$\,seconds on a
-        1660 Super.
-\end{enumerate}
-
-\chapter{Dictionnaire de donn\'ees --- collections MongoDB}
+\chapter{Data Dictionary --- MongoDB Collections}
 \label{annex:datadict}
 
 Per-attribute data dictionary for the seven MongoDB collections
